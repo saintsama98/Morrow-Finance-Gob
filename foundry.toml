@@ -1,0 +1,29 @@
+[profile.default]
+src = "contracts/src"
+test = "contracts/test"
+out = "contracts/out"
+libs = ["contracts/lib"]
+remappings = [
+    "@morpho-org/midnight/=contracts/lib/midnight/",
+    "forge-std/=contracts/lib/forge-std/src/",
+    "@openzeppelin/contracts/=contracts/lib/openzeppelin-contracts/contracts/",
+]
+
+solc = "0.8.34"
+evm_version = "osaka"
+optimizer = true
+optimizer_runs = 200
+
+fuzz = { runs = 10000 }
+invariant = { runs = 512, depth = 128, fail_on_revert = false }
+
+fs_permissions = [
+    { access = "read", path = "sim/vectors" },
+]
+
+# cairo, hardhat, truffle
+[fmt]
+line_length = 120
+
+[doc]
+out = "docs/generated"
