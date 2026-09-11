@@ -4,5 +4,14 @@
       "name": "v1.16.2",
       "rev": "bf647bd6046f2f7da30d0c2bf435e5c76a780c1b"
     }
+  },
+  "contracts/lib/midnight": {
+    "rev": "70607569ac348e9880b512ffd3b574be55405932"
+  },
+  "contracts/lib/openzeppelin-contracts": {
+    "tag": {
+      "name": "v5.7.0",
+      "rev": "cab19933c33c2ad1d4c7a84864a3601dddfd16f3"
+    }
   }
 }
