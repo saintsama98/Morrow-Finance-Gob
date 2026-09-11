@@ -4,3 +4,6 @@
 [submodule "contracts/lib/midnight"]
 	path = contracts/lib/midnight
 	url = https://github.com/morpho-org/midnight
+[submodule "contracts/lib/openzeppelin-contracts"]
+	path = contracts/lib/openzeppelin-contracts
+	url = https://github.com/OpenZeppelin/openzeppelin-contracts
