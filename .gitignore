@@ -7,3 +7,6 @@ broadcast/*/dry-run/
 
 __pycache__/
 *.pyc
+
+# pre-beta / confidential build docs: kept locally, never tracked
+docs/
