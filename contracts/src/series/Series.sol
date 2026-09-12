@@ -36,6 +36,7 @@ contract Series is IBuyCallback {
     error CapExceeded(uint256 i);
     error PriceFloorBreached(uint256 i, uint256 priceWad, uint256 maxWad);
     error ZeroUnits();
+    error UnitsMismatch();
     error MarketMismatch(bytes32 expected, bytes32 actual);
     error AlreadyFilled();
     error InvalidTree();
@@ -396,6 +397,57 @@ contract Series is IBuyCallback {
 
         emit Filled(i, buyerAssets, units, priceWad, true);
         return bytes32(keccak256("morpho.midnight.callbackSuccess"));
+    }
+
+    /// @dev section 10.5, taker path: the allocator has found an existing sell offer (ask) below the floor
+    /// price and the series takes it directly, paying from its own parked balance. Used when the maker path
+    /// (the default) isn't available or a cheaper fill exists. `receiverIfTakerIsSeller` is forced to
+    /// `address(0)` because the series is the buyer -- Midnight itself enforces that this must be zero in
+    /// that case.
+    function deployTake(uint256 i, Offer calldata offer, bytes calldata ratifierData, uint256 units)
+        external
+        onlyAllocator
+        nonReentrant
+        inState(SeriesState.DEPLOYING)
+    {
+        require(block.timestamp <= T_DEPLOY_END, TooLate(block.timestamp));
+        bytes32 id = _marketIds[i];
+        require(IdLib.toId(offer.market) == id && !offer.buy, MarketMismatch(id, IdLib.toId(offer.market)));
+
+        uint256 ttm = T > block.timestamp ? T - block.timestamp : 0;
+        uint256 fee = MIDNIGHT.settlementFee(id, ttm);
+        uint256 price = TickLib.tickToPrice(offer.tick);
+        uint256 maxAssets = units.mulDivUp(price + fee, WadMath.WAD);
+
+        uint256 kAlloc = seniorAllocated + juniorAllocated;
+        require(filled[i] + maxAssets <= _marketCapAssets[i], CapExceeded(i));
+        require(totalFilled + maxAssets <= kAlloc, CapExceeded(i));
+
+        PARKING.withdraw(maxAssets, address(this));
+        ERC20Lib.safeApprove(USDC, address(MIDNIGHT), maxAssets);
+
+        (uint128 creditBefore, uint128 pendingFeeBefore,) = MIDNIGHT.updatePositionView(offer.market, id, address(this));
+        (uint256 buyerAssets,) = MIDNIGHT.take(offer, ratifierData, units, address(this), address(0), address(0), "");
+        (uint128 creditAfter, uint128 pendingFeeAfter,) = MIDNIGHT.updatePositionView(offer.market, id, address(this));
+
+        require(uint256(creditAfter) - uint256(creditBefore) == units, UnitsMismatch());
+
+        uint256 priceWad = buyerAssets.mulDivUp(WadMath.WAD, units);
+        require(priceWad <= _priceMax(i), PriceFloorBreached(i, priceWad, _priceMax(i)));
+
+        if (maxAssets > buyerAssets) {
+            uint256 leftover = maxAssets - buyerAssets;
+            ERC20Lib.safeApprove(USDC, address(PARKING), leftover);
+            PARKING.deposit(leftover);
+        }
+        ERC20Lib.safeApprove(USDC, address(MIDNIGHT), 0);
+
+        filled[i] += buyerAssets;
+        unitsBought[i] += units;
+        feeCrystallized[i] += uint256(pendingFeeAfter) - uint256(pendingFeeBefore);
+        totalFilled += buyerAssets;
+
+        emit Filled(i, buyerAssets, units, priceWad, false);
     }
 
     // --- section 11: finalize ------------------------------------------------------------------------------

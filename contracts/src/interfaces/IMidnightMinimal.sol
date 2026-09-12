@@ -27,6 +27,9 @@ interface IMidnightMinimal {
 
     function setConsumed(bytes32 group, uint128 amount, address onBehalf) external;
 
+    /// @dev Piecewise linear interpolation between the market's settlement fee breakpoints (section 2.4).
+    function settlementFee(bytes32 id, uint256 timeToMaturity) external view returns (uint256);
+
     function touchMarket(Market memory market) external returns (bytes32);
 
     function toMarket(bytes32 id) external view returns (Market memory);
