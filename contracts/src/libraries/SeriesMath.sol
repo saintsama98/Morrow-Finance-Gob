@@ -63,6 +63,7 @@ library SeriesMath {
         uint256 claimOverFace = r.seniorClaim.mulDivUp(WAD, faceNetAtFinalize);
         r.attachmentWad = claimOverFace >= WAD ? 0 : WAD - claimOverFace;
 
+        // forge-lint: disable-next-line(unsafe-typecast) USDC face/claim amounts stay far below 2^255
         r.buffer0 = int256(faceNetAtFinalize) - int256(r.seniorClaim);
     }
 
