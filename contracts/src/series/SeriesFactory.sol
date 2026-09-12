@@ -4,6 +4,8 @@ pragma solidity 0.8.34;
 import {Market} from "@morpho-org/midnight/src/interfaces/IMidnight.sol";
 import {IMidnightMinimal} from "../interfaces/IMidnightMinimal.sol";
 import {MidnightReader} from "../libraries/MidnightReader.sol";
+import {SeriesParams} from "../interfaces/ISeries.sol";
+import {Series} from "./Series.sol";
 
 /// @dev Factory allowlists and per-series eligibility checks, section 7. The factory is the only place basket
 /// eligibility is enforced on chain (E1-E6); everything else about a proposed series (params, S/J split,
@@ -30,6 +32,7 @@ contract SeriesFactory {
     uint256 internal constant TIMELOCK = 48 hours;
 
     IMidnightMinimal public immutable MIDNIGHT;
+    address public immutable SETTER_RATIFIER;
     address public immutable USDC;
     address public governance;
     address public core;
@@ -64,10 +67,17 @@ contract SeriesFactory {
         _;
     }
 
-    constructor(IMidnightMinimal midnight, address usdc, address governance_, uint256 initialMaxLltvWad, uint256 initialMaxMarketsPerSeries)
-    {
+    constructor(
+        IMidnightMinimal midnight,
+        address setterRatifier,
+        address usdc,
+        address governance_,
+        uint256 initialMaxLltvWad,
+        uint256 initialMaxMarketsPerSeries
+    ) {
         require(_decimalsOf(usdc) == USDC_DECIMALS, DecimalsNotSix());
         MIDNIGHT = midnight;
+        SETTER_RATIFIER = setterRatifier;
         USDC = usdc;
         governance = governance_;
         maxLltvWad = initialMaxLltvWad <= HARD_MAX_LLTV_WAD ? initialMaxLltvWad : HARD_MAX_LLTV_WAD;
@@ -153,6 +163,41 @@ contract SeriesFactory {
         PendingChange memory change = pendingChanges[id];
         require(change.active && block.timestamp >= change.executableAt, TimelockNotElapsed());
         delete pendingChanges[id];
+    }
+
+    // --- series creation (section 7.4, section 8.2) -------------------------------------------------------
+
+    error InvalidCovBand();
+    error InvalidPremiumAnchors();
+    error ThetaAboveCeiling();
+    error ZeroRateFloor();
+    error MarketArrayLengthMismatch();
+
+    modifier onlyCore() {
+        require(msg.sender == core, NotCore());
+        _;
+    }
+
+    /// @dev Runs eligibility (E1-E6) plus the static SeriesParams validation of section 7.4 that doesn't
+    /// depend on S/J (those aren't known yet -- the core calls this before computing the allocation split;
+    /// the sum(marketCapAssets) >= K_alloc check happens in Series.initialize once S/J are known). Deploys a
+    /// full Series contract (not a clone, section 4) and returns its address; the core funds and calls
+    /// initialize() separately (section 8.2).
+    function createSeries(SeriesParams calldata p) external onlyCore returns (address series) {
+        require(
+            p.rateFloorWad.length == p.marketIds.length && p.marketCapAssets.length == p.marketIds.length,
+            MarketArrayLengthMismatch()
+        );
+        require(p.covWad >= 0.05e18 && p.covWad <= 0.50e18, InvalidCovBand());
+        require(p.pi0Wad <= p.piTWad && p.piTWad <= p.pi1Wad && p.pi1Wad < 1e18, InvalidPremiumAnchors());
+        require(p.thetaWad <= 0.20e18, ThetaAboveCeiling());
+        for (uint256 i = 0; i < p.rateFloorWad.length; i++) {
+            require(p.rateFloorWad[i] > 0, ZeroRateFloor());
+        }
+
+        Market[] memory markets = checkEligibility(p.marketIds);
+
+        series = address(new Series(MIDNIGHT, SETTER_RATIFIER, USDC, core, markets, p));
     }
 
     // --- eligibility (section 7.2) ------------------------------------------------------------------------

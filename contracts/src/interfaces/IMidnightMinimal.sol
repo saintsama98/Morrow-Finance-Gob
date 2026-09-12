@@ -25,6 +25,8 @@ interface IMidnightMinimal {
 
     function setIsAuthorized(address authorized, bool newIsAuthorized, address onBehalf) external;
 
+    function setConsumed(bytes32 group, uint128 amount, address onBehalf) external;
+
     function touchMarket(Market memory market) external returns (bytes32);
 
     function toMarket(bytes32 id) external view returns (Market memory);
