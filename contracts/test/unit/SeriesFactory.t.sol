@@ -18,7 +18,7 @@ contract SeriesFactoryTest is Test, MidnightHarness {
 
     function setUp() public {
         _setUpMidnightHarness();
-        factory = new SeriesFactory(IMidnightMinimal(address(midnight)), address(usdc), governance, 0.86e18, 4);
+        factory = new SeriesFactory(IMidnightMinimal(address(midnight)), address(setterRatifier), address(usdc), governance, 0.86e18, 4);
 
         vm.startPrank(governance);
         _allow(cbBTC, address(cbBtcOracle));
@@ -40,7 +40,7 @@ contract SeriesFactoryTest is Test, MidnightHarness {
         // a token with no decimals() to trigger the revert path.
         address badToken = address(new NoDecimals());
         vm.expectRevert(SeriesFactory.DecimalsNotSix.selector);
-        new SeriesFactory(IMidnightMinimal(address(midnight)), badToken, governance, 0.86e18, 4);
+        new SeriesFactory(IMidnightMinimal(address(midnight)), address(setterRatifier), badToken, governance, 0.86e18, 4);
     }
 
     function test_eligibility_happyPath() public {
