@@ -21,6 +21,15 @@ contract StubCore {
     uint256 public lastPayoutToSenior;
     uint256 public lastPayoutToJunior;
 
+    /// @dev Cumulative totals, additive on top of the "last call" fields above so existing tests that check
+    /// lastReturnTo*/lastPayoutTo* are unaffected. Used as ghost variables by the invariant suite (M4).
+    uint256 public cumReturnToSenior;
+    uint256 public cumReturnToJunior;
+    uint256 public cumPayoutToSenior;
+    uint256 public cumPayoutToJunior;
+    mapping(address => bool) public isKnownSeries;
+    address[] public knownSeries;
+
     constructor(address usdc_, address sentinel_) {
         usdc = usdc_;
         sentinel = sentinel_;
@@ -34,15 +43,26 @@ contract StubCore {
         require(IERC20Mintable(usdc).transfer(series, seniorAmount + juniorAmount), "transfer failed");
         (bool ok,) = series.call(abi.encodeWithSignature("initialize(uint256,uint256)", seniorAmount, juniorAmount));
         require(ok, "initialize failed");
+
+        isKnownSeries[series] = true;
+        knownSeries.push(series);
+    }
+
+    function knownSeriesCount() external view returns (uint256) {
+        return knownSeries.length;
     }
 
     function receiveReturn(uint256 toSenior, uint256 toJunior) external {
         lastReturnToSenior = toSenior;
         lastReturnToJunior = toJunior;
+        cumReturnToSenior += toSenior;
+        cumReturnToJunior += toJunior;
     }
 
     function receivePayout(uint256 toSenior, uint256 toJunior) external {
         lastPayoutToSenior = toSenior;
         lastPayoutToJunior = toJunior;
+        cumPayoutToSenior += toSenior;
+        cumPayoutToJunior += toJunior;
     }
 }

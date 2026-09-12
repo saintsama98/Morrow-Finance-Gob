@@ -611,7 +611,13 @@ contract Series is IBuyCallback {
             return (0, 0, 0);
         }
 
-        uint256 tau = T - tFinalize;
+        // T > tFinalize in every normal path (tDeployEnd < T - MIN_TERM is enforced at construction, and
+        // finalize can only run during DEPLOYING, i.e. before tDeployEnd). But nothing forces finalize() to be
+        // called promptly -- anyone can call it after tDeployEnd, and if nobody does until at or after T, tau
+        // would naively underflow. Floor it at 0: nav then shows no accretion yet rather than reverting: a
+        // safe, conservative display value for a degenerate case that never affects actual settlement (collect
+        // /settle read real proceeds, not this estimate).
+        uint256 tau = T > tFinalize ? T - tFinalize : 0;
         uint256 elapsed = state == SeriesState.SETTLING ? tau : block.timestamp - tFinalize;
         uint256 faceLoss = _faceLossNow();
 
