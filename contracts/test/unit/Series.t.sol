@@ -5,8 +5,9 @@ import {Test} from "forge-std/Test.sol";
 import {Market, Offer} from "@morpho-org/midnight/src/interfaces/IMidnight.sol";
 import {HashLib} from "@morpho-org/midnight/src/ratifiers/libraries/HashLib.sol";
 import {UtilsLib} from "@morpho-org/midnight/src/libraries/UtilsLib.sol";
-import {TickLib} from "@morpho-org/midnight/src/libraries/TickLib.sol";
+import {TickLib, MAX_TICK} from "@morpho-org/midnight/src/libraries/TickLib.sol";
 import {ORACLE_PRICE_SCALE, CALLBACK_SUCCESS} from "@morpho-org/midnight/src/libraries/ConstantsLib.sol";
+import {DummyRatifier} from "@morpho-org/midnight/test/helpers/DummyRatifier.sol";
 
 import {MidnightHarness} from "../mocks/MidnightHarness.sol";
 import {MockUSDC} from "../mocks/MockUSDC.sol";
@@ -281,5 +282,94 @@ contract SeriesTest is Test, MidnightHarness {
         assertFalse(series.passThrough());
         assertEq(series.seniorDeployed() + series.juniorDeployed(), series.totalFilled());
         assertGt(series.seniorClaim(), 0);
+    }
+
+    // --- taker path (section 10.5) --------------------------------------------------------------------------
+
+    /// @dev Sets up an existing lender with a real credit position (by having a separate borrower take their
+    /// buy offer, via a permissive DummyRatifier unrelated to our SetterRatifier), then has that lender post a
+    /// sell offer (ask) for that same position. Returns the ask offer ready for our series to take.
+    function _setUpExistingAskFromLender(uint256 units, uint256 askTick)
+        internal
+        returns (address existingLender, Offer memory ask)
+    {
+        existingLender = makeAddr("existingLender");
+        DummyRatifier dummy = new DummyRatifier();
+
+        vm.prank(existingLender);
+        midnight.setIsAuthorized(address(dummy), true, existingLender);
+
+        usdc.mint(existingLender, units * 2); // headroom for the buy leg
+        vm.startPrank(existingLender);
+        usdc.approve(address(midnight), type(uint256).max);
+        vm.stopPrank();
+
+        Offer memory lenderBuyOffer;
+        lenderBuyOffer.market = market;
+        lenderBuyOffer.buy = true;
+        lenderBuyOffer.maker = existingLender;
+        lenderBuyOffer.maxUnits = 0;
+        lenderBuyOffer.maxAssets = type(uint128).max;
+        lenderBuyOffer.continuousFeeCap = type(uint256).max;
+        lenderBuyOffer.group = keccak256("existing-lender-buy");
+        lenderBuyOffer.ratifier = address(dummy);
+        lenderBuyOffer.expiry = block.timestamp + 1 days;
+        lenderBuyOffer.tick = MAX_TICK;
+
+        address otherBorrower = makeAddr("otherBorrowerForAsk");
+        _collateralizeAndBorrow(otherBorrower, units);
+        vm.prank(otherBorrower);
+        midnight.take(lenderBuyOffer, "", units, otherBorrower, otherBorrower, address(0), "");
+
+        ask.market = market;
+        ask.buy = false;
+        ask.maker = existingLender;
+        ask.receiverIfMakerIsSeller = existingLender;
+        ask.maxUnits = 0;
+        ask.maxAssets = type(uint128).max;
+        ask.continuousFeeCap = type(uint256).max;
+        ask.group = keccak256("existing-lender-sell");
+        ask.ratifier = address(dummy);
+        ask.expiry = block.timestamp + 1 days;
+        ask.tick = askTick;
+    }
+
+    function test_deployTake_takerPath_realFillThroughMidnight() public {
+        Series series = _openAndFund(900_000e6, 200_000e6);
+        uint256 units = 50_000e6;
+
+        (, Offer memory ask) = _setUpExistingAskFromLender(units, series.tickMaxFor(0));
+
+        vm.prank(allocator);
+        series.deployTake(0, ask, "", units);
+
+        assertEq(series.unitsBought(0), units, "units recorded");
+        assertGt(series.filled(0), 0, "assets recorded");
+        assertEq(series.totalFilled(), series.filled(0));
+
+        (uint128 credit,,) = midnight.updatePositionView(market, marketId, address(series));
+        assertEq(uint256(credit), units, "series must hold the credit it just bought");
+    }
+
+    /// @dev deployTake requires a sell offer (offer.buy == false); the taker path only exists to take existing
+    /// asks (section 10.5), never to duplicate the maker path's bids.
+    function test_deployTake_wrongOfferSide_reverts() public {
+        Series series = _openAndFund(900_000e6, 200_000e6);
+        uint256 units = 50_000e6;
+        (, Offer memory ask) = _setUpExistingAskFromLender(units, series.tickMaxFor(0));
+        ask.buy = true;
+
+        vm.prank(allocator);
+        vm.expectRevert(abi.encodeWithSelector(Series.MarketMismatch.selector, marketId, marketId));
+        series.deployTake(0, ask, "", units);
+    }
+
+    function test_deployTake_onlyAllocator_reverts() public {
+        Series series = _openAndFund(900_000e6, 200_000e6);
+        uint256 units = 50_000e6;
+        (, Offer memory ask) = _setUpExistingAskFromLender(units, series.tickMaxFor(0));
+
+        vm.expectRevert(Series.NotAllocator.selector);
+        series.deployTake(0, ask, "", units);
     }
 }
