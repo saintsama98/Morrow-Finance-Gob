@@ -7,3 +7,6 @@ broadcast/*/dry-run/
 
 __pycache__/
 *.pyc
+
+# docs
+docs/
