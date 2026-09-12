@@ -45,6 +45,8 @@ contract Series is IBuyCallback {
     error InsufficientCash();
     error CapacityBelowAllocation();
     error InvalidTiming();
+    error NotResolved(uint256 i);
+    error TransferMismatch();
 
     // --- events (section 17 subset) --------------------------------------------------------------------------
 
@@ -69,6 +71,13 @@ contract Series is IBuyCallback {
         bool negativeCarry
     );
     event Canceled(uint256 toSenior, uint256 toJunior);
+    event SettlementStarted();
+    event Collected(uint256 indexed i, uint256 received, uint256 proceedsCum, bool resolved);
+    event WrittenOff(uint256 proceedsCum);
+    event Waterfall(uint256 proceeds, uint256 seniorPaid, uint256 juniorPaid, uint256 fee, uint256 dSenior, uint256 dJunior);
+    event Settled(uint256 proceeds);
+    event FeeClaimed(uint256 amount);
+    event BufferUpdated(uint256 indexed i, uint256 credit, uint256 faceNetAtT, int256 buffer, uint256 lossAtT);
 
     // --- immutables -------------------------------------------------------------------------------------------
 
@@ -133,6 +142,18 @@ contract Series is IBuyCallback {
     uint256 public faceGross; // F
     uint256 public faceNetAtFinalize; // F_net at tFinalize
     bool public negativeCarry;
+
+    // --- settlement (section 12, 13) -----------------------------------------------------------------------
+
+    uint256 public tSettled;
+    mapping(uint256 => uint256) public collected; // collected_i, cumulative usdc withdrawn from market i
+    mapping(uint256 => bool) public resolved; // resolved_i
+    mapping(uint256 => bool) public writtenOff; // writtenOff_i
+
+    uint256 public paidS; // cumulative XS pushed to the core so far
+    uint256 public paidJ; // cumulative XJ pushed to the core so far
+    uint256 public feeAccounted; // cumulative operator fee recognized by the waterfall so far
+    uint256 public feeClaimed; // cumulative fee actually paid out to FEE_RECIPIENT so far (<= feeAccounted)
 
     // --- modifiers -----------------------------------------------------------------------------------------
 
@@ -539,6 +560,211 @@ contract Series is IBuyCallback {
             passThrough,
             r.negativeCarry
         );
+    }
+
+    // --- section 12: accounting -----------------------------------------------------------------------------
+
+    /// @dev section 12.2: F_net(t) = sum over i of (E_i(t) + collected_i), where E_i(t) = credit_i(t) -
+    /// pendingFee_i(t). View-only; does not accrue/realize the latest loss factor on chain (that's sync's job).
+    function _faceNetNow() internal view returns (uint256 fNetNow) {
+        uint256 length = _marketIds.length;
+        for (uint256 i = 0; i < length; i++) {
+            (uint128 credit, uint128 pendingFee,) = MIDNIGHT.updatePositionView(_markets[i], _marketIds[i], address(this));
+            fNetNow += (uint256(credit) - uint256(pendingFee)) + collected[i];
+        }
+    }
+
+    /// @dev section 12.2: L(t) = F_net - F_net(t), realized face loss since finalize, floored at 0.
+    function _faceLossNow() internal view returns (uint256) {
+        uint256 fNetNow = _faceNetNow();
+        return faceNetAtFinalize > fNetNow ? faceNetAtFinalize - fNetNow : 0;
+    }
+
+    /// @dev section 12.3: permissionless, writes the latest loss factor and fee accrual for market i on chain,
+    /// then emits the series-wide buffer view (not just market i's own state) so integrators can react.
+    function sync(uint256 i) external {
+        MIDNIGHT.updatePosition(_markets[i], address(this));
+
+        uint256 fNetNow = _faceNetNow();
+        int256 bufferAtT = int256(fNetNow) - int256(seniorClaim);
+        uint256 lossAtT = _faceLossNow();
+        (uint128 creditI,,) = MIDNIGHT.updatePositionView(_markets[i], _marketIds[i], address(this));
+
+        emit BufferUpdated(i, creditI, fNetNow, bufferAtT, lossAtT);
+    }
+
+    /// @dev section 12.4 display navs. DEPLOYING values the parked + spent-on-fills balance pro rata by a;
+    /// SETTLED/CANCELED are always 0 (everything already pushed to the core); LOCKED/SETTLING use SeriesMath's
+    /// nav (or the pass-through split) with `s` capped at tau once SETTLING.
+    function _navs() internal view returns (uint256 navS, uint256 navJ, uint256 feeAccrued) {
+        if (state == SeriesState.DEPLOYING) {
+            uint256 kAlloc = seniorAllocated + juniorAllocated;
+            if (kAlloc == 0) return (0, 0, 0);
+            uint256 value = PARKING.totalAssets(address(this)) + totalFilled;
+            uint256 aWad = juniorAllocated.wDivDown(kAlloc);
+            navS = value.mulDivDown(WadMath.WAD - aWad, WadMath.WAD);
+            navJ = value - navS;
+            return (navS, navJ, 0);
+        }
+
+        if (state == SeriesState.SETTLED || state == SeriesState.CANCELED) {
+            return (0, 0, 0);
+        }
+
+        uint256 tau = T - tFinalize;
+        uint256 elapsed = state == SeriesState.SETTLING ? tau : block.timestamp - tFinalize;
+        uint256 faceLoss = _faceLossNow();
+
+        if (passThrough) {
+            uint256 s = elapsed > tau ? tau : elapsed;
+            uint256 accretion = (tau > 0 && faceNetAtFinalize >= totalFilled)
+                ? (faceNetAtFinalize - totalFilled).mulDivDown(s, tau)
+                : 0;
+            uint256 grossV = totalFilled + accretion;
+            uint256 v = grossV > faceLoss ? grossV - faceLoss : 0;
+            (navS, navJ) = SeriesMath.navPassThrough(v, seniorDeployed, totalFilled);
+            return (navS, navJ, 0);
+        }
+
+        return SeriesMath.nav(
+            elapsed, tau, totalFilled, faceNetAtFinalize, faceLoss, seniorDeployed, seniorClaim, juniorDeployed, THETA_WAD
+        );
+    }
+
+    function navs() external view returns (uint256 navS, uint256 navJ, uint256 feeAccrued) {
+        return _navs();
+    }
+
+    /// @dev Writes the latest loss factor/fee accrual for every basket market first (section 12.3), then
+    /// returns the same computation navs() would. Sync only ever lowers the numbers -- updatePositionView
+    /// already reflects the live value, so this call's on-chain effect is on Midnight's own storage, not on
+    /// the result returned here.
+    function navsSynced() external returns (uint256 navS, uint256 navJ, uint256 feeAccrued) {
+        uint256 length = _marketIds.length;
+        for (uint256 i = 0; i < length; i++) {
+            MIDNIGHT.updatePosition(_markets[i], address(this));
+        }
+        return _navs();
+    }
+
+    // --- section 13: settlement -------------------------------------------------------------------------------
+
+    function startSettlement() external inState(SeriesState.LOCKED) {
+        require(block.timestamp >= T, TooEarly(block.timestamp));
+        state = SeriesState.SETTLING;
+        emit SettlementStarted();
+    }
+
+    /// @dev section 13.2. Callable in LOCKED, SETTLING or SETTLED -- collecting before maturity is allowed on
+    /// purpose (section 2.5): withdrawable liquidity is shared by all lenders first-come-first-served, and
+    /// taking it at par is strictly good for the series. A receipt after SETTLED is a recovery and reruns the
+    /// waterfall immediately.
+    function collect(uint256 i) external nonReentrant returns (uint256 received) {
+        require(
+            state == SeriesState.LOCKED || state == SeriesState.SETTLING || state == SeriesState.SETTLED,
+            WrongState(SeriesState.SETTLING, state)
+        );
+
+        bytes32 id = _marketIds[i];
+        Market memory m = _markets[i];
+
+        MIDNIGHT.updatePosition(m, address(this));
+        (uint128 credit,,) = MIDNIGHT.updatePositionView(m, id, address(this));
+        uint128 withdrawableNow = MIDNIGHT.withdrawable(id);
+        uint256 units = uint256(credit) < uint256(withdrawableNow) ? uint256(credit) : uint256(withdrawableNow);
+        if (units == 0) return 0;
+
+        uint256 balBefore = IERC20Like(USDC).balanceOf(address(this));
+        MIDNIGHT.withdraw(m, units, address(this), address(this));
+        received = IERC20Like(USDC).balanceOf(address(this)) - balBefore;
+        require(received == units, TransferMismatch());
+
+        collected[i] += received;
+        ERC20Lib.safeApprove(USDC, address(PARKING), received);
+        PARKING.deposit(received);
+
+        (uint128 creditAfter,,) = MIDNIGHT.updatePositionView(m, id, address(this));
+        if (block.timestamp > T && creditAfter == 0) resolved[i] = true;
+
+        emit Collected(i, received, _proceeds(), resolved[i]);
+
+        if (state == SeriesState.SETTLED) _rerunWaterfall();
+    }
+
+    /// @dev section 13.3: anyone, once every market is resolved.
+    function settle() external inState(SeriesState.SETTLING) {
+        uint256 length = _marketIds.length;
+        for (uint256 i = 0; i < length; i++) {
+            require(resolved[i], NotResolved(i));
+        }
+        _rerunWaterfall();
+        state = SeriesState.SETTLED;
+        tSettled = block.timestamp;
+        emit Settled(_proceeds());
+    }
+
+    /// @dev section 13.4: time-based only. Written-off markets keep their credit; collect() stays callable on
+    /// them forever, and every later receipt flows through _rerunWaterfall() as a recovery.
+    function writeOff() external inState(SeriesState.SETTLING) {
+        require(block.timestamp >= T + D_WRITE_OFF, TooEarly(block.timestamp));
+        uint256 length = _marketIds.length;
+        for (uint256 i = 0; i < length; i++) {
+            if (!resolved[i]) writtenOff[i] = true;
+        }
+        _rerunWaterfall();
+        state = SeriesState.SETTLED;
+        tSettled = block.timestamp;
+        emit WrittenOff(_proceeds());
+    }
+
+    /// @dev section 13.2: cumulative proceeds P. Cash pushed to the core (paidS + paidJ) and fee already paid
+    /// out (feeClaimed) are never double counted since they're added back explicitly, not re-read from a
+    /// balance that no longer holds them.
+    function _proceeds() internal view returns (uint256) {
+        return IERC20Like(USDC).balanceOf(address(this)) + PARKING.totalAssets(address(this)) + paidS + paidJ + feeClaimed;
+    }
+
+    /// @dev section 13.5/13.6: the cumulative waterfall rerun. Correct for recoveries automatically because
+    /// XS/XJ/fee are pure functions of cumulative P; only the *delta* since the last rerun is pushed out.
+    function _rerunWaterfall() internal {
+        uint256 p = _proceeds();
+        uint256 xs;
+        uint256 xj;
+        uint256 fee;
+
+        if (passThrough) {
+            (xs, xj) = SeriesMath.waterfallPassThrough(p, seniorDeployed, totalFilled);
+        } else {
+            (xs, xj, fee) = SeriesMath.waterfall(p, seniorClaim, juniorDeployed, THETA_WAD);
+        }
+
+        uint256 dSenior = xs - paidS;
+        uint256 dJunior = xj - paidJ;
+        uint256 dFee = fee - feeAccounted;
+
+        paidS = xs;
+        paidJ = xj;
+        feeAccounted = fee;
+
+        emit Waterfall(p, xs, xj, fee, dSenior, dJunior);
+
+        if (dSenior + dJunior > 0) {
+            uint256 total = dSenior + dJunior;
+            PARKING.withdraw(total, address(this));
+            SafeTransferLib.safeTransfer(USDC, CORE, total);
+            ISeriesCoreMinimal(CORE).receivePayout(dSenior, dJunior);
+        }
+        dFee; // recognized above via feeAccounted; claimFee() reads (feeAccounted - feeClaimed) directly
+    }
+
+    /// @dev section 13.7: pays feeAccounted - feeClaimed to FEE_RECIPIENT. Callable by anyone.
+    function claimFee() external nonReentrant {
+        uint256 owed = feeAccounted - feeClaimed;
+        if (owed == 0) return;
+        feeClaimed += owed;
+        PARKING.withdraw(owed, address(this));
+        SafeTransferLib.safeTransfer(USDC, FEE_RECIPIENT, owed);
+        emit FeeClaimed(owed);
     }
 
     // --- views -----------------------------------------------------------------------------------------------
