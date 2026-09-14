@@ -4,8 +4,11 @@ pragma solidity 0.8.34;
 import {Test} from "forge-std/Test.sol";
 import {SeriesMath} from "../../src/libraries/SeriesMath.sol";
 
-/// @dev Section 25.6 differential tests: SeriesMath.price / waterfall / nav vs sim/series_math.py, 2000 vectors
-/// each. Columnar JSON format (one array per field, read with parseJsonUintArray/IntArray/BoolArray).
+// Morrow Finance — Solidity vs Python differential test for SeriesMath.
+// @author adiii.eth
+
+/// @notice Differential tests: SeriesMath.price / waterfall / nav vs the Python twin, 2000 vectors each.
+/// Columnar JSON format (one array per field, read with parseJsonUintArray/IntArray/BoolArray).
 contract SeriesMathDiffTest is Test {
     function test_diff_pricing() public {
         string memory json = vm.readFile("sim/vectors/series_pricing.json");

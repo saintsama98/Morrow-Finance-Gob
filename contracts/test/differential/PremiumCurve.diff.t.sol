@@ -4,7 +4,10 @@ pragma solidity 0.8.34;
 import {Test} from "forge-std/Test.sol";
 import {PremiumCurve} from "../../src/libraries/PremiumCurve.sol";
 
-/// @dev Section 25.6 differential test: PremiumCurve.pi vs sim/series_math.py's premium_pi, 2000 vectors.
+// Morrow Finance — Solidity vs Python differential test for PremiumCurve.
+// @author adiii.eth
+
+/// @notice Differential test: PremiumCurve.pi vs the Python twin's premium_pi, 2000 vectors.
 contract PremiumCurveDiffTest is Test {
     function test_diff_premiumCurve() public {
         string memory json = vm.readFile("sim/vectors/premium_curve.json");

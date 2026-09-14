@@ -4,8 +4,11 @@ pragma solidity 0.8.34;
 import {Test} from "forge-std/Test.sol";
 import {PremiumCurve} from "../../src/libraries/PremiumCurve.sol";
 
-/// @dev Spec section 25.2 "PremiumCurve": the seven exact table points from section 9.2, continuity at u = uT
-/// (<= 1 wei difference), monotone non-decreasing over a 1,000 point grid, clamp for u > WAD.
+// Morrow Finance — unit and fuzz tests for the PremiumCurve piecewise-linear pricing curve.
+// @author adiii.eth
+
+/// @notice Seven exact reference table points, continuity at the kink (<= 1 wei difference), monotone
+/// non-decreasing over a 1,000 point grid, clamp for u > WAD.
 contract PremiumCurveTest is Test {
     uint256 constant WAD = 1e18;
     uint256 constant UT = 0.9e18;
@@ -14,9 +17,9 @@ contract PremiumCurveTest is Test {
     uint256 constant PI1 = 0.35e18;
     uint256 constant COV = 0.15e18;
 
-    /// @dev Table from section 9.2. u values derived from a = COV / u swapped as u = COV / a; here we drive pi(u)
+    /// @dev Reference table. u values derived from a = COV / u swapped as u = COV / a; here we drive pi(u)
     /// directly since that's the pure function's actual input.
-    function test_section9_2_exactTable() public pure {
+    function test_exactReferenceTable() public pure {
         // a = 0.15 -> u = 1.00 -> pi = 0.35
         assertEq(PremiumCurve.pi(1.00e18, UT, PI0, PIT, PI1), 0.35e18);
 
@@ -44,8 +47,8 @@ contract PremiumCurveTest is Test {
         assertEq(PremiumCurve.pi(UT, UT, PI0, PIT, PI1), PIT, "u=uT");
     }
 
-    /// @dev Section 25.2: "continuity at u = uT (difference <= 1 wei)". This checks the two branch *formulas*
-    /// agree at the boundary itself (both reduce to delta = 0 at u = uT, so both give piT exactly) rather than
+    /// @dev Continuity at u = uT, difference <= 1 wei. This checks the two branch *formulas* agree at the
+    /// boundary itself (both reduce to delta = 0 at u = uT, so both give piT exactly) rather than
     /// comparing wei-adjacent steps, whose size is set by the curve's slope ((pi1-piT)/(WAD-uT) = 1.5 by default)
     /// and is expected to exceed 1 wei per 1 wei of u once rounded up.
     function test_continuityAtKink() public pure {

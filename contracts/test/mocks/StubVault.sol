@@ -8,9 +8,11 @@ interface IERC20Mintable {
     function approve(address spender, uint256 amount) external returns (bool);
 }
 
-/// @dev Minimal stand-in for SeniorVault/JuniorVault (M6/M7), exposing thin passthroughs to SeriesCore's
-/// vault-only functions so SeriesCore's own accounting can be tested before the real vaults exist (M5, mirrors
-/// StubCore's role for Series in M2).
+// Morrow Finance — minimal stand-in vault, letting SeriesCore's accounting be tested before the real vaults exist.
+// @author adiii.eth
+
+/// @notice Minimal stand-in for the senior/junior vaults, exposing thin passthroughs to SeriesCore's
+/// vault-only functions so SeriesCore's own accounting can be tested before the real vaults exist.
 contract StubVault {
     SeriesCore public core;
     address public usdc;

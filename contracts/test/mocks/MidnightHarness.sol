@@ -9,9 +9,12 @@ import {IdLib} from "@morpho-org/midnight/src/libraries/IdLib.sol";
 import {MockUSDC} from "./MockUSDC.sol";
 import {MockOracle} from "./MockOracle.sol";
 
-/// @dev Deploys the real Midnight contract (not a mock, section 25.1) plus the shipped SetterRatifier, enables
-/// the lltv tiers and liquidation cursors used in tests, and creates cbBTC/USDC and WBTC/USDC markets with
-/// settable mock oracles. Loan token is always MockUSDC (6 decimals, section 5.5).
+// Morrow Finance — shared test harness deploying the real Midnight contract with mock markets and oracles.
+// @author adiii.eth
+
+/// @notice Deploys the real Midnight contract (not a mock) plus the shipped SetterRatifier, enables the lltv
+/// tiers and liquidation cursors used in tests, and creates cbBTC/USDC and WBTC/USDC markets with settable
+/// mock oracles. Loan token is always MockUSDC.
 abstract contract MidnightHarness is Test {
     uint256 internal constant LLTV_77 = 0.77e18;
     uint256 internal constant LLTV_86 = 0.86e18;

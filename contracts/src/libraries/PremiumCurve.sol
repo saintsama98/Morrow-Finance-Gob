@@ -3,10 +3,13 @@ pragma solidity 0.8.34;
 
 import {WadMath} from "./WadMath.sol";
 
-/// @dev Three-anchor premium curve, section 9.2. `pi(u)` is the junior premium as a function of coverage
-/// utilization `u = COV / a`, kinked at `uT` (0.9e18 by convention, but passed explicitly so it stays pure).
-/// Every intermediate rounds so the published `pi` never understates the premium junior is owed (rounds up
-/// overall), matching section 5.4's rounding table.
+// Morrow Finance — three-anchor premium curve pricing the junior tranche's risk premium.
+// @author adiii.eth
+
+/// @notice Prices the junior premium `pi(u)` as a function of coverage utilization `u`, a piecewise-linear
+/// curve kinked at `uT`.
+/// @dev Every intermediate rounds so the published `pi` never understates the premium junior is owed (the
+/// result always rounds up).
 library PremiumCurve {
     using WadMath for uint256;
 
@@ -14,11 +17,13 @@ library PremiumCurve {
 
     error InvalidAnchors();
 
-    /// @param u coverage utilization, wad, expected in (0, WAD] by the caller (section 8.2's check C1).
-    /// @param uT the kink, wad (0.9e18 by default).
-    /// @param pi0 premium at u -> 0 (limit), wad.
-    /// @param piT premium at u == uT, wad.
-    /// @param pi1 premium at u == WAD, wad.
+    /// @notice Computes the junior premium at utilization `u`.
+    /// @param u Coverage utilization, wad, expected in (0, WAD].
+    /// @param uT The kink, wad (0.9e18 by default).
+    /// @param pi0 Premium at u -> 0 (limit), wad.
+    /// @param piT Premium at u == uT, wad.
+    /// @param pi1 Premium at u == WAD, wad.
+    /// @return The premium pi(u), wad.
     function pi(uint256 u, uint256 uT, uint256 pi0, uint256 piT, uint256 pi1) internal pure returns (uint256) {
         if (!(pi0 <= piT && piT <= pi1 && pi1 < WAD)) revert InvalidAnchors();
 

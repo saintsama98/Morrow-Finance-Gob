@@ -6,11 +6,13 @@ import {SeriesRegistry} from "./SeriesRegistry.sol";
 import {Series} from "../../../src/series/Series.sol";
 import {SeriesState} from "../../../src/interfaces/ISeries.sol";
 
-/// @dev section 25.4 SettleHandler: startSettlement, collect, settle, writeOff, claimFee. Settled/written-off
-/// series are deliberately kept in the registry's activeSeries list (not pruned) so collect()/claimFee() can
-/// still target them afterward -- section 13.4: "collect(i) stays callable forever, every later receipt is a
-/// recovery". Only cancel (in AllocatorHandler) removes a series, since a canceled series has no midnight
-/// position at all (totalFilled == 0 is required to cancel).
+// Morrow Finance — invariant-suite handler for series settlement and fee claims.
+// @author adiii.eth
+
+/// @notice Fuzz handler: startSettlement, collect, settle, writeOff, claimFee. Settled/written-off series are
+/// deliberately kept in the registry's activeSeries list (not pruned) so collect()/claimFee() can still target
+/// them afterward -- collect(i) stays callable forever, and every later receipt is a recovery. Only cancel (in
+/// AllocatorHandler) removes a series, since a canceled series has no Midnight position at all.
 contract SettleHandler is Test {
     SeriesRegistry public registry;
 

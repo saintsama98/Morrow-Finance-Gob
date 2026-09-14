@@ -19,9 +19,12 @@ import {IParking} from "../../src/parking/IParking.sol";
 import {IdleParking} from "../../src/parking/IdleParking.sol";
 import {SeriesMath} from "../../src/libraries/SeriesMath.sol";
 
-/// @dev Spec sections 12-13: sync, navs, startSettlement, collect, settle, writeOff, and the cumulative
-/// waterfall rerun. Takes a real series from LOCKED through SETTLED against the real Midnight contract, with
-/// a real borrower actually repaying (or not, for the write-off path).
+// Morrow Finance — unit tests for Series accounting and settlement: sync, navs, and the waterfall rerun.
+// @author adiii.eth
+
+/// @notice sync, navs, startSettlement, collect, settle, writeOff, and the cumulative waterfall rerun. Takes a
+/// real series from LOCKED through SETTLED against the real Midnight contract, with a real borrower actually
+/// repaying (or not, for the write-off path).
 contract SeriesSettlementTest is Test, MidnightHarness {
     using UtilsLib for uint256;
 
@@ -151,8 +154,8 @@ contract SeriesSettlementTest is Test, MidnightHarness {
         uint256 seniorClaim = series.seniorClaim();
         uint256 juniorDeployed = series.juniorDeployed();
 
-        // section 13.2's resolved_i flag requires block.timestamp > T (strictly), not just >= T like
-        // startSettlement itself, so warp one second past maturity.
+        // the resolved_i flag requires block.timestamp > T (strictly), not just >= T like startSettlement
+        // itself, so warp one second past maturity.
         vm.warp(maturity + 1);
         series.startSettlement();
         assertEq(uint8(series.state()), uint8(SeriesState.SETTLING));
@@ -253,8 +256,8 @@ contract SeriesSettlementTest is Test, MidnightHarness {
         series.settle();
     }
 
-    /// @dev A recovery collected after write-off reruns the waterfall and flows to the books (section 13.4:
-    /// "written off markets keep their credit... every later receipt is a recovery").
+    /// @dev A recovery collected after write-off reruns the waterfall and flows to the books: written-off
+    /// markets keep their credit, and every later receipt is a recovery.
     function test_collect_afterWriteOff_isARecoveryThatRerunsWaterfall() public {
         Series series = _openAndFund(900_000e6, 200_000e6);
         uint256 units = 1_000_000e6;
