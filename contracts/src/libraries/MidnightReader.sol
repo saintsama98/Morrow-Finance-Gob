@@ -5,22 +5,29 @@ import {Market} from "@morpho-org/midnight/src/interfaces/IMidnight.sol";
 import {IdLib} from "@morpho-org/midnight/src/libraries/IdLib.sol";
 import {IMidnightMinimal} from "../interfaces/IMidnightMinimal.sol";
 
-/// @dev Thin read wrappers over IMidnightMinimal, isolating every call site that depends on a live Midnight
-/// read (section 3.2, section 12.1: "read live through MidnightReader, never estimated"). Nothing here is
-/// pure -- every function either reads or writes Midnight state -- so this is a stateless library of
-/// passthrough helpers, not a math library.
+// Morrow Finance — thin read wrappers isolating every live call site into the Midnight protocol.
+// @author adiii.eth
+
+/// @notice Thin read wrappers over IMidnightMinimal, isolating every call site that depends on a live Midnight
+/// read.
+/// @dev Nothing here is pure: every function either reads or writes Midnight state, so this is a stateless
+/// library of passthrough helpers, not a math library.
 library MidnightReader {
-    /// @dev section 7.2: on-chain eligibility reads the market config for a proposed basket entry.
+    /// @notice Reads the canonical market struct for a market id, straight from Midnight.
     function marketConfig(IMidnightMinimal midnight, bytes32 id) internal view returns (Market memory) {
         return midnight.toMarket(id);
     }
 
+    /// @notice Computes a market's id from its full struct.
     function marketId(Market memory market) internal pure returns (bytes32) {
         return IdLib.toId(market);
     }
 
-    /// @dev section 12.2: E_i(t) = credit_i(t) - pendingFee_i(t), the "projected redeemable amount" per
-    /// Midnight's own natspec. View-only (does not accrue/realize the latest loss factor on chain).
+    /// @notice Reads a series' projected redeemable face value in one market: credit minus pending fee. View
+    /// only; does not accrue or realize the latest loss factor on chain.
+    /// @return faceValue credit - pendingFee, the projected redeemable amount.
+    /// @return credit The position's raw credit.
+    /// @return pendingFee The position's raw pending fee.
     function projectedRedeemableView(IMidnightMinimal midnight, Market memory market, bytes32 id, address series)
         internal
         view
@@ -30,8 +37,8 @@ library MidnightReader {
         faceValue = uint256(credit) - uint256(pendingFee);
     }
 
-    /// @dev Same as projectedRedeemableView, but writes the latest loss factor and fee accrual on chain first
-    /// (section 12.3 `sync`). Permissionless on Midnight's side.
+    /// @notice Same as projectedRedeemableView, but writes the latest loss factor and fee accrual on chain
+    /// first. Permissionless on Midnight's side.
     function projectedRedeemableSynced(IMidnightMinimal midnight, Market memory market, address series)
         internal
         returns (uint256 faceValue, uint128 credit, uint128 pendingFee)
@@ -40,8 +47,8 @@ library MidnightReader {
         faceValue = uint256(credit) - uint256(pendingFee);
     }
 
-    /// @dev section 2.5: `withdrawable` is shared by all lenders in the market, first come first served, and
-    /// grows with every repayment or liquidation before or after maturity.
+    /// @notice Reads how much a market's shared, first-come-first-served withdrawable liquidity currently
+    /// holds.
     function withdrawableLiquidity(IMidnightMinimal midnight, bytes32 id) internal view returns (uint128) {
         return midnight.withdrawable(id);
     }

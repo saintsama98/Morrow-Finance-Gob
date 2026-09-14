@@ -7,9 +7,12 @@ import {MidnightReader} from "../libraries/MidnightReader.sol";
 import {SeriesParams} from "../interfaces/ISeries.sol";
 import {Series} from "./Series.sol";
 
-/// @dev Factory allowlists and per-series eligibility checks, section 7. The factory is the only place basket
-/// eligibility is enforced on chain (E1-E6); everything else about a proposed series (params, S/J split,
-/// coverage band) is checked by the core before it ever calls here (section 8.2).
+// Morrow Finance — collateral/oracle/LLTV allowlists and basket eligibility checks for new series.
+// @author adiii.eth
+
+/// @notice Deploys new Series contracts and is the sole on-chain enforcer of basket eligibility. Everything
+/// about a proposed series that depends on the senior/junior split or coverage band is checked by the core
+/// before it ever calls here.
 contract SeriesFactory {
     using MidnightReader for IMidnightMinimal;
 
@@ -22,10 +25,10 @@ contract SeriesFactory {
     error TimelockNotElapsed();
     error DecimalsNotSix();
 
-    /// @dev section 5.5: reject any loan token whose decimals() != 6, both here and in the core.
+    /// @dev The loan token must be 6-decimal USDC, enforced both here and in the core.
     uint8 internal constant USDC_DECIMALS = 6;
 
-    /// @dev section 7.1 hard ceilings, enforced in code regardless of what governance sets.
+    /// @dev Hard ceilings enforced in code regardless of what governance sets.
     uint256 internal constant HARD_MAX_LLTV_WAD = 0.915e18;
     uint256 internal constant HARD_MAX_MARKETS_PER_SERIES = 8;
     uint256 internal constant MAX_COLLATERALS_CHECKED = 8;
@@ -37,13 +40,13 @@ contract SeriesFactory {
     address public governance;
     address public core;
 
-    mapping(address token => bool) public collateralAllowed;
-    mapping(address token => mapping(address oracle => bool)) public oracleAllowed;
+    mapping(address token => bool) public collateralAllowed; // governance-set collateral allowlist
+    mapping(address token => mapping(address oracle => bool)) public oracleAllowed; // allowlisted oracle per token
     uint256 public maxLltvWad;
     uint256 public maxMarketsPerSeries;
 
-    /// @dev Timelocked allowlist changes (section 7.1). A change never affects a series already open, because
-    /// each series snapshots what it needs at creation (the eligibility check itself, run once, at open time).
+    /// @dev A change never affects a series already open, because each series snapshots what it needs at
+    /// creation (the eligibility check itself, run once, at open time).
     struct PendingChange {
         bool active;
         uint256 executableAt;
@@ -85,17 +88,18 @@ contract SeriesFactory {
             initialMaxMarketsPerSeries <= HARD_MAX_MARKETS_PER_SERIES ? initialMaxMarketsPerSeries : HARD_MAX_MARKETS_PER_SERIES;
     }
 
-    /// @dev The core is set once, after deployment (core and factory reference each other, so neither can be
-    /// passed to the other's constructor). Governance-only, and only while unset, so it can never be rebound
-    /// out from under an already-live product.
+    /// @notice Binds the core contract, once. Core and factory reference each other, so neither can be passed
+    /// to the other's constructor; governance-only, and only while unset, so it can never be rebound out from
+    /// under an already-live product.
     function setCore(address core_) external onlyGovernance {
         require(core == address(0), NotGovernance());
         core = core_;
         emit CoreSet(core_);
     }
 
-    // --- timelocked allowlist changes (section 7.1) -----------------------------------------------------
+    // --- timelocked allowlist changes ------------------------------------------------------------------
 
+    /// @notice Queues a change to whether `token` may be used as collateral, executable after the timelock.
     function proposeCollateralAllowed(address token, bool allowed) external onlyGovernance returns (bytes32 id) {
         id = keccak256(abi.encode("collateral", token, allowed));
         uint256 executableAt = block.timestamp + TIMELOCK;
@@ -103,6 +107,7 @@ contract SeriesFactory {
         emit CollateralAllowlistProposed(token, allowed, executableAt);
     }
 
+    /// @notice Applies a previously queued, now-matured collateral allowlist change.
     function executeCollateralAllowed(address token, bool allowed) external {
         bytes32 id = keccak256(abi.encode("collateral", token, allowed));
         _consumeTimelock(id);
@@ -110,6 +115,7 @@ contract SeriesFactory {
         emit CollateralAllowlistExecuted(token, allowed);
     }
 
+    /// @notice Queues a change to whether `oracle` is allowed for `token`, executable after the timelock.
     function proposeOracleAllowed(address token, address oracle, bool allowed) external onlyGovernance returns (bytes32 id) {
         id = keccak256(abi.encode("oracle", token, oracle, allowed));
         uint256 executableAt = block.timestamp + TIMELOCK;
@@ -117,6 +123,7 @@ contract SeriesFactory {
         emit OracleAllowlistProposed(token, oracle, allowed, executableAt);
     }
 
+    /// @notice Applies a previously queued, now-matured oracle allowlist change.
     function executeOracleAllowed(address token, address oracle, bool allowed) external {
         bytes32 id = keccak256(abi.encode("oracle", token, oracle, allowed));
         _consumeTimelock(id);
@@ -124,6 +131,7 @@ contract SeriesFactory {
         emit OracleAllowlistExecuted(token, oracle, allowed);
     }
 
+    /// @notice Queues a new max-LLTV ceiling, capped by the hard ceiling and executable after the timelock.
     function proposeMaxLltv(uint256 newMaxLltvWad) external onlyGovernance returns (bytes32 id) {
         require(newMaxLltvWad <= HARD_MAX_LLTV_WAD, IneligibleMarket(bytes32(0), 4));
         id = keccak256(abi.encode("maxLltv", newMaxLltvWad));
@@ -132,6 +140,7 @@ contract SeriesFactory {
         emit MaxLltvProposed(newMaxLltvWad, executableAt);
     }
 
+    /// @notice Applies a previously queued, now-matured max-LLTV change.
     function executeMaxLltv(uint256 newMaxLltvWad) external {
         bytes32 id = keccak256(abi.encode("maxLltv", newMaxLltvWad));
         _consumeTimelock(id);
@@ -139,6 +148,8 @@ contract SeriesFactory {
         emit MaxLltvExecuted(newMaxLltvWad);
     }
 
+    /// @notice Queues a new max-markets-per-series ceiling, capped by the hard ceiling and executable after
+    /// the timelock.
     function proposeMaxMarketsPerSeries(uint256 newMax) external onlyGovernance returns (bytes32 id) {
         require(newMax <= HARD_MAX_MARKETS_PER_SERIES, IneligibleMarket(bytes32(0), 6));
         id = keccak256(abi.encode("maxMarkets", newMax));
@@ -147,6 +158,7 @@ contract SeriesFactory {
         emit MaxMarketsPerSeriesProposed(newMax, executableAt);
     }
 
+    /// @notice Applies a previously queued, now-matured max-markets-per-series change.
     function executeMaxMarketsPerSeries(uint256 newMax) external {
         bytes32 id = keccak256(abi.encode("maxMarkets", newMax));
         _consumeTimelock(id);
@@ -165,7 +177,7 @@ contract SeriesFactory {
         delete pendingChanges[id];
     }
 
-    // --- series creation (section 7.4, section 8.2) -------------------------------------------------------
+    // --- series creation --------------------------------------------------------------------------------
 
     error InvalidCovBand();
     error InvalidPremiumAnchors();
@@ -178,11 +190,13 @@ contract SeriesFactory {
         _;
     }
 
-    /// @dev Runs eligibility (E1-E6) plus the static SeriesParams validation of section 7.4 that doesn't
-    /// depend on S/J (those aren't known yet -- the core calls this before computing the allocation split;
-    /// the sum(marketCapAssets) >= K_alloc check happens in Series.initialize once S/J are known). Deploys a
-    /// full Series contract (not a clone, section 4) and returns its address; the core funds and calls
-    /// initialize() separately (section 8.2).
+    /// @notice Validates a proposed series' basket eligibility and static params, then deploys it.
+    /// @dev Runs full basket eligibility plus every SeriesParams check that doesn't depend on the senior/junior
+    /// split (that split isn't known yet — the core calls this before computing the allocation, and the
+    /// corresponding cap check happens in Series.initialize once the split is known). Deploys a standalone
+    /// Series contract, not a clone; the core funds it and calls initialize() separately.
+    /// @param p The series' creation parameters.
+    /// @return series The freshly deployed, uninitialized Series contract.
     function createSeries(SeriesParams calldata p) external onlyCore returns (address series) {
         require(
             p.rateFloorWad.length == p.marketIds.length && p.marketCapAssets.length == p.marketIds.length,
@@ -200,14 +214,15 @@ contract SeriesFactory {
         series = address(new Series(MIDNIGHT, SETTER_RATIFIER, USDC, core, markets, p));
     }
 
-    // --- eligibility (section 7.2) ------------------------------------------------------------------------
+    // --- eligibility ------------------------------------------------------------------------------------
 
-    /// @dev Checks E1-E6 for a proposed basket, given market ids. The canonical Market struct for each id is
-    /// read from Midnight itself (section 7.2: "read the market config from midnight through
-    /// MidnightReader.marketConfig(id)"), never trusted from the caller -- a caller-supplied struct could
-    /// describe a market that doesn't match the id actually traded against, making the whole eligibility check
-    /// meaningless. Reverts with IneligibleMarket(id, rule) on the first violation found; rule numbers match
-    /// the spec's E-numbering (1-indexed: E1..E6) for easy cross-reference.
+    /// @notice Checks every eligibility rule (E1-E6) for a proposed basket of markets.
+    /// @dev The canonical Market struct for each id is always read from Midnight itself, never trusted from
+    /// the caller — a caller-supplied struct could describe a market that doesn't match the id actually traded
+    /// against, making the whole check meaningless. Reverts with IneligibleMarket(id, rule) on the first
+    /// violation found, where `rule` is the 1-indexed eligibility rule number (E1..E6).
+    /// @param marketIds The proposed basket's Midnight market ids.
+    /// @return markets Each market's canonical config, as read from Midnight, in the same order.
     function checkEligibility(bytes32[] memory marketIds) public view returns (Market[] memory markets) {
         uint256 length = marketIds.length;
         require(length > 0, BasketEmpty());

@@ -11,15 +11,17 @@ import {SettleHandler} from "./handlers/SettleHandler.sol";
 import {Series} from "../../src/series/Series.sol";
 import {SeriesState} from "../../src/interfaces/ISeries.sol";
 
-/// @dev M4, section 25.4/26. Stateful invariant suite for the series engine (Series + SeriesFactory), run
-/// against the real Midnight contract through SeriesRegistry's shared harness. No SeriesCore exists yet
-/// (that's M5), so core/vault-level invariants (I4, I15 onward) are out of scope here; this covers what's
-/// genuinely checkable at the Series level today: I6, I7, I8, I10, I11, I13, I14, plus an I3-adjacent
-/// navs()/navsSynced() consistency check and I28 (reinforced via DeployHandler.noOpTake).
+// Morrow Finance — stateful invariant suite for the series engine, run against the real Midnight contract.
+// @author adiii.eth
+
+/// @notice Stateful invariant suite for the series engine (Series + SeriesFactory), run against the real
+/// Midnight contract through SeriesRegistry's shared harness. This covers what's checkable at the Series level
+/// alone, without a core: I6, I7, I8, I10, I11, I13, I14, plus an I3-adjacent navs()/navsSynced() consistency
+/// check and a no-op-take invariant reinforced via DeployHandler.noOpTake.
 ///
 /// Explicitly deferred, with reasons:
-/// - I1, I2: need fork-level cross-checks against a real deployed Midnight instance (M9).
-/// - I4: enforced by SeriesCore's C1 check (section 8.2), which doesn't exist until M5.
+/// - I1, I2: need fork-level cross-checks against a real deployed Midnight instance.
+/// - I4: enforced by the core's coverage-band check, which belongs to a level above this suite.
 /// - I9: already covered by direct fuzz/unit tests (Series.t.sol's onBuy guard tests) rather than re-derived
 ///   here as a stateful invariant.
 /// - I12: wants a dedicated "allocator handler disabled" run mode, which is a CI/tooling concern (running this
@@ -81,7 +83,7 @@ contract SeriesInvariantsTest is Test {
 
     // --- I13: senior is never overpaid beyond its claim (the structural core of "XS == min(C_S, P)") ----------
     // The full "XS == min(C_S, P)" identity and I10's "XS + XJ + fee == P" are exhaustively checked
-    // independently of Series.sol in M1 (SeriesMath's unit/fuzz/differential tests) and end to end in M3
+    // independently of Series.sol (SeriesMath's unit/fuzz/differential tests) and end to end
     // (SeriesSettlement.t.sol asserts real payouts against a fresh SeriesMath.waterfall computation). What's
     // worth re-asserting here, stateful and across arbitrary random sequences, is the safety property that
     // actually matters: cumulative senior payouts can never exceed the frozen senior claim, in any series, at
@@ -171,9 +173,7 @@ contract SeriesInvariantsTest is Test {
 
     /// @dev Called once at the end of each run (after `depth` handler calls), not after every single call like
     /// the invariant_ functions above. Used here to confirm the fuzzer actually reaches deep economic states
-    /// (real fills, real settlements) rather than spending the whole run bouncing off early-return guards --
-    /// section 25.4's "handlers are not trivially reverting" concern, adapted for handlers that guard with
-    /// early returns instead of reverts.
+    /// (real fills, real settlements) rather than spending the whole run bouncing off early-return guards.
     function afterInvariant() public view {
         assertGt(registry.ghost_totalUnitsBought(), 0, "no run ever produced a real fill");
     }

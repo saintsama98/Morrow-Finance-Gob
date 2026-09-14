@@ -1,16 +1,18 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.34;
 
-/// @dev Adapter interface for idle capital, section 3.2/4. One parking adapter is shared by every depositor
-/// (the core's books, and each series while DEPLOYING); it tracks each depositor's own balance internally, so
-/// "the series parks cash in its own parking position" (section 8.2) just means the series is one of the
-/// adapter's depositors, keyed by `msg.sender`.
+// Morrow Finance — adapter interface for parking idle capital between deployments.
+// @author adiii.eth
+
+/// @notice Adapter interface for idle capital. One adapter is shared by every depositor (the core's books and
+/// each series while deploying); it tracks each depositor's own balance internally, keyed by caller address.
 interface IParking {
+    /// @notice Deposits `assets` from the caller into the caller's own tracked balance.
     function deposit(uint256 assets) external;
 
-    /// @dev Withdraws from the caller's own balance, previously deposited by the caller.
+    /// @notice Withdraws `assets` from the caller's own balance to `to`.
     function withdraw(uint256 assets, address to) external;
 
-    /// @dev The caller-specified account's current withdrawable value, in assets.
+    /// @notice The given account's current withdrawable value, in assets.
     function totalAssets(address account) external view returns (uint256);
 }

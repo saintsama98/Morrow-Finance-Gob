@@ -3,29 +3,36 @@ pragma solidity 0.8.34;
 
 import {WadMath} from "./WadMath.sol";
 
-/// @dev Pricing, nav and waterfall math for one series, sections 9.3, 12.4, 13.5, 13.6. No storage access; every
-/// input is passed in and every output is deterministic given those inputs. Assets are USDC base units (6
-/// decimals); ratios (`a`, `pi`, `r_pool`, `r_s`, `theta`) are wad. Rounding directions follow section 5.4
-/// exactly: senior claim and every payout round down, junior is the exact residual, so conservation is exact to
+// Morrow Finance — pricing, nav, and waterfall math for a single credit series.
+// @author adiii.eth
+
+/// @notice Pricing, nav, and waterfall math for one series. No storage access: every input is passed in and
+/// every output is deterministic given those inputs.
+/// @dev Assets are USDC base units (6 decimals); ratios (`a`, `pi`, `r_pool`, `r_s`, `theta`) are wad. The
+/// senior claim and every payout always round down; junior is the exact residual, so conservation is exact to
 /// the wei and dust accrues to junior.
 library SeriesMath {
     using WadMath for uint256;
 
     uint256 internal constant WAD = 1e18;
 
-    /// @dev section 9.3, computed once at finalize.
+    /// @notice Pricing outputs computed once at finalize and frozen for the life of the series.
     struct PricingResult {
-        uint256 seniorDeployed; // S_d
-        uint256 juniorDeployed; // J_d
-        uint256 poolRateWad; // r_pool (0 in the negativeCarry case, since it would otherwise underflow)
-        uint256 seniorRateWad; // r_s
-        uint256 seniorClaim; // C_S
-        uint256 attachmentWad; // A_F
-        int256 buffer0; // B_0 = F_net - C_S, signed since negative carry can drive it negative
+        uint256 seniorDeployed; // senior principal actually deployed
+        uint256 juniorDeployed; // junior principal actually deployed
+        uint256 poolRateWad; // realized term rate on deployed capital (0 if negativeCarry)
+        uint256 seniorRateWad; // senior's share of the pool rate after the junior premium
+        uint256 seniorClaim; // senior's fixed claim at maturity
+        uint256 attachmentWad; // fraction of face value protecting senior from loss
+        int256 buffer0; // face net of fees minus the senior claim, signed (negative carry can flip it)
         bool negativeCarry;
     }
 
-    /// @dev S_d = mulDivDown(K_d, WAD - a, WAD), J_d = K_d - S_d (residual, so S_d + J_d == K_d exactly).
+    /// @notice Splits deployed capital into senior and junior legs by junior share `a`.
+    /// @param kDeployed Total capital actually deployed.
+    /// @param juniorShareWad Junior's share of deployed capital, wad.
+    /// @return seniorDeployed Senior's leg, rounded down.
+    /// @return juniorDeployed Junior's leg, the exact residual (seniorDeployed + juniorDeployed == kDeployed).
     function allocationSplit(uint256 kDeployed, uint256 juniorShareWad)
         internal
         pure
@@ -35,9 +42,13 @@ library SeriesMath {
         juniorDeployed = kDeployed - seniorDeployed;
     }
 
-    /// @dev section 9.3. `piWad` is the junior premium at the series' utilization, already computed by the caller
-    /// (PremiumCurve.pi combined with u = COV / a). `faceNetAtFinalize` is F_net at t = tFinalize (section 12.2,
-    /// equals F when fees are zero).
+    /// @notice Prices a series at finalize: splits capital, derives the realized pool rate, and freezes the
+    /// senior claim and attachment point.
+    /// @param kDeployed Total capital actually deployed into the basket.
+    /// @param juniorShareWad Junior's share of deployed capital, wad.
+    /// @param faceNetAtFinalize Projected redeemable face value at finalize, net of protocol fees.
+    /// @param piWad The junior premium at this series' utilization (from PremiumCurve.pi).
+    /// @return r The full pricing result; see PricingResult.
     function price(uint256 kDeployed, uint256 juniorShareWad, uint256 faceNetAtFinalize, uint256 piWad)
         internal
         pure
@@ -46,8 +57,8 @@ library SeriesMath {
         (r.seniorDeployed, r.juniorDeployed) = allocationSplit(kDeployed, juniorShareWad);
 
         if (faceNetAtFinalize <= kDeployed) {
-            // Non-positive pool rate. Rate floors on every market (section 10.2) should prevent this; if it
-            // happens anyway, senior is still first but earns nothing, and no premium math is meaningful.
+            // Non-positive pool rate: senior is still first but earns nothing. Rate floors on every market
+            // should prevent this; handled defensively in case they don't.
             r.negativeCarry = true;
             r.poolRateWad = 0;
             r.seniorRateWad = 0;
@@ -58,7 +69,7 @@ library SeriesMath {
             r.seniorClaim = r.seniorDeployed + r.seniorDeployed.mulDivDown(r.seniorRateWad, WAD);
         }
 
-        // A_F = WAD - mulDivUp(C_S, WAD, F_net); rounds the attachment down so it never overstates protection.
+        // Rounds the attachment down so it never overstates the protection senior actually has.
         // faceNetAtFinalize > 0 is guaranteed by the caller (a series with zero face never reaches pricing).
         uint256 claimOverFace = r.seniorClaim.mulDivUp(WAD, faceNetAtFinalize);
         r.attachmentWad = claimOverFace >= WAD ? 0 : WAD - claimOverFace;
@@ -67,10 +78,20 @@ library SeriesMath {
         r.buffer0 = int256(faceNetAtFinalize) - int256(r.seniorClaim);
     }
 
-    /// @dev section 12.4, normal (non-pass-through) mode. `elapsed` and `tau` are seconds; `s = min(elapsed, tau)`
-    /// is computed by the caller or here — here, for a single source of truth. `faceLoss` is L(t), realized face
-    /// loss since finalize (>= 0, read live from the protocol). Returns navS, navJ (net of accrued fee),
-    /// feeAccrued.
+    /// @notice Marks a locked series to market: linear accretion toward the frozen targets, capped at maturity
+    /// and reduced immediately by any realized loss.
+    /// @param elapsed Seconds since finalize.
+    /// @param tau Seconds from finalize to maturity.
+    /// @param kDeployed Total capital deployed at finalize.
+    /// @param faceNetAtFinalize Projected redeemable face value frozen at finalize.
+    /// @param faceLoss Realized face loss since finalize (>= 0, read live from the lending protocol).
+    /// @param seniorDeployed Senior's deployed leg.
+    /// @param seniorClaim Senior's frozen claim.
+    /// @param juniorDeployed Junior's deployed leg.
+    /// @param thetaWad Operator fee rate on junior's profit, wad.
+    /// @return navS Senior's current mark.
+    /// @return navJ Junior's current mark, net of the accrued operator fee.
+    /// @return feeAccrued Operator fee accrued so far on junior's profit.
     function nav(
         uint256 elapsed,
         uint256 tau,
@@ -92,7 +113,8 @@ library SeriesMath {
         navJ = navJGross - feeAccrued;
     }
 
-    /// @dev V(t) = K_d + (F_net - K_d) * s / tau - L(t), floored at 0.
+    /// @dev Marks the whole pool: deployed capital plus linear accretion toward face value, floored at 0 after
+    /// subtracting any realized loss.
     function _poolValueMark(uint256 s, uint256 tau, uint256 kDeployed, uint256 faceNetAtFinalize, uint256 faceLoss)
         private
         pure
@@ -100,12 +122,13 @@ library SeriesMath {
     {
         uint256 accretion = (tau > 0 && faceNetAtFinalize >= kDeployed)
             ? (faceNetAtFinalize - kDeployed).mulDivDown(s, tau)
-            : 0; // F_net < K_d only in the negativeCarry case, where accretion is meaningless; treated as 0.
+            : 0; // faceNetAtFinalize < kDeployed only in the negativeCarry case, where accretion is meaningless.
         uint256 grossV = kDeployed + accretion;
         return grossV > faceLoss ? grossV - faceLoss : 0;
     }
 
-    /// @dev NAV_S = min(S_d + (C_S - S_d) * s / tau, V(t)).
+    /// @dev Marks senior's leg: deployed capital plus linear accretion toward its claim, capped at the pool's
+    /// own mark so senior can never show more value than the pool actually holds.
     function _seniorMark(uint256 s, uint256 tau, uint256 seniorDeployed, uint256 seniorClaim, uint256 v)
         private
         pure
@@ -117,7 +140,13 @@ library SeriesMath {
         return seniorMark < v ? seniorMark : v;
     }
 
-    /// @dev section 12.4, pass-through mode: no premium, no subordination, no fee. NAV_S = mulDivDown(V, S_d, K_d).
+    /// @notice Marks a pass-through series (below the minimum fill threshold): both legs share the pool's mark
+    /// pro rata, with no premium, no subordination, and no fee.
+    /// @param v The pool's current mark.
+    /// @param seniorDeployed Senior's deployed leg.
+    /// @param kDeployed Total capital deployed.
+    /// @return navS Senior's pro-rata mark.
+    /// @return navJ Junior's pro-rata mark, the exact residual.
     function navPassThrough(uint256 v, uint256 seniorDeployed, uint256 kDeployed)
         internal
         pure
@@ -127,9 +156,16 @@ library SeriesMath {
         navJ = v - navS;
     }
 
-    /// @dev section 13.5, cumulative waterfall rerun. `proceeds` is P, cumulative usdc collected so far.
-    /// XS = min(C_S, P), RJ = P - XS, fee = theta * max(RJ - J_d, 0), XJ = RJ - fee (exact residual).
-    /// Conservation: XS + XJ + fee == P always. Monotone non-decreasing in P.
+    /// @notice Recomputes the full waterfall from cumulative proceeds. Idempotent and safe to call repeatedly
+    /// as more proceeds arrive: conservation (seniorPaid + juniorPaid + fee == proceeds) and monotonicity in
+    /// proceeds both hold at every call.
+    /// @param proceeds Cumulative assets collected so far.
+    /// @param seniorClaim Senior's frozen claim.
+    /// @param juniorDeployed Junior's deployed leg (junior's cost basis for profit-fee purposes).
+    /// @param thetaWad Operator fee rate on junior's profit, wad.
+    /// @return seniorPaid min(seniorClaim, proceeds).
+    /// @return juniorPaid The exact residual after senior and the fee.
+    /// @return fee Operator fee on junior's profit above its deployed capital.
     function waterfall(uint256 proceeds, uint256 seniorClaim, uint256 juniorDeployed, uint256 thetaWad)
         internal
         pure
@@ -141,7 +177,13 @@ library SeriesMath {
         juniorPaid = residualToJunior - fee;
     }
 
-    /// @dev section 13.6, pass-through mode: both books get the market outcome pro rata, no premium, no fee.
+    /// @notice Waterfall for a pass-through series: both legs get the market outcome pro rata, no premium and
+    /// no fee.
+    /// @param proceeds Cumulative assets collected so far.
+    /// @param seniorDeployed Senior's deployed leg.
+    /// @param kDeployed Total capital deployed.
+    /// @return seniorPaid Senior's pro-rata share.
+    /// @return juniorPaid Junior's pro-rata share, the exact residual.
     function waterfallPassThrough(uint256 proceeds, uint256 seniorDeployed, uint256 kDeployed)
         internal
         pure
