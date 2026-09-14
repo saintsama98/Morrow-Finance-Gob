@@ -754,12 +754,16 @@ contract Series is IBuyCallback {
 
         emit Waterfall(p, xs, xj, fee, dSenior, dJunior);
 
-        if (dSenior + dJunior > 0) {
-            uint256 total = dSenior + dJunior;
+        // receivePayout must fire on every rerun, even a zero-delta one (e.g. a total loss where P stays 0
+        // forever): it's the core's only signal that this series just went SETTLED, and it's what lets the
+        // core apply the cross-series backstop (section 20.8) when senior comes up short. Only the token
+        // transfer itself is conditional.
+        uint256 total = dSenior + dJunior;
+        if (total > 0) {
             PARKING.withdraw(total, address(this));
             SafeTransferLib.safeTransfer(USDC, CORE, total);
-            ISeriesCoreMinimal(CORE).receivePayout(dSenior, dJunior);
         }
+        ISeriesCoreMinimal(CORE).receivePayout(dSenior, dJunior);
         dFee; // recognized above via feeAccounted; claimFee() reads (feeAccounted - feeClaimed) directly
     }
 
