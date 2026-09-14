@@ -6,17 +6,19 @@ import {SeriesMath} from "../../src/libraries/SeriesMath.sol";
 import {PremiumCurve} from "../../src/libraries/PremiumCurve.sol";
 import {WadMath} from "../../src/libraries/WadMath.sol";
 
-/// @dev SeriesMath: pricing reproduces the worked example to the wei (6-decimal
-/// USDC base units), waterfall matches the worked example table with conservation at every row, nav satisfies the
-/// nav properties. Exact expected integers below were cross-checked against sim/series_math.py
-/// (the Python twin) before being baked in here.
+// Morrow Finance — unit and fuzz tests for SeriesMath: pricing, waterfall, and nav.
+// @author adiii.eth
+
+/// @notice Pricing reproduces a worked reference example to the wei (6-decimal USDC base units), waterfall
+/// matches the reference table with conservation at every row, nav satisfies its structural properties. Exact
+/// expected integers below were cross-checked against the Python twin before being baked in here.
 contract SeriesMathTest is Test {
     using WadMath for uint256;
 
     uint256 constant WAD = 1e18;
     uint256 constant USDC = 1e6;
 
-    // worked example inputs
+    // reference example inputs
     uint256 constant J = 200_000 * USDC;
     uint256 constant S = 900_000 * USDC;
     uint256 constant K_ALLOC = S + J;
@@ -48,7 +50,7 @@ contract SeriesMathTest is Test {
         r = SeriesMath.price(K_D, a, F_NET, pi);
     }
 
-    function test_section19_allocationAndPricing() public pure {
+    function test_referenceExample_allocationAndPricing() public pure {
         (SeriesMath.PricingResult memory r, uint256 a, uint256 u, uint256 pi) = _pricingResult();
 
         assertEq(a, EXPECTED_A, "a");
@@ -67,7 +69,7 @@ contract SeriesMathTest is Test {
         assertEq(r.seniorDeployed + r.juniorDeployed, K_D);
     }
 
-    function test_section19_waterfall_noLoss() public pure {
+    function test_referenceExample_waterfall_noLoss() public pure {
         (SeriesMath.PricingResult memory r,,,) = _pricingResult();
         uint256 P = F_NET; // no loss
         (uint256 xs, uint256 xj, uint256 fee) = SeriesMath.waterfall(P, r.seniorClaim, r.juniorDeployed, THETA);
@@ -78,7 +80,7 @@ contract SeriesMathTest is Test {
         assertEq(xs + xj + fee, P, "conservation");
     }
 
-    function test_section19_waterfall_150kLoss() public pure {
+    function test_referenceExample_waterfall_150kLoss() public pure {
         (SeriesMath.PricingResult memory r,,,) = _pricingResult();
         uint256 P = F_NET - 150_000 * USDC;
         (uint256 xs, uint256 xj, uint256 fee) = SeriesMath.waterfall(P, r.seniorClaim, r.juniorDeployed, THETA);
@@ -89,7 +91,7 @@ contract SeriesMathTest is Test {
         assertEq(xs + xj + fee, P, "conservation");
     }
 
-    function test_section19_waterfall_200kLoss_seniorImpaired() public pure {
+    function test_referenceExample_waterfall_200kLoss_seniorImpaired() public pure {
         (SeriesMath.PricingResult memory r,,,) = _pricingResult();
         uint256 P = F_NET - 200_000 * USDC;
         (uint256 xs, uint256 xj, uint256 fee) = SeriesMath.waterfall(P, r.seniorClaim, r.juniorDeployed, THETA);
@@ -152,8 +154,8 @@ contract SeriesMathTest is Test {
         assertEq(xs + xj + fee, 1500 * USDC);
     }
 
-    /// @dev nav properties, checked directly (not the worked example numbers, which have a fee and are
-    /// checked at nav convergence separately below).
+    /// @dev Nav's structural properties, checked directly (not the reference example's numbers, which have a
+    /// fee and are checked at nav convergence separately below).
     function test_nav_zeroLossZeroFee_matchesV1Formula() public pure {
         uint256 tau = 56 days;
         uint256 elapsed = tau / 2;
@@ -206,8 +208,8 @@ contract SeriesMathTest is Test {
         assertEq(navS + navJ + feeAccrued, v, "NAV_S + NAV_J + feeAccrued == V(t) always");
     }
 
-    /// @dev "at t = T with every market resolved, NAV_S == XS, NAV_J == XJ and feeAccrued == fee
-    /// from the waterfall". Convergence at s = tau, faceLoss = 0 (no loss, matching the worked example's no-loss row).
+    /// @dev At t = T with every market resolved, NAV_S == XS, NAV_J == XJ and feeAccrued == fee from the
+    /// waterfall. Convergence at s = tau, faceLoss = 0 (no loss, matching the reference example's no-loss row).
     function test_nav_convergesToWaterfall_atMaturity() public pure {
         (SeriesMath.PricingResult memory r,,,) = _pricingResult();
         uint256 tau = 56 days;

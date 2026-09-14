@@ -8,9 +8,12 @@ import {MidnightHarness} from "../mocks/MidnightHarness.sol";
 import {SeriesFactory} from "../../src/series/SeriesFactory.sol";
 import {IMidnightMinimal} from "../../src/interfaces/IMidnightMinimal.sol";
 
-/// @dev Series eligibility: every rule failing alone, against the real
-/// Midnight contract, not a mock -- eligibility reads the canonical Market struct from Midnight
-/// by id, so these tests exercise that read path directly.
+// Morrow Finance — unit tests for SeriesFactory's eligibility checks and timelocked allowlists.
+// @author adiii.eth
+
+/// @notice Every eligibility rule failing alone, against the real Midnight contract, not a mock --
+/// eligibility reads the canonical Market struct from Midnight by id, so these tests exercise that read path
+/// directly.
 contract SeriesFactoryTest is Test, MidnightHarness {
     SeriesFactory factory;
     address governance = makeAddr("governance");

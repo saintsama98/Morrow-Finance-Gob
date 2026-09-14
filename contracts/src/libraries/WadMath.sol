@@ -1,16 +1,24 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.34;
 
-/// @dev Full-precision (512-bit intermediate) fixed-point math. Every division direction is explicit; no bare
-/// `a * b / c`. mulDiv is the standard 512-bit-mulmod algorithm (Remco Bloemen), the same one used by
-/// OpenZeppelin's Math.mulDiv and Solady's FixedPointMathLib.fullMulDiv.
+// Morrow Finance — full-precision fixed-point math shared by every pricing and accounting library.
+// @author adiii.eth
+
+/// @notice Full-precision (512-bit intermediate) fixed-point math. Every division direction is explicit; there
+/// is never a bare `a * b / c` anywhere in this codebase.
+/// @dev mulDiv is the standard 512-bit-mulmod algorithm (Remco Bloemen), the same one used by OpenZeppelin's
+/// Math.mulDiv and Solady's FixedPointMathLib.fullMulDiv.
 library WadMath {
     uint256 internal constant WAD = 1e18;
 
     error DivisionByZero();
     error MulDivOverflow();
 
-    /// @dev floor(x * y / d). Reverts on d == 0 or if the true result would overflow uint256.
+    /// @notice Computes floor(x * y / d) without intermediate overflow, even when x * y exceeds 256 bits.
+    /// @param x First factor.
+    /// @param y Second factor.
+    /// @param d Divisor.
+    /// @return result floor(x * y / d).
     function mulDivDown(uint256 x, uint256 y, uint256 d) internal pure returns (uint256 result) {
         if (d == 0) revert DivisionByZero();
 
@@ -63,7 +71,11 @@ library WadMath {
         }
     }
 
-    /// @dev ceil(x * y / d). Reverts on d == 0 or if the true result would overflow uint256.
+    /// @notice Computes ceil(x * y / d) without intermediate overflow.
+    /// @param x First factor.
+    /// @param y Second factor.
+    /// @param d Divisor.
+    /// @return result ceil(x * y / d).
     function mulDivUp(uint256 x, uint256 y, uint256 d) internal pure returns (uint256 result) {
         result = mulDivDown(x, y, d);
         unchecked {
@@ -74,22 +86,22 @@ library WadMath {
         }
     }
 
-    /// @dev floor(x * y / WAD).
+    /// @notice floor(x * y / WAD): multiply two wad-scaled numbers, rounding down.
     function wMulDown(uint256 x, uint256 y) internal pure returns (uint256) {
         return mulDivDown(x, y, WAD);
     }
 
-    /// @dev ceil(x * y / WAD).
+    /// @notice ceil(x * y / WAD): multiply two wad-scaled numbers, rounding up.
     function wMulUp(uint256 x, uint256 y) internal pure returns (uint256) {
         return mulDivUp(x, y, WAD);
     }
 
-    /// @dev floor(x * WAD / y).
+    /// @notice floor(x * WAD / y): divide two wad-scaled numbers, rounding down.
     function wDivDown(uint256 x, uint256 y) internal pure returns (uint256) {
         return mulDivDown(x, WAD, y);
     }
 
-    /// @dev ceil(x * WAD / y).
+    /// @notice ceil(x * WAD / y): divide two wad-scaled numbers, rounding up.
     function wDivUp(uint256 x, uint256 y) internal pure returns (uint256) {
         return mulDivUp(x, WAD, y);
     }
