@@ -5,6 +5,9 @@ import {Test} from "forge-std/Test.sol";
 import {WadMath} from "../../src/libraries/WadMath.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
+// Morrow Finance — unit and fuzz tests for WadMath against OpenZeppelin's mulDiv.
+// @author adiii.eth
+
 /// @dev Thin external wrapper so revert-testing cheatcodes see a real sub-call frame; WadMath's functions are
 /// `internal` and get inlined when called directly from the test contract, which foundry cannot always intercept.
 contract WadMathHarness {
@@ -17,8 +20,8 @@ contract WadMathHarness {
     }
 }
 
-/// @dev Spec section 25.2 "WadMath": mulDivDown/mulDivUp against OpenZeppelin Math.mulDiv on 10,000 random
-/// triples including max uint values, and mulDivUp - mulDivDown in {0, 1}.
+/// @notice mulDivDown/mulDivUp against OpenZeppelin Math.mulDiv on 10,000 random triples including max uint
+/// values, and mulDivUp - mulDivDown in {0, 1}.
 contract WadMathTest is Test {
     WadMathHarness harness;
 

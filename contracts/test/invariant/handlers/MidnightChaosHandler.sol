@@ -9,10 +9,12 @@ import {MAX_CONTINUOUS_FEE} from "@morpho-org/midnight/src/libraries/ConstantsLi
 import {SeriesRegistry} from "./SeriesRegistry.sol";
 import {MockUSDC} from "../../mocks/MockUSDC.sol";
 
-/// @dev section 25.4 MidnightChaosHandler: injectBadDebt (oracle crash + liquidate), repay, setFees (within
-/// caps), warp, oracle moves. Shares one oracle/collateral token across every series (set up by
-/// SeriesRegistry), so a crash affects every open position at once -- deliberately, to stress cross-series
-/// isolation (I25-adjacent, though I25 itself needs SeriesCore's backstop to test meaningfully).
+// Morrow Finance — invariant-suite handler injecting oracle/liquidation chaos shared across every series.
+// @author adiii.eth
+
+/// @notice Fuzz handler: injectBadDebt (oracle crash + liquidate), repay, setFees (within caps), warp, oracle
+/// moves. Shares one oracle/collateral token across every series (set up by SeriesRegistry), so a crash
+/// affects every open position at once -- deliberately, to stress cross-series isolation.
 ///
 /// See DeployHandler's header note on why every address/reference used after `vm.prank` must be resolved into
 /// a local variable *before* the prank line, not inline in the same expression as the pranked call.
@@ -37,8 +39,8 @@ contract MidnightChaosHandler is Test {
         registry.oracle().setPrice(initialOraclePrice);
     }
 
-    /// @dev Realizes bad debt on a series' borrower if their position is currently unhealthy (a no-op,
-    /// non-reverting liquidation with 0 seized/repaid still realizes bad debt per section 2.3).
+    /// @dev Realizes bad debt on a series' borrower if their position is currently unhealthy: a no-op,
+    /// non-reverting liquidation with 0 seized/repaid still realizes bad debt on Midnight.
     function liquidate(uint256 seriesSeed) external {
         (address seriesAddr,) = registry.pickActive(seriesSeed);
         if (seriesAddr == address(0)) return;

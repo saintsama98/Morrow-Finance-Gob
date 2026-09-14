@@ -18,13 +18,16 @@ import {WadMath} from "../libraries/WadMath.sol";
 import {PremiumCurve} from "../libraries/PremiumCurve.sol";
 import {SeriesMath} from "../libraries/SeriesMath.sol";
 
-/// @dev One series per maturity (sections 6, 8, 10, 11). Lends into a basket of Midnight markets, keeps the
-/// face ledger, and (in a later milestone) runs the waterfall. Deployed as a full contract by SeriesFactory,
-/// not a clone -- every series is immutable code (section 4).
+// Morrow Finance — a single dated series: lends a basket of Midnight markets, tracks the face ledger, and
+// runs the senior/junior waterfall to settlement.
+// @author adiii.eth
+
+/// @notice One series per maturity. Deployed as a standalone contract by SeriesFactory, not a clone, so every
+/// series runs its own immutable code.
 contract Series is IBuyCallback {
     using WadMath for uint256;
 
-    // --- errors (section 18 subset relevant here) -----------------------------------------------------------
+    // --- errors ------------------------------------------------------------------------------------------
 
     error WrongState(SeriesState expected, SeriesState actual);
     error TooEarly(uint256 at);
@@ -48,7 +51,7 @@ contract Series is IBuyCallback {
     error NotResolved(uint256 i);
     error TransferMismatch();
 
-    // --- events (section 17 subset) --------------------------------------------------------------------------
+    // --- events --------------------------------------------------------------------------------------------
 
     event Initialized(uint256 seniorAllocated, uint256 juniorAllocated);
     event OffersRegistered(bytes32 root, uint64 expiry, uint256 leafCount);
@@ -118,40 +121,40 @@ contract Series is IBuyCallback {
     bool public passThrough;
     bool internal _entered;
 
-    uint256 public seniorAllocated; // S
-    uint256 public juniorAllocated; // J
+    uint256 public seniorAllocated; // senior capital committed to this series
+    uint256 public juniorAllocated; // junior capital committed to this series
     uint256 public tFinalize;
 
-    mapping(uint256 => uint256) public filled; // filled_i, assets
-    mapping(uint256 => uint256) public unitsBought; // U_i
-    mapping(uint256 => uint256) public feeCrystallized; // feeCrystallized_i
-    uint256 public totalFilled; // K_d, set at finalize
+    mapping(uint256 => uint256) public filled; // cumulative assets filled per basket market
+    mapping(uint256 => uint256) public unitsBought; // cumulative credit units bought per basket market
+    mapping(uint256 => uint256) public feeCrystallized; // continuous-fee credit locked in per basket market
+    uint256 public totalFilled; // total assets deployed, frozen at finalize
 
     mapping(bytes32 => bool) public rootRegistered; // for revocation bookkeeping only
 
-    // pricing results, frozen at finalize (section 9.3)
-    uint256 public juniorShareWad; // a
-    uint256 public utilizationWad; // u
-    uint256 public premiumWad; // pi
-    uint256 public seniorDeployed; // S_d
-    uint256 public juniorDeployed; // J_d
-    uint256 public poolRateWad; // r_pool
-    uint256 public seniorRateWad; // r_s
-    uint256 public seniorClaim; // C_S
-    uint256 public attachmentWad; // A_F
-    uint256 public faceGross; // F
-    uint256 public faceNetAtFinalize; // F_net at tFinalize
+    // pricing results, frozen at finalize
+    uint256 public juniorShareWad; // junior's share of allocated capital
+    uint256 public utilizationWad;
+    uint256 public premiumWad;
+    uint256 public seniorDeployed;
+    uint256 public juniorDeployed;
+    uint256 public poolRateWad;
+    uint256 public seniorRateWad;
+    uint256 public seniorClaim; // senior's fixed face claim at maturity
+    uint256 public attachmentWad; // junior's loss-absorption band as a fraction of face
+    uint256 public faceGross;
+    uint256 public faceNetAtFinalize;
     bool public negativeCarry;
 
-    // --- settlement (section 12, 13) -----------------------------------------------------------------------
+    // --- settlement ----------------------------------------------------------------------------------------
 
     uint256 public tSettled;
-    mapping(uint256 => uint256) public collected; // collected_i, cumulative usdc withdrawn from market i
-    mapping(uint256 => bool) public resolved; // resolved_i
-    mapping(uint256 => bool) public writtenOff; // writtenOff_i
+    mapping(uint256 => uint256) public collected; // cumulative usdc withdrawn from each basket market
+    mapping(uint256 => bool) public resolved;
+    mapping(uint256 => bool) public writtenOff;
 
-    uint256 public paidS; // cumulative XS pushed to the core so far
-    uint256 public paidJ; // cumulative XJ pushed to the core so far
+    uint256 public paidS; // cumulative payout pushed to senior so far
+    uint256 public paidJ; // cumulative payout pushed to junior so far
     uint256 public feeAccounted; // cumulative operator fee recognized by the waterfall so far
     uint256 public feeClaimed; // cumulative fee actually paid out to FEE_RECIPIENT so far (<= feeAccounted)
 
@@ -215,14 +218,15 @@ contract Series is IBuyCallback {
         require(block.timestamp < p.tDeployEnd, InvalidTiming());
         require(T >= MIN_TERM && p.tDeployEnd < T - MIN_TERM, InvalidTiming());
 
-        // section 10.3, guard G3: the only midnight authorization a series ever grants, ever.
+        // the only Midnight authorization a series ever grants, for the life of the contract.
         midnight.setIsAuthorized(setterRatifier, true, address(this));
     }
 
-    // --- section 8: funding -----------------------------------------------------------------------------
+    // --- funding -------------------------------------------------------------------------------------------
 
-    /// @dev Core has already transferred `seniorAllocated_ + juniorAllocated_` usdc to this contract before
-    /// calling; this just records the split and parks the cash (section 8.2).
+    /// @notice Records the senior/junior split and parks the funding the core has already transferred in.
+    /// @dev The core must have transferred `seniorAllocated_ + juniorAllocated_` usdc to this contract before
+    /// calling.
     function initialize(uint256 seniorAllocated_, uint256 juniorAllocated_) external inState(SeriesState.DEPLOYING) {
         require(msg.sender == CORE, NotCoreOrSentinel());
 
@@ -246,8 +250,9 @@ contract Series is IBuyCallback {
         emit Initialized(seniorAllocated_, juniorAllocated_);
     }
 
-    /// @dev section 8.5: allocator or sentinel, only in DEPLOYING and only while nothing has filled. Returns
-    /// all cash to the core, split by S and J (parking yield split by a, junior taking the rounding).
+    /// @notice Cancels an unfilled series and returns all funding to the core.
+    /// @dev Callable by the allocator or the core's sentinel, only in DEPLOYING and only while nothing has
+    /// filled. Parking yield is split pro rata between senior and junior, junior taking the rounding.
     function cancel() external nonReentrant inState(SeriesState.DEPLOYING) {
         require(msg.sender == ALLOCATOR || msg.sender == ISeriesCoreMinimal(CORE).sentinel(), NotCoreOrSentinel());
         require(totalFilled == 0, AlreadyFilled());
@@ -256,9 +261,8 @@ contract Series is IBuyCallback {
         _returnAllCashToCore();
     }
 
-    /// @dev Shared by cancel() and finalize()'s K_d == 0 path (section 11: "if K_d == 0: return all cash to
-    /// the core (as in cancel)"). Pulls everything out of parking, splits pro rata by a = J/(S+J), and pushes
-    /// it to the core in one receiveReturn call.
+    /// @dev Shared by cancel() and finalize()'s zero-fill path. Pulls everything out of parking, splits pro
+    /// rata by junior's share of allocated capital, and pushes it to the core in one receiveReturn call.
     function _returnAllCashToCore() internal {
         uint256 parked = PARKING.totalAssets(address(this));
         if (parked > 0) PARKING.withdraw(parked, address(this));
@@ -275,17 +279,17 @@ contract Series is IBuyCallback {
         emit Canceled(toSenior, toJunior);
     }
 
-    // --- section 10: deployment (maker path) --------------------------------------------------------------
+    // --- deployment (maker path) ----------------------------------------------------------------------------
 
-    /// @dev section 10.2: max price per unit for market i, floored down so the realized rate is never below
-    /// the floor. rateFloorWad[i] is a term rate (matching this series' own tau), not annualized.
+    /// @dev Max price per unit for market i, floored down so the realized rate is never below the floor.
+    /// rateFloorWad[i] is a term rate matching this series' own tenor, not annualized.
     function _priceMax(uint256 i) internal view returns (uint256) {
         return WadMath.WAD.mulDivDown(WadMath.WAD, WadMath.WAD + _rateFloorWad[i]);
     }
 
-    /// @dev section 10.2/10.4 step 1: highest tick, a multiple of the market's current tick spacing, whose
-    /// price is at or below P_max_i. priceToTick returns the *lowest* tick with price >= target; we step down
-    /// one spacing increment unless that tick's price lands exactly on P_max_i.
+    /// @dev Highest tick, a multiple of the market's current tick spacing, whose price is at or below the
+    /// floor price. priceToTick returns the *lowest* tick with price >= target; we step down one spacing
+    /// increment unless that tick's price lands exactly on the floor.
     function _tickMax(uint256 i) internal view returns (uint256 tickMax) {
         bytes32 id = _marketIds[i];
         (,,,,,,,,,,,, uint8 tickSpacing) = MIDNIGHT.marketState(id);
@@ -296,23 +300,25 @@ contract Series is IBuyCallback {
         return candidate - tickSpacing;
     }
 
-    /// @dev Public read of the same tick-max an offer must respect (section 10.2), so an allocator building
-    /// offers off chain -- or a test -- can query it directly instead of reimplementing the formula.
+    /// @notice Public read of the same max tick an offer must respect, for an off-chain allocator building
+    /// offers to query directly instead of reimplementing the formula.
     function tickMaxFor(uint256 i) external view returns (uint256) {
         return _tickMax(i);
     }
 
+    /// @notice The floor price for market i, below which this series will not lend.
     function priceMaxFor(uint256 i) external view returns (uint256) {
         return _priceMax(i);
     }
 
-    /// @dev section 10.4 step 2. `leaves` must be the full, padded leaf list of the offer tree in leaf order
-    /// (a complete binary tree, so `leaves.length` is a power of two, at most 64). The root is recomputed on
-    /// chain from the leaves (never trusted from the caller), matching the exact hashing of HashLib -- this is
-    /// what stops a compromised allocator from hiding a bad leaf behind a root the series only proves
-    /// membership against. Leaves whose maker isn't this series are ignored: the setter ratifier looks up
-    /// `isRootRatified[offer.maker][root]`, keyed by the offer's own maker, so a leaf naming another maker is
-    /// harmless unless that maker separately ratified the same root.
+    /// @notice Registers a batch of maker offers by recomputing and ratifying their merkle root on chain.
+    /// @dev `leaves` must be the full, padded leaf list of the offer tree in leaf order (a complete binary
+    /// tree, so `leaves.length` is a power of two, at most 64). The root is recomputed on chain from the
+    /// leaves, never trusted from the caller, matching the exact hashing Midnight's setter ratifier itself
+    /// verifies — this is what stops a compromised allocator from hiding a bad leaf behind a root the series
+    /// only proves membership against. Leaves whose maker isn't this series are ignored: the setter ratifier
+    /// looks up ratification keyed by the offer's own maker, so a leaf naming another maker is harmless unless
+    /// that maker separately ratified the same root.
     function registerOffers(bytes32 root, Offer[] calldata leaves) external onlyAllocator inState(SeriesState.DEPLOYING) {
         require(block.timestamp <= T_DEPLOY_END, TooLate(block.timestamp));
 
@@ -353,7 +359,7 @@ contract Series is IBuyCallback {
     }
 
     /// @dev Rebuilds the root of a complete binary tree from its leaves, bottom-up, using Midnight's own leaf
-    /// and node hashing (HashLib) so this can never diverge from what the setter ratifier itself verifies.
+    /// and node hashing so this can never diverge from what the setter ratifier itself verifies.
     function _computeRoot(Offer[] calldata leaves) internal pure returns (bytes32) {
         uint256 n = leaves.length;
         require(n > 0 && (n & (n - 1)) == 0 && n <= 64, InvalidTree());
@@ -372,17 +378,21 @@ contract Series is IBuyCallback {
         return level[0];
     }
 
+    /// @notice Revokes a previously registered offer root.
     function revokeOffers(bytes32 root) external onlyAllocator {
         SETTER_RATIFIER.setIsRootRatified(address(this), root, false);
         emit OffersRevoked(root);
     }
 
+    /// @notice Marks an entire offer group as consumed, killing every offer in it at once.
     function cancelGroup(bytes32 group) external onlyAllocator {
         MIDNIGHT.setConsumed(group, type(uint128).max, address(this));
     }
 
-    /// @dev section 10.4 step 4/5: Midnight's buyer callback. Entered from inside a third party's take of one
-    /// of our registered bids -- the series lock is free at this point (guard G6), so this is nonReentrant.
+    /// @notice Midnight's buyer callback, invoked when a third party fills one of this series' registered
+    /// bids.
+    /// @dev Entered from inside Midnight's own take() while the series holds no lock of its own, so this is
+    /// nonReentrant against re-entry through other series entry points.
     function onBuy(bytes32 id, Market memory, uint256 buyerAssets, uint256 units, uint256 pendingFeeIncrease, address buyer, bytes memory data)
         external
         nonReentrant
@@ -391,8 +401,8 @@ contract Series is IBuyCallback {
         require(msg.sender == address(MIDNIGHT), NotMidnight());
         require(buyer == address(this), NotSelfBuyer());
 
-        // invariant I28: a no-op take (units 0, assets 0) changes no state, in every series state, even one
-        // Midnight calls through a fully-consumed offer's callback.
+        // a no-op take (units 0, assets 0) must change no state, in every series state, even one Midnight
+        // calls through a fully-consumed offer's callback.
         if (units == 0 && buyerAssets == 0) return bytes32(keccak256("morpho.midnight.callbackSuccess"));
 
         require(state == SeriesState.DEPLOYING && block.timestamp <= T_DEPLOY_END, WrongState(SeriesState.DEPLOYING, state));
@@ -420,11 +430,10 @@ contract Series is IBuyCallback {
         return bytes32(keccak256("morpho.midnight.callbackSuccess"));
     }
 
-    /// @dev section 10.5, taker path: the allocator has found an existing sell offer (ask) below the floor
-    /// price and the series takes it directly, paying from its own parked balance. Used when the maker path
-    /// (the default) isn't available or a cheaper fill exists. `receiverIfTakerIsSeller` is forced to
-    /// `address(0)` because the series is the buyer -- Midnight itself enforces that this must be zero in
-    /// that case.
+    /// @notice Taker path: the allocator takes an existing sell offer below the floor price directly, paying
+    /// from the series' own parked balance. Used when the maker path isn't available or a cheaper fill exists.
+    /// @dev `receiverIfTakerIsSeller` is forced to `address(0)` because the series is always the buyer here —
+    /// Midnight itself enforces that this must be zero in that case.
     function deployTake(uint256 i, Offer calldata offer, bytes calldata ratifierData, uint256 units)
         external
         onlyAllocator
@@ -471,8 +480,12 @@ contract Series is IBuyCallback {
         emit Filled(i, buyerAssets, units, priceWad, false);
     }
 
-    // --- section 11: finalize ------------------------------------------------------------------------------
+    // --- finalize --------------------------------------------------------------------------------------------
 
+    /// @notice Locks in the series' deployed pricing (senior/junior split, premium, rates, claim) and returns
+    /// undeployed capital to the core. Callable by the allocator any time, or by anyone once the deploy window
+    /// has closed.
+    /// @dev A zero-fill series is treated as cancelled: all cash goes back to the core and pricing is skipped.
     function finalize() external nonReentrant inState(SeriesState.DEPLOYING) {
         require(msg.sender == ALLOCATOR || block.timestamp > T_DEPLOY_END, NotAllocator());
 
@@ -525,8 +538,8 @@ contract Series is IBuyCallback {
             extraS = extra.mulDivDown(WadMath.WAD - aWad, WadMath.WAD);
             extraJ = extra - extraS;
         } else {
-            // parking lost value while deploying: the shortfall is taken pro rata by a, junior taking the
-            // rounding (section 11).
+            // parking lost value while deploying: the shortfall is taken pro rata by junior's share, junior
+            // taking the rounding.
             uint256 shortfall = undeployed - balance;
             uint256 shortfallS = shortfall.mulDivDown(WadMath.WAD - aWad, WadMath.WAD);
             returnS -= shortfallS;
@@ -540,7 +553,7 @@ contract Series is IBuyCallback {
         }
         ISeriesCoreMinimal(CORE).receiveReturn(totalToSenior, totalToJunior);
 
-        totalFilled = kD; // freeze K_d for downstream reads (accounting/settlement, later milestones)
+        totalFilled = kD; // freeze the deployed total for downstream accounting/settlement reads
         tFinalize = block.timestamp;
         state = SeriesState.LOCKED;
 
@@ -562,10 +575,11 @@ contract Series is IBuyCallback {
         );
     }
 
-    // --- section 12: accounting -----------------------------------------------------------------------------
+    // --- accounting ------------------------------------------------------------------------------------------
 
-    /// @dev section 12.2: F_net(t) = sum over i of (E_i(t) + collected_i), where E_i(t) = credit_i(t) -
-    /// pendingFee_i(t). View-only; does not accrue/realize the latest loss factor on chain (that's sync's job).
+    /// @dev Current net face value: each market's live credit minus its pending fee, plus what's already been
+    /// collected from it. View-only; does not accrue/realize the latest loss factor on chain (that's sync's
+    /// job).
     function _faceNetNow() internal view returns (uint256 fNetNow) {
         uint256 length = _marketIds.length;
         for (uint256 i = 0; i < length; i++) {
@@ -574,14 +588,14 @@ contract Series is IBuyCallback {
         }
     }
 
-    /// @dev section 12.2: L(t) = F_net - F_net(t), realized face loss since finalize, floored at 0.
+    /// @dev Realized face loss since finalize, floored at 0.
     function _faceLossNow() internal view returns (uint256) {
         uint256 fNetNow = _faceNetNow();
         return faceNetAtFinalize > fNetNow ? faceNetAtFinalize - fNetNow : 0;
     }
 
-    /// @dev section 12.3: permissionless, writes the latest loss factor and fee accrual for market i on chain,
-    /// then emits the series-wide buffer view (not just market i's own state) so integrators can react.
+    /// @notice Writes the latest loss factor and fee accrual for market i on chain and emits the series-wide
+    /// buffer view. Permissionless.
     function sync(uint256 i) external {
         MIDNIGHT.updatePosition(_markets[i], address(this));
 
@@ -593,9 +607,10 @@ contract Series is IBuyCallback {
         emit BufferUpdated(i, creditI, fNetNow, bufferAtT, lossAtT);
     }
 
-    /// @dev section 12.4 display navs. DEPLOYING values the parked + spent-on-fills balance pro rata by a;
-    /// SETTLED/CANCELED are always 0 (everything already pushed to the core); LOCKED/SETTLING use SeriesMath's
-    /// nav (or the pass-through split) with `s` capped at tau once SETTLING.
+    /// @dev Display-only NAV split. DEPLOYING values the parked + spent-on-fills balance pro rata by junior's
+    /// share; SETTLED/CANCELED are always 0 (everything already pushed to the core); LOCKED/SETTLING use
+    /// SeriesMath's nav (or the pass-through split) with elapsed time capped at the remaining tenor once
+    /// SETTLING.
     function _navs() internal view returns (uint256 navS, uint256 navJ, uint256 feeAccrued) {
         if (state == SeriesState.DEPLOYING) {
             uint256 kAlloc = seniorAllocated + juniorAllocated;
@@ -637,14 +652,15 @@ contract Series is IBuyCallback {
         );
     }
 
+    /// @notice The current senior/junior NAV split and accrued fee, for display.
     function navs() external view returns (uint256 navS, uint256 navJ, uint256 feeAccrued) {
         return _navs();
     }
 
-    /// @dev Writes the latest loss factor/fee accrual for every basket market first (section 12.3), then
-    /// returns the same computation navs() would. Sync only ever lowers the numbers -- updatePositionView
-    /// already reflects the live value, so this call's on-chain effect is on Midnight's own storage, not on
-    /// the result returned here.
+    /// @notice Writes the latest loss factor/fee accrual for every basket market on chain first, then returns
+    /// the same computation navs() would.
+    /// @dev updatePositionView already reflects the live value even before this call, so the effect here is on
+    /// Midnight's own storage, not on the result returned.
     function navsSynced() external returns (uint256 navS, uint256 navJ, uint256 feeAccrued) {
         uint256 length = _marketIds.length;
         for (uint256 i = 0; i < length; i++) {
@@ -653,18 +669,20 @@ contract Series is IBuyCallback {
         return _navs();
     }
 
-    // --- section 13: settlement -------------------------------------------------------------------------------
+    // --- settlement ----------------------------------------------------------------------------------------
 
+    /// @notice Moves the series from LOCKED to SETTLING once maturity has been reached.
     function startSettlement() external inState(SeriesState.LOCKED) {
         require(block.timestamp >= T, TooEarly(block.timestamp));
         state = SeriesState.SETTLING;
         emit SettlementStarted();
     }
 
-    /// @dev section 13.2. Callable in LOCKED, SETTLING or SETTLED -- collecting before maturity is allowed on
-    /// purpose (section 2.5): withdrawable liquidity is shared by all lenders first-come-first-served, and
-    /// taking it at par is strictly good for the series. A receipt after SETTLED is a recovery and reruns the
-    /// waterfall immediately.
+    /// @notice Pulls whatever is currently withdrawable from basket market i into parking.
+    /// @dev Callable in LOCKED, SETTLING or SETTLED — collecting before maturity is allowed on purpose:
+    /// withdrawable liquidity is shared by all lenders first-come-first-served, and taking it at par is
+    /// strictly good for the series. A receipt after SETTLED is a recovery and reruns the waterfall
+    /// immediately.
     function collect(uint256 i) external nonReentrant returns (uint256 received) {
         require(
             state == SeriesState.LOCKED || state == SeriesState.SETTLING || state == SeriesState.SETTLED,
@@ -697,7 +715,7 @@ contract Series is IBuyCallback {
         if (state == SeriesState.SETTLED) _rerunWaterfall();
     }
 
-    /// @dev section 13.3: anyone, once every market is resolved.
+    /// @notice Settles the series once every basket market has resolved. Callable by anyone.
     function settle() external inState(SeriesState.SETTLING) {
         uint256 length = _marketIds.length;
         for (uint256 i = 0; i < length; i++) {
@@ -709,8 +727,10 @@ contract Series is IBuyCallback {
         emit Settled(_proceeds());
     }
 
-    /// @dev section 13.4: time-based only. Written-off markets keep their credit; collect() stays callable on
-    /// them forever, and every later receipt flows through _rerunWaterfall() as a recovery.
+    /// @notice Writes off every still-unresolved basket market once the write-off delay has passed, then
+    /// settles.
+    /// @dev Time-based only. Written-off markets keep their credit; collect() stays callable on them forever,
+    /// and every later receipt flows through _rerunWaterfall() as a recovery.
     function writeOff() external inState(SeriesState.SETTLING) {
         require(block.timestamp >= T + D_WRITE_OFF, TooEarly(block.timestamp));
         uint256 length = _marketIds.length;
@@ -723,15 +743,15 @@ contract Series is IBuyCallback {
         emit WrittenOff(_proceeds());
     }
 
-    /// @dev section 13.2: cumulative proceeds P. Cash pushed to the core (paidS + paidJ) and fee already paid
-    /// out (feeClaimed) are never double counted since they're added back explicitly, not re-read from a
-    /// balance that no longer holds them.
+    /// @dev Cumulative proceeds ever received by this series. Cash already pushed to the core (paidS + paidJ)
+    /// and fee already paid out (feeClaimed) are never double counted since they're added back explicitly, not
+    /// re-read from a balance that no longer holds them.
     function _proceeds() internal view returns (uint256) {
         return IERC20Like(USDC).balanceOf(address(this)) + PARKING.totalAssets(address(this)) + paidS + paidJ + feeClaimed;
     }
 
-    /// @dev section 13.5/13.6: the cumulative waterfall rerun. Correct for recoveries automatically because
-    /// XS/XJ/fee are pure functions of cumulative P; only the *delta* since the last rerun is pushed out.
+    /// @dev The cumulative waterfall rerun. Correct for recoveries automatically because senior/junior/fee
+    /// payouts are pure functions of cumulative proceeds; only the *delta* since the last rerun is pushed out.
     function _rerunWaterfall() internal {
         uint256 p = _proceeds();
         uint256 xs;
@@ -754,16 +774,20 @@ contract Series is IBuyCallback {
 
         emit Waterfall(p, xs, xj, fee, dSenior, dJunior);
 
-        if (dSenior + dJunior > 0) {
-            uint256 total = dSenior + dJunior;
+        // receivePayout must fire on every rerun, even a zero-delta one (e.g. a total loss where proceeds stay
+        // 0 forever): it's the core's only signal that this series just settled, and it's what lets the core
+        // apply its cross-series loss backstop when senior comes up short. Only the token transfer itself is
+        // conditional.
+        uint256 total = dSenior + dJunior;
+        if (total > 0) {
             PARKING.withdraw(total, address(this));
             SafeTransferLib.safeTransfer(USDC, CORE, total);
-            ISeriesCoreMinimal(CORE).receivePayout(dSenior, dJunior);
         }
+        ISeriesCoreMinimal(CORE).receivePayout(dSenior, dJunior);
         dFee; // recognized above via feeAccounted; claimFee() reads (feeAccounted - feeClaimed) directly
     }
 
-    /// @dev section 13.7: pays feeAccounted - feeClaimed to FEE_RECIPIENT. Callable by anyone.
+    /// @notice Pays the operator's accrued, unclaimed fee to FEE_RECIPIENT. Callable by anyone.
     function claimFee() external nonReentrant {
         uint256 owed = feeAccounted - feeClaimed;
         if (owed == 0) return;
@@ -775,10 +799,12 @@ contract Series is IBuyCallback {
 
     // --- views -----------------------------------------------------------------------------------------------
 
+    /// @notice The basket's Midnight market ids.
     function marketIds() external view returns (bytes32[] memory) {
         return _marketIds;
     }
 
+    /// @notice The basket's canonical Midnight market configs, as snapshotted at deployment.
     function markets() external view returns (Market[] memory) {
         return _markets;
     }

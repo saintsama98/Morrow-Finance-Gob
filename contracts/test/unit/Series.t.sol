@@ -19,9 +19,11 @@ import {IMidnightMinimal} from "../../src/interfaces/IMidnightMinimal.sol";
 import {IParking} from "../../src/parking/IParking.sol";
 import {IdleParking} from "../../src/parking/IdleParking.sol";
 
-/// @dev Spec section 25.2 "Series". Exercises creation, funding, cancel, the maker-path onBuy fill against the
-/// real Midnight contract and real SetterRatifier, its guards, and finalize -- all against a StubCore (M2:
-/// "Series creation and funding against a stub core").
+// Morrow Finance — unit tests for Series creation, funding, fills, and finalize.
+// @author adiii.eth
+
+/// @notice Exercises creation, funding, cancel, the maker-path onBuy fill against the real Midnight contract
+/// and real SetterRatifier, its guards, and finalize -- all against a stand-in core.
 contract SeriesTest is Test, MidnightHarness {
     using UtilsLib for uint256;
 
@@ -284,7 +286,7 @@ contract SeriesTest is Test, MidnightHarness {
         assertGt(series.seniorClaim(), 0);
     }
 
-    // --- taker path (section 10.5) --------------------------------------------------------------------------
+    // --- taker path ------------------------------------------------------------------------------------------
 
     /// @dev Sets up an existing lender with a real credit position (by having a separate borrower take their
     /// buy offer, via a permissive DummyRatifier unrelated to our SetterRatifier), then has that lender post a
@@ -352,7 +354,7 @@ contract SeriesTest is Test, MidnightHarness {
     }
 
     /// @dev deployTake requires a sell offer (offer.buy == false); the taker path only exists to take existing
-    /// asks (section 10.5), never to duplicate the maker path's bids.
+    /// asks, never to duplicate the maker path's bids.
     function test_deployTake_wrongOfferSide_reverts() public {
         Series series = _openAndFund(900_000e6, 200_000e6);
         uint256 units = 50_000e6;
