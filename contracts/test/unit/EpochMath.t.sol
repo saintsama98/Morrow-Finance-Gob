@@ -5,9 +5,12 @@ import {Test} from "forge-std/Test.sol";
 import {EpochMath} from "../../src/libraries/EpochMath.sol";
 import {WadMath} from "../../src/libraries/WadMath.sol";
 
-/// @dev Spec section 25.2 "EpochMath": pro rata fill across 1 to 200 controllers (sum of claimable shares ==
-/// sharesFulfilled on a full fill, <= sharesFulfilled and dust bounded by controller count on a partial fill;
-/// sum of claimable assets <= assetsFulfilled), the min rule for redemptions, the max rule for junior deposits.
+// Morrow Finance — unit and fuzz tests for EpochMath's pro-rata epoch fulfillment.
+// @author adiii.eth
+
+/// @notice Pro rata fill across many controllers: sum of claimable shares == sharesFulfilled on a full fill,
+/// <= sharesFulfilled and dust bounded by controller count on a partial fill, sum of claimable assets <=
+/// assetsFulfilled; the min rule for redemptions and the max rule for junior deposits.
 contract EpochMathTest is Test {
     using WadMath for uint256;
 

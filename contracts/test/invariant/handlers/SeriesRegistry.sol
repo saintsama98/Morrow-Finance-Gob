@@ -17,10 +17,13 @@ import {IMidnightMinimal} from "../../../src/interfaces/IMidnightMinimal.sol";
 import {IParking} from "../../../src/parking/IParking.sol";
 import {IdleParking} from "../../../src/parking/IdleParking.sol";
 
-/// @dev Shared SUT references, series registry and ghost variables for the M4 invariant suite (section 25.4).
-/// Not itself a handler (not registered as a fuzz target) -- every handler holds a reference to one instance of
-/// this and reads/writes its state. All series share ALLOCATOR = address(this registry), so any handler
-/// calling an allocator-gated Series function must prank as the registry.
+// Morrow Finance — shared system-under-test setup, series registry and ghost variables for the invariant suite.
+// @author adiii.eth
+
+/// @notice Shared SUT references, series registry and ghost variables for the invariant suite.
+/// @dev Not itself a handler (not registered as a fuzz target) -- every handler holds a reference to one
+/// instance of this and reads/writes its state. All series share ALLOCATOR = address(this registry), so any
+/// handler calling an allocator-gated Series function must prank as the registry.
 contract SeriesRegistry is Test {
     uint256 public constant WAD = 1e18;
     uint256 public constant LLTV = 0.77e18;
@@ -52,14 +55,14 @@ contract SeriesRegistry is Test {
     mapping(address => Offer) internal _lastOffer;
     mapping(address => bytes32) public lastOfferRoot;
 
-    // ghost variables (section 25.4)
+    // ghost variables, read by the invariant assertions
     uint256 public ghost_totalUsdcFundedIntoSeries;
     uint256 public ghost_totalUnitsBought;
     uint256 public ghost_callCount;
     mapping(bytes4 => uint256) public ghost_callsPerSelector;
     mapping(bytes4 => uint256) public ghost_revertsPerSelector;
 
-    /// @dev per-series snapshots the invariant test compares against on each run (I7, I14).
+    /// @dev per-series snapshots the invariant test compares against on each run.
     mapping(address => uint256) public ghost_lastCredit;
     mapping(address => uint8) public ghost_lastState;
     mapping(address => bool) public ghost_seenState;

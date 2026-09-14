@@ -13,8 +13,11 @@ import {MockUSDC} from "../../mocks/MockUSDC.sol";
 import {Series} from "../../../src/series/Series.sol";
 import {SeriesState} from "../../../src/interfaces/ISeries.sol";
 
-/// @dev section 25.4 DeployHandler: borrowerTakesBid (a funded borrower takes a series bid on the real
-/// Midnight), noOpTake, warp.
+// Morrow Finance — invariant-suite handler for borrower fills against live series bids.
+// @author adiii.eth
+
+/// @notice Fuzz handler: borrowerTakesBid (a funded borrower takes a series bid on the real Midnight),
+/// noOpTake, warp.
 ///
 /// IMPORTANT: `vm.prank` (single-shot) only overrides msg.sender for the very next call this contract makes.
 /// Writing `vm.prank(x); registry.midnight().take(...)` is a bug: `registry.midnight()` is itself an external
@@ -84,8 +87,8 @@ contract DeployHandler is Test {
         }
     }
 
-    /// @dev invariant I28: a no-op take (units 0) against a registered offer must change no series state, even
-    /// on an offer that's fully consumed or expired.
+    /// @dev A no-op take (units 0) against a registered offer must change no series state, even on an offer
+    /// that's fully consumed or expired.
     function noOpTake(uint256 seriesSeed) external {
         (address seriesAddr,) = registry.pickActiveWithOffer(seriesSeed, true);
         if (seriesAddr == address(0)) return;

@@ -3,10 +3,12 @@ pragma solidity 0.8.34;
 
 import {Market} from "@morpho-org/midnight/src/interfaces/IMidnight.sol";
 
-/// @dev Midnight's buyer callback interface, matching `src/interfaces/ICallbacks.sol` in the pinned commit
-/// exactly (docs/VERIFY_LOG.md's M0 finding: `pendingFeeIncrease` is `uint256`, not `uint128` as the build
-/// spec's section 10.4 pseudocode has it -- getting this wrong changes the function selector Midnight calls
-/// and would silently break every fill).
+// Morrow Finance — Midnight's buyer callback interface, exactly as Midnight itself declares it.
+// @author adiii.eth
+
+/// @notice Midnight's buyer callback interface, invoked on every fill against one of our bids.
+/// @dev `pendingFeeIncrease` must stay `uint256`: typing it `uint128` would change the function selector
+/// Midnight actually calls, and every fill would silently fail.
 interface IBuyCallback {
     function onBuy(
         bytes32 id,

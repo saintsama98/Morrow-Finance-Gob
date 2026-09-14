@@ -16,10 +16,14 @@ interface IERC20Like {
     function approve(address spender, uint256 amount) external returns (bool);
 }
 
-/// @dev section 20. Single custody and accounting: holds all idle cash in parking, owns every series, keeps the
-/// senior and junior books, enforces coverage/capacity/stress-gate rules, and rolls settled cash into the next
-/// series. The two vaults (M6/M7) are share ledgers on top of these books; this contract is where value
-/// actually lives and is counted.
+// Morrow Finance — the protocol's single custody and accounting layer: owns every series, keeps the senior
+// and junior books, and enforces coverage/capacity/stress-gate policy.
+// @author adiii.eth
+
+/// @notice Single custody and accounting contract. Holds all idle cash in parking, owns every series, keeps
+/// the senior and junior books, enforces coverage/capacity/stress-gate rules, and rolls settled cash back
+/// into the books. The senior and junior vaults are share ledgers on top of these books; this contract is
+/// where value actually lives and is counted.
 contract SeriesCore {
     using WadMath for uint256;
 
@@ -71,12 +75,12 @@ contract SeriesCore {
     bool public vaultsSet;
     bool public paused;
 
-    // --- books (section 20.2) --------------------------------------------------------------------------------
+    // --- books -----------------------------------------------------------------------------------------------
 
     /// @dev parkingShares is a literal asset amount, not a proportional vault share: the only parking adapter
-    /// built so far (IdleParking) holds usdc 1:1 with no yield, so "shares" and "assets" coincide. Moving to a
-    /// yield-bearing Erc4626Parking adapter later would need this reworked into true proportional shares so
-    /// each book keeps its own claim on appreciating parked value; out of scope for M5.
+    /// built so far holds usdc 1:1 with no yield, so "shares" and "assets" coincide. A yield-bearing parking
+    /// adapter later would need this reworked into true proportional shares so each book keeps its own claim
+    /// on appreciating parked value.
     struct Book {
         uint256 parkingShares;
         uint256 reservedAssets;
@@ -97,9 +101,9 @@ contract SeriesCore {
     }
 
     mapping(address => SeriesInfo) public info;
-    mapping(address => uint256) public backstopPaid; // section 20.8, cumulative junior->senior transfer per series
+    mapping(address => uint256) public backstopPaid; // cumulative junior-to-senior backstop transfer per series
 
-    // --- curator policy (section 20.5) -----------------------------------------------------------------------
+    // --- curator policy ----------------------------------------------------------------------------------------
 
     struct Policy {
         uint256 covWad;
@@ -196,8 +200,8 @@ contract SeriesCore {
         });
     }
 
-    /// @dev Vaults need the core's address in their own constructor, so they're always deployed after it; this
-    /// wires them in exactly once.
+    /// @notice Wires in the senior and junior vaults, once.
+    /// @dev Vaults need the core's address in their own constructor, so they're always deployed after it.
     function setVaults(address seniorVault_, address juniorVault_) external onlyGovernance {
         require(!vaultsSet, VaultsAlreadySet());
         seniorVault = seniorVault_;
@@ -206,8 +210,14 @@ contract SeriesCore {
         emit VaultsSet(seniorVault_, juniorVault_);
     }
 
-    // --- section 8.2: openSeries ------------------------------------------------------------------------------
+    // --- openSeries --------------------------------------------------------------------------------------------
 
+    /// @notice Opens a new series: validates coverage, idle liquidity, and maturity-window exposure, deploys
+    /// it through the factory, and funds it from the senior/junior books.
+    /// @param p The series' creation parameters.
+    /// @param S Senior capital to allocate.
+    /// @param J Junior capital to allocate.
+    /// @return seriesAddr The newly deployed and funded series.
     function openSeries(SeriesParams calldata p, uint256 S, uint256 J) external onlyAllocator returns (address seriesAddr) {
         require(!paused, Paused());
         require(liveSeries.length < policy.maxSeries, MaxSeriesExceeded());
@@ -215,17 +225,17 @@ contract SeriesCore {
         uint256 kAlloc = S + J;
         require(kAlloc > 0 && kAlloc <= policy.maxPerSeriesAssets, PerSeriesCapExceeded());
 
-        // C1: a = J / (S+J) rounded down (section 5.4), inside the curator band.
+        // junior's share of allocated capital, rounded down, must sit inside the curator's coverage band.
         uint256 aWad = J.mulDivDown(WAD, kAlloc);
         require(policy.covWad <= aWad && aWad <= policy.aMaxWad, CoverageBand(aWad));
 
-        // C2: idle after reserved redemptions and idle floors.
+        // idle after reserved redemptions and idle floors.
         uint256 seniorAvail = idleAvailable(true);
         uint256 juniorAvail = idleAvailable(false);
         require(S <= seniorAvail, IdleInsufficient(true, S, seniorAvail));
         require(J <= juniorAvail, IdleInsufficient(false, J, juniorAvail));
 
-        // C5: maturity window cap. T is read directly off the basket's first market -- eligibility (run inside
+        // maturity window cap. T is read directly off the basket's first market -- eligibility (run inside
         // factory.createSeries below) independently requires every market in the basket to share one maturity,
         // so reading just the first is sound and avoids duplicating that check here.
         uint256 T = _maturityOfFirstMarket(p.marketIds[0]);
@@ -264,10 +274,11 @@ contract SeriesCore {
         }
     }
 
-    // --- section 14: series-only payout hooks ----------------------------------------------------------------
+    // --- series-only payout hooks ------------------------------------------------------------------------------
 
-    /// @dev Called by a series at finalize (K_d == 0) or cancel. The series has already transferred the cash in
-    /// the same call; this credits the books and prunes the series from liveSeries if it just went terminal.
+    /// @notice Credits the books when a registered series returns undeployed capital, at finalize or cancel.
+    /// @dev The series has already transferred the cash in the same call; this credits the books and prunes
+    /// the series from liveSeries if it just went terminal (cancelled).
     function receiveReturn(uint256 toSenior, uint256 toJunior) external onlyRegisteredSeries {
         _creditBooks(toSenior, toJunior);
 
@@ -278,9 +289,10 @@ contract SeriesCore {
         emit ReturnReceived(msg.sender, toSenior, toJunior);
     }
 
-    /// @dev Called by a series at every waterfall rerun. Applies the cross-series backstop (section 20.8) if
-    /// senior is still short of its claim, then prunes the series into recoveringSeries or out entirely once it
-    /// reaches SETTLED.
+    /// @notice Credits the books on a registered series' waterfall payout, applies the cross-series loss
+    /// backstop if enabled, and prunes the series once it settles.
+    /// @dev Called by a series at every waterfall rerun. Applies the backstop if senior is still short of its
+    /// claim, then moves the series into recoveringSeries or out entirely once it reaches SETTLED.
     function receivePayout(uint256 toSenior, uint256 toJunior) external onlyRegisteredSeries {
         _creditBooks(toSenior, toJunior);
 
@@ -309,11 +321,10 @@ contract SeriesCore {
         junior.parkingShares += toJunior;
     }
 
-    /// @dev section 20.8: when senior is short of its frozen claim, top it up from junior's idle cash, capped
-    /// by backstopWad of that idle and by the shortfall itself. Cumulative per series via backstopPaid, so
-    /// later recoveries on that series repay junior first (Series.sol's own waterfall pays senior first up to
-    /// C_S regardless; the backstopPaid bookkeeping here is what a future recovery-routing extension would read
-    /// to know how much of junior's advance to reimburse before anything else flows to junior).
+    /// @dev When senior is short of its frozen claim on a series, tops it up from junior's idle cash, capped by
+    /// a curator-set fraction of that idle and by the shortfall itself. Cumulative per series via backstopPaid,
+    /// which tracks how much of junior's advance would need to be reimbursed before anything else flows to
+    /// junior (the series' own waterfall pays senior first up to its claim regardless).
     function _applyBackstop(address seriesAddr) internal {
         Series s = Series(seriesAddr);
         if (s.passThrough()) return; // no fixed claim to compare against
@@ -365,8 +376,9 @@ contract SeriesCore {
         }
     }
 
-    // --- vault-only functions (section 20.6) -------------------------------------------------------------------
+    // --- vault-only functions ----------------------------------------------------------------------------------
 
+    /// @notice Credits `assets` of freshly deposited capital into the calling vault's book.
     function depositFor(bool isSenior, uint256 assets) external {
         _requireVault(isSenior);
         require(IERC20Like(USDC).approve(address(PARKING), assets), "approve failed");
@@ -375,15 +387,18 @@ contract SeriesCore {
         else junior.parkingShares += assets;
     }
 
+    /// @notice Records a junior deposit as pending, before it is invested into the book.
     function addPendingJunior(uint256 assets) external onlyJuniorVault {
         junior.pendingDeposits += assets;
     }
 
+    /// @notice Refunds a pending junior deposit that was never invested, e.g. on a cancelled epoch fill.
     function removePendingJunior(uint256 assets, address to) external onlyJuniorVault {
         junior.pendingDeposits -= assets;
         require(IERC20Like(USDC).transfer(to, assets), "transfer failed");
     }
 
+    /// @notice Moves a pending junior deposit into the junior book, once its epoch fills.
     function investPendingJunior(uint256 assets) external onlyJuniorVault {
         junior.pendingDeposits -= assets;
         require(IERC20Like(USDC).approve(address(PARKING), assets), "approve failed");
@@ -391,6 +406,7 @@ contract SeriesCore {
         junior.parkingShares += assets;
     }
 
+    /// @notice Pulls `assets` out of parking into a reserved balance for the calling vault, ahead of a payout.
     function reserveFor(bool isSenior, uint256 assets) external {
         _requireVault(isSenior);
         PARKING.withdraw(assets, address(this));
@@ -403,6 +419,7 @@ contract SeriesCore {
         }
     }
 
+    /// @notice Pays `assets` from the calling vault's reserved balance to `to`.
     function payFrom(bool isSenior, address to, uint256 assets) external {
         _requireVault(isSenior);
         if (isSenior) senior.reservedAssets -= assets;
@@ -412,6 +429,7 @@ contract SeriesCore {
 
     // --- anyone -------------------------------------------------------------------------------------------------
 
+    /// @notice Writes the latest loss factor/fee accrual for every live series on chain. Permissionless.
     function syncAll() external {
         uint256 length = liveSeries.length;
         for (uint256 i = 0; i < length; i++) {
@@ -420,10 +438,10 @@ contract SeriesCore {
         emit Synced(seniorAssets(), juniorAssets());
     }
 
+    /// @notice Sweeps liveSeries and recoveringSeries for state that has moved on without a triggering call.
     /// @dev Moves settled/canceled series out of liveSeries (into recoveringSeries if they still hold
     /// written-off credit), and drops fully-resolved series out of recoveringSeries. receiveReturn/receivePayout
-    /// already do this inline on every call that reaches a terminal state; this is a bounded catch-up sweep for
-    /// completeness, matching section 20.6's explicit listing.
+    /// already do this inline on every call that reaches a terminal state; this is a bounded catch-up sweep.
     function pruneSeries() external {
         uint256 i;
         while (i < liveSeries.length) {
@@ -453,7 +471,7 @@ contract SeriesCore {
         }
     }
 
-    // --- views (section 20.3, 20.4, 20.6, 20.9) ------------------------------------------------------------------
+    // --- views ---------------------------------------------------------------------------------------------------
 
     function liveSeriesCount() external view returns (uint256) {
         return liveSeries.length;
@@ -463,6 +481,7 @@ contract SeriesCore {
         return recoveringSeries.length;
     }
 
+    /// @notice Total senior book value: idle senior cash plus the senior NAV of every live series.
     function seniorAssets() public view returns (uint256 total) {
         total = senior.parkingShares;
         uint256 length = liveSeries.length;
@@ -472,6 +491,7 @@ contract SeriesCore {
         }
     }
 
+    /// @notice Total junior book value: idle junior cash plus the junior NAV of every live series.
     function juniorAssets() public view returns (uint256 total) {
         total = junior.parkingShares;
         uint256 length = liveSeries.length;
@@ -481,6 +501,7 @@ contract SeriesCore {
         }
     }
 
+    /// @notice Same as seniorAssets, but first writes each live series' latest state to chain.
     function seniorAssetsSynced() external returns (uint256 total) {
         total = senior.parkingShares;
         uint256 length = liveSeries.length;
@@ -490,6 +511,7 @@ contract SeriesCore {
         }
     }
 
+    /// @notice Same as juniorAssets, but first writes each live series' latest state to chain.
     function juniorAssetsSynced() external returns (uint256 total) {
         total = junior.parkingShares;
         uint256 length = liveSeries.length;
@@ -499,6 +521,8 @@ contract SeriesCore {
         }
     }
 
+    /// @notice Max senior book size implied by the current junior book, given the curator's vault coverage
+    /// target.
     function seniorCapacity() public view returns (uint256) {
         return juniorAssets().mulDivDown(WAD - policy.covVaultWad, policy.covVaultWad);
     }
@@ -517,9 +541,10 @@ contract SeriesCore {
         return idleNow > floor ? idleNow - floor : 0;
     }
 
-    /// @dev section 20.9: false while any live series' junior nav has fallen below the stress floor, or any
-    /// recovering series still holds written-off credit (a recovery there would jump the senior price,
-    /// letting a deposit made just before capture part of it).
+    /// @notice Whether new senior deposits are currently allowed.
+    /// @dev False while any live series' junior NAV has fallen below the stress floor, or any recovering
+    /// series still holds written-off credit — a recovery there would jump the senior price, letting a
+    /// deposit made just before capture part of it.
     function stressGateOpen() public view returns (bool) {
         uint256 length = liveSeries.length;
         for (uint256 i = 0; i < length; i++) {
@@ -552,10 +577,10 @@ contract SeriesCore {
         return maxRedeemable < idleAvail ? maxRedeemable : idleAvail;
     }
 
-    // --- curator policy (section 20.5) -------------------------------------------------------------------------
+    // --- curator policy ------------------------------------------------------------------------------------------
 
-    /// @dev Curator-only, always timelocked: the general path for any policy change. `key` is
-    /// keccak256("<fieldName>"); see _writePolicy for the recognized set.
+    /// @notice Queues a curator policy change, executable after the timelock.
+    /// @dev `key` is keccak256("<fieldName>"); see _writePolicy for the recognized set.
     function proposePolicyChange(bytes32 key, uint256 value) external returns (uint256 executableAt) {
         require(msg.sender == curator, NotCuratorOrSentinel());
         executableAt = block.timestamp + CURATOR_TIMELOCK;
@@ -563,6 +588,7 @@ contract SeriesCore {
         emit PolicySubmitted(key, value, executableAt);
     }
 
+    /// @notice Applies a previously queued, now-matured policy change.
     function executePolicyChange(bytes32 key) external {
         PendingPolicyChange memory change = pendingPolicyChanges[key];
         require(change.active && block.timestamp >= change.executableAt, TimelockNotElapsed());
@@ -572,8 +598,8 @@ contract SeriesCore {
     }
 
     /// @dev A hand-picked subset of clearly-risk-decreasing single-direction changes, callable immediately by
-    /// curator or sentinel without the timelock (section 16: "pause deposits, lower caps" is the sentinel's
-    /// whole mandate). Each function only allows moving the parameter in its safe direction.
+    /// curator or sentinel without the timelock — pausing deposits and lowering caps is the sentinel's whole
+    /// mandate. Each function only allows moving the parameter in its safe direction.
     function pause() external {
         require(msg.sender == curator || msg.sender == sentinel, NotCuratorOrSentinel());
         paused = true;

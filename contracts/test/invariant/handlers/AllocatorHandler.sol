@@ -16,8 +16,11 @@ import {Series} from "../../../src/series/Series.sol";
 import {SeriesParams, SeriesState} from "../../../src/interfaces/ISeries.sol";
 import {IParking} from "../../../src/parking/IParking.sol";
 
-/// @dev section 25.4 AllocatorHandler: openSeries within policy (immediately registering and filling one bid,
-/// see rationale below), cancel, registerOffers (additional bids on top), finalize.
+// Morrow Finance — invariant-suite handler for series creation, cancellation, offer registration, and finalize.
+// @author adiii.eth
+
+/// @notice Fuzz handler: openSeries within policy (immediately registering and filling one bid, see rationale
+/// below), cancel, registerOffers (additional bids on top), finalize.
 ///
 /// openSeries fills its own series atomically rather than relying on a later, independently-random
 /// registerOffer + borrowerTakesBid pair to happen to land on it before its deployment window or offer expiry
@@ -40,14 +43,15 @@ contract AllocatorHandler is Test {
 
     function openSeries(uint256 sSeed, uint256 jSeed) external {
         uint256 s = bound(sSeed, 100_000e6, 2_000_000e6);
-        // a = J / (S+J) kept in [0.15, 0.30] (the curator band) by construction; enforcing C1 is SeriesCore's
-        // job (M5), not Series's, so this is just a realistic default for this handler, not an invariant.
+        // junior's share is kept in [0.15, 0.30] (the curator band) by construction; enforcing the coverage
+        // band is SeriesCore's job, not Series's, so this is just a realistic default for this handler, not an
+        // invariant.
         uint256 aWad = bound(jSeed, 0.15e18, 0.30e18);
         uint256 j = s.mulDivDown(aWad, WAD - aWad);
 
         maturityCounter++;
         // Series.MIN_TERM is a hard 14-day floor (T >= 14 days, tDeployEnd < T - 14 days); staying close to it
-        // (rather than spec's realistic 28-91 day tau range) keeps full lifecycles reachable within a single
+        // (rather than a longer, more realistic tenor) keeps full lifecycles reachable within a single
         // invariant run's warp budget.
         uint256 maturity = block.timestamp + 17 days + maturityCounter * 10 minutes;
         Market memory market = registry.marketFor(maturity);
@@ -64,7 +68,7 @@ contract AllocatorHandler is Test {
         SeriesParams memory p = SeriesParams({
             marketIds: ids,
             tDeployEnd: uint64(block.timestamp + 2 days), // must stay < T - MIN_TERM (14 days); see maturity above
-            dWriteOff: uint64(1 days), // shortened from spec's 7-day default so write-off is reachable in-run
+            dWriteOff: uint64(1 days), // shortened from a realistic default so write-off is reachable in-run
             covWad: 0.15e18,
             pi0Wad: 0.10e18,
             piTWad: 0.20e18,
