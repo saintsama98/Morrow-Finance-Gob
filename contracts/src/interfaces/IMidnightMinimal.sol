@@ -3,11 +3,12 @@ pragma solidity 0.8.34;
 
 import {Market, Offer, CollateralParams} from "@morpho-org/midnight/src/interfaces/IMidnight.sol";
 
-/// @dev Only the Midnight functions this codebase calls. Struct types (`Market`, `Offer`,
-/// `CollateralParams`) are imported directly from the pinned Midnight commit (lib/midnight)
-/// rather than redeclared, so layout can never drift from what's actually deployed.
-/// Signatures verified against the pinned commit; notably
-/// `onBuy`'s `pendingFeeIncrease` is `uint256`, not `uint128`.
+// Morrow Finance — the minimal slice of Midnight's own interface this codebase calls.
+// @author adiii.eth
+
+/// @notice Only the Midnight functions this codebase calls.
+/// @dev Struct types (`Market`, `Offer`, `CollateralParams`) are imported directly from the pinned Midnight
+/// commit rather than redeclared, so layout can never drift from what's actually deployed.
 interface IMidnightMinimal {
     function take(
         Offer memory offer,
@@ -27,7 +28,7 @@ interface IMidnightMinimal {
 
     function setConsumed(bytes32 group, uint128 amount, address onBehalf) external;
 
-    /// @dev Piecewise linear interpolation between the market's settlement fee breakpoints.
+    /// @notice Piecewise-linear interpolation between a market's settlement fee breakpoints.
     function settlementFee(bytes32 id, uint256 timeToMaturity) external view returns (uint256);
 
     function touchMarket(Market memory market) external returns (bytes32);

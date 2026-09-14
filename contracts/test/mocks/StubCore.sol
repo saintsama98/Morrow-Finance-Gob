@@ -8,10 +8,12 @@ interface IERC20Mintable {
     function transfer(address to, uint256 amount) external returns (bool);
 }
 
-/// @dev Minimal stand-in for SeriesCore, implementing exactly what Series needs to
-/// call (ISeriesCoreMinimal) plus a fundAndOpen helper that mimics openSeries: transfer cash to
-/// the series, then call initialize. Lets Series be built and tested end to end before the real core exists
-/// (series creation and funding against a stub core).
+// Morrow Finance — minimal stand-in core, letting Series be tested end to end before the real core exists.
+// @author adiii.eth
+
+/// @notice Minimal stand-in for SeriesCore, implementing exactly what Series needs to call
+/// (ISeriesCoreMinimal) plus a createAndFund helper that mimics the real core's openSeries: create the
+/// series, transfer cash to it, then call initialize.
 contract StubCore {
     address public sentinel;
     address public usdc;

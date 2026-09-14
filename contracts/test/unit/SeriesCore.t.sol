@@ -20,15 +20,16 @@ import {IMidnightMinimal} from "../../src/interfaces/IMidnightMinimal.sol";
 import {IParking} from "../../src/parking/IParking.sol";
 import {IdleParking} from "../../src/parking/IdleParking.sol";
 
-/// @dev SeriesCore: openSeries checks, receiveReturn/receivePayout (backstop
-/// included, decided ON by default for this build), valuation, capacity/coverage floor, stress gate, curator
-/// timelock, plus core balance reconciliation, registry bounds and loss isolation.
+// Morrow Finance — unit tests for SeriesCore: openSeries checks, payout hooks, backstop, valuation, and policy.
+// @author adiii.eth
+
+/// @notice openSeries checks, receiveReturn/receivePayout (backstop included, ON by default for this build),
+/// valuation, capacity/coverage floor, stress gate, curator timelock.
 ///
-/// Senior capacity and the junior coverage floor (enforced *at deposit/redemption time*) actually live in the
-/// vaults (SeniorVault.deposit / JuniorVault redemption fulfillment), which don't exist
-/// until the vaults exist -- the core only exposes the view functions (seniorCapacity(), juniorRedeemable()) those checks
-/// read. Tested here as "the views compute correctly", not as enforced reverts, since there's nothing yet that
-/// enforces them.
+/// Senior capacity and junior coverage-floor enforcement *at deposit/redemption time* actually live in the
+/// vaults, which don't exist yet in this codebase -- the core only exposes the view functions
+/// (seniorCapacity(), juniorRedeemable()) those checks read. Tested here as "the views compute correctly", not
+/// as enforced reverts, since there's nothing yet that enforces them.
 contract SeriesCoreTest is Test, MidnightHarness {
     using UtilsLib for uint256;
 
@@ -164,7 +165,7 @@ contract SeriesCoreTest is Test, MidnightHarness {
         core.setVaults(address(1), address(2));
     }
 
-    // --- openSeries checks ------------------------------------------------------------------------------
+    // --- openSeries ------------------------------------------------------------------------------------------
 
     function test_openSeries_happyPath() public {
         _fundBook(true, 2_000_000e6);
@@ -186,7 +187,7 @@ contract SeriesCoreTest is Test, MidnightHarness {
         core.openSeries(_defaultParams(_idsOf(marketId), 1_000_000e6), 800_000e6, 200_000e6);
     }
 
-    function test_openSeries_C1_coverageBandTooLow() public {
+    function test_openSeries_coverageBandTooLow() public {
         _fundBook(true, 990_000e6);
         _fundBook(false, 10_000e6); // a = 10k/1m = 1% < covWad (15%)
 
@@ -195,7 +196,7 @@ contract SeriesCoreTest is Test, MidnightHarness {
         core.openSeries(_defaultParams(_idsOf(marketId), 1_000_000e6), 990_000e6, 10_000e6);
     }
 
-    function test_openSeries_C1_coverageBandTooHigh() public {
+    function test_openSeries_coverageBandTooHigh() public {
         _fundBook(true, 600_000e6);
         _fundBook(false, 400_000e6); // a = 40% > aMaxWad (30%)
 
@@ -204,7 +205,7 @@ contract SeriesCoreTest is Test, MidnightHarness {
         core.openSeries(_defaultParams(_idsOf(marketId), 1_000_000e6), 600_000e6, 400_000e6);
     }
 
-    function test_openSeries_C2_insufficientSeniorIdle() public {
+    function test_openSeries_insufficientSeniorIdle() public {
         _fundBook(true, 100_000e6);
         _fundBook(false, 200_000e6);
 
@@ -214,7 +215,7 @@ contract SeriesCoreTest is Test, MidnightHarness {
         core.openSeries(_defaultParams(_idsOf(marketId), 1_000_000e6), 800_000e6, 200_000e6);
     }
 
-    function test_openSeries_C4_perSeriesCapExceeded() public {
+    function test_openSeries_perSeriesCapExceeded() public {
         _fundBook(true, 2_000_000e6);
         _fundBook(false, 500_000e6);
 
@@ -224,7 +225,7 @@ contract SeriesCoreTest is Test, MidnightHarness {
         core.openSeries(_defaultParams(_idsOf(marketId), 2_500_000e6), 2_000_000e6, 500_000e6);
     }
 
-    function test_openSeries_C6_pausedReverts() public {
+    function test_openSeries_pausedReverts() public {
         _fundBook(true, 2_000_000e6);
         _fundBook(false, 500_000e6);
 
@@ -236,7 +237,7 @@ contract SeriesCoreTest is Test, MidnightHarness {
         core.openSeries(_defaultParams(_idsOf(marketId), 1_000_000e6), 800_000e6, 200_000e6);
     }
 
-    function test_openSeries_C3_maxSeriesExceeded() public {
+    function test_openSeries_maxSeriesExceeded() public {
         vm.prank(sentinel);
         core.lowerMaxSeries(0);
 
@@ -248,7 +249,7 @@ contract SeriesCoreTest is Test, MidnightHarness {
         core.openSeries(_defaultParams(_idsOf(marketId), 1_000_000e6), 800_000e6, 200_000e6);
     }
 
-    // --- receiveReturn / receivePayout, core balance reconciliation ------------------------------------
+    // --- receiveReturn / receivePayout ------------------------------------------------------------------------
 
     function test_receiveReturn_onlyRegisteredSeries() public {
         vm.expectRevert(SeriesCore.NotRegisteredSeries.selector);
@@ -273,8 +274,8 @@ contract SeriesCoreTest is Test, MidnightHarness {
         assertEq(sharesJunior, 500_000e6, "junior book must get its full allocation back");
     }
 
-    /// @dev core usdc balance == senior reserved + junior reserved + junior pending deposits (bounded
-    /// dust), and core parking shares == senior book shares + junior book shares.
+    /// @dev Core usdc balance == senior reserved + junior reserved + junior pending deposits (bounded dust),
+    /// and core parking shares == senior book shares + junior book shares.
     function test_balanceConservation_afterDepositsAndCancel() public {
         _fundBook(true, 2_000_000e6);
         _fundBook(false, 500_000e6);
@@ -291,7 +292,7 @@ contract SeriesCoreTest is Test, MidnightHarness {
         assertEq(parking.balanceOf(address(core)), sSh + jSh, "core parking shares == senior + junior book shares");
     }
 
-    // --- backstop (ON by default) --------------------------------------------------------------
+    // --- backstop (ON by default) -----------------------------------------------------------------------------
 
     function _fillAndFinalize(address seriesAddr, uint256 units) internal {
         _fillAndFinalizeMarket(seriesAddr, units, market);
@@ -387,7 +388,7 @@ contract SeriesCoreTest is Test, MidnightHarness {
         assertEq(core.backstopPaid(seriesAddr), 0, "backstop must not fire once disabled");
     }
 
-    // --- with backstop off, a loss in one series never changes another series' legs ---------------------
+    // --- with backstop off, a loss in one series never changes another series' legs ---------------------------
 
     function test_lossIsolatedAcrossSeries_whenBackstopOff() public {
         vm.prank(curator);
@@ -434,7 +435,7 @@ contract SeriesCoreTest is Test, MidnightHarness {
         assertEq(uint8(Series(seriesB).state()), uint8(SeriesState.DEPLOYING), "series B's state must be untouched");
     }
 
-    // --- registry bounds --------------------------------------------------------------------------------
+    // --- registry bounds ---------------------------------------------------------------------------------------
 
     function test_liveSeriesNeverExceedsMaxSeries() public {
         vm.prank(sentinel);
