@@ -62,6 +62,6 @@ repository layout: `/contracts/src` (contracts), `/contracts/test` (tests), `/si
 
 ## status
 
-v0.5, pre-beta.
+v0.1 (Gob), pre beta.
 
 software, not an offer. `srUSDC` and `jrUSDC` are unregistered and their legal characterization is jurisdiction-specific (a launch gate).
