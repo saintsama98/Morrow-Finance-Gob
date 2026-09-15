@@ -62,6 +62,6 @@ repository layout: `/contracts/src` (contracts), `/contracts/test` (tests), `/si
 
 ## status
 
-v0.5, pre-beta. build spec is the source of truth (section 0 of `/docs/SERIES_BUILD_SPEC.md`). milestones M0–M12 lay out the build order: M0 resolves Midnight facts, M1–M8 build engine and surface, M9 forks to Base, M10 optional Vault V2 adapter, M11 simulation and risk report, M12 audit prep.
+v0.1 (Gob), pre beta. build spec is the source of truth (section 0 of `/docs/SERIES_BUILD_SPEC.md`). milestones M0–M12 lay out the build order: M0 resolves Midnight facts, M1–M8 build engine and surface, M9 forks to Base, M10 optional Vault V2 adapter, M11 simulation and risk report, M12 audit prep.
 
 software, not an offer. `srUSDC` and `jrUSDC` are unregistered and their legal characterization is jurisdiction-specific (a launch gate).
