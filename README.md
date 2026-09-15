@@ -1,4 +1,4 @@
-# morrow-finance v0.5
+# Morrow-Finance-Gob (Gob - symbolizes early beta and testing cascade for the protocol, similar to early form of glass as a base material, also known as "Gob") 
 
 dated senior and junior credit tranches on Morpho Midnight, one surface with two tokens.
 
