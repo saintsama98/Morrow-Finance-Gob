@@ -35,7 +35,9 @@ contract JuniorVaultTest is Test {
         usdc = new MockUSDC();
         parking = new IdleParking(address(usdc));
         factory = new SeriesFactory(IMidnightMinimal(address(0x1)), address(0x2), address(usdc), governance, 0.86e18, 4);
-        core = new SeriesCore(address(usdc), factory, IParking(address(parking)), governance, allocator, curator, sentinel);
+        core = new SeriesCore(
+            address(usdc), factory, IParking(address(parking)), governance, allocator, curator, sentinel
+        );
         vm.prank(governance);
         factory.setCore(address(core));
 

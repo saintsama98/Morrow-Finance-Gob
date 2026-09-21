@@ -231,8 +231,9 @@ contract JuniorVault is ERC20 {
     function claimRedeem(uint256 epochId) external returns (uint256 assets) {
         RedeemEpoch storage e = redeemEpochs[epochId];
         uint256 requested = requestedShares[epochId][msg.sender];
-        uint256 entitled =
-            EpochMath.claimableAssets(requested, e.assetsFulfilled, e.totalSharesRequested, claimedAssets[epochId][msg.sender]);
+        uint256 entitled = EpochMath.claimableAssets(
+            requested, e.assetsFulfilled, e.totalSharesRequested, claimedAssets[epochId][msg.sender]
+        );
         require(entitled > 0, NothingToClaim());
 
         claimedAssets[epochId][msg.sender] += entitled;

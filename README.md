@@ -64,6 +64,15 @@ the document holds three kinds of statement, and it marks which is which:
 | audited result | produced by an exact integer reference implementation, reproducible by anyone |
 | simulation result | depends on modelled market behaviour. this part is still under simulation, and figures not yet computed are marked `[Pending]` |
 
+two Python models in `/docs` produce every number in the document, using only the standard library:
+
+| file | role |
+|---|---|
+| [`docs/morrow-finance-gob-reference_model.py`](docs/morrow-finance-gob-reference_model.py) | exact integer implementation of the tranche arithmetic, audited against exact rational computation. writes `audit_tables.md` and `audit_results.json` |
+| [`docs/morrow-finance-gob-stress_model.py`](docs/morrow-finance-gob-stress_model.py) | deterministic stress model mapping a collateral price shock to pool loss and each claim's outcome. writes `stress_tables.md` |
+
+run each with `python3 <file>`. the document refers to them by their short names, `reference_model.py` and `stress_model.py`.
+
 the contracts implement this arithmetic, so the document is the reference for what the code is meant to compute. where the two ever disagree, treat it as a defect to resolve, not as a choice of source. the simulation results are model output, not a forecast or a guarantee of returns.
 
 ## parameters (defaults)
@@ -72,9 +81,9 @@ coverage minimum `COV = 0.15`, junior share band `[0.15, 0.30]`, premium anchors
 
 ## build
 
-Foundry, solc 0.8.34, EVM version `osaka` (Midnight uses `clz`). tests deploy the real Midnight contract from a pinned commit, not a mock. unit tests per module, fuzz tests per main invariant, stateful invariant suite with handlers for every actor, scenario tests S0–S14 (base and fork), differential tests (Solidity vs Python twins of all math).
+Foundry, solc 0.8.34, EVM version `osaka` (Midnight uses `clz`). tests deploy the real Midnight contract from a pinned commit, not a mock. unit tests per module, fuzz tests per main invariant, stateful invariant suite with handlers for every actor, scenario tests S0–S14 (base and fork). differential tests (Solidity vs Python twins of the math) are planned and not in the suite yet.
 
-repository layout: `/contracts/src` (contracts), `/contracts/test` (tests), `/sim` (Python harness), `/docs` (build spec, VERIFY_LOG.md, and the arithmetic model `morrow-finance-gob-arithmatic.md`).
+repository layout: `/contracts/src` (contracts), `/contracts/test` (tests), `/docs` (build spec, VERIFY_LOG.md, the arithmetic model `morrow-finance-gob-arithmatic.md`, and its two Python models).
 
 ## status
 

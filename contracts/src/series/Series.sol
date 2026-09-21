@@ -77,7 +77,9 @@ contract Series is IBuyCallback {
     event SettlementStarted();
     event Collected(uint256 indexed i, uint256 received, uint256 proceedsCum, bool resolved);
     event WrittenOff(uint256 proceedsCum);
-    event Waterfall(uint256 proceeds, uint256 seniorPaid, uint256 juniorPaid, uint256 fee, uint256 dSenior, uint256 dJunior);
+    event Waterfall(
+        uint256 proceeds, uint256 seniorPaid, uint256 juniorPaid, uint256 fee, uint256 dSenior, uint256 dJunior
+    );
     event Settled(uint256 proceeds);
     event FeeClaimed(uint256 amount);
     event BufferUpdated(uint256 indexed i, uint256 credit, uint256 faceNetAtT, int256 buffer, uint256 lossAtT);
@@ -319,7 +321,11 @@ contract Series is IBuyCallback {
     /// only proves membership against. Leaves whose maker isn't this series are ignored: the setter ratifier
     /// looks up ratification keyed by the offer's own maker, so a leaf naming another maker is harmless unless
     /// that maker separately ratified the same root.
-    function registerOffers(bytes32 root, Offer[] calldata leaves) external onlyAllocator inState(SeriesState.DEPLOYING) {
+    function registerOffers(bytes32 root, Offer[] calldata leaves)
+        external
+        onlyAllocator
+        inState(SeriesState.DEPLOYING)
+    {
         require(block.timestamp <= T_DEPLOY_END, TooLate(block.timestamp));
 
         bytes32 computedRoot = _computeRoot(leaves);
@@ -393,11 +399,15 @@ contract Series is IBuyCallback {
     /// bids.
     /// @dev Entered from inside Midnight's own take() while the series holds no lock of its own, so this is
     /// nonReentrant against re-entry through other series entry points.
-    function onBuy(bytes32 id, Market memory, uint256 buyerAssets, uint256 units, uint256 pendingFeeIncrease, address buyer, bytes memory data)
-        external
-        nonReentrant
-        returns (bytes32)
-    {
+    function onBuy(
+        bytes32 id,
+        Market memory,
+        uint256 buyerAssets,
+        uint256 units,
+        uint256 pendingFeeIncrease,
+        address buyer,
+        bytes memory data
+    ) external nonReentrant returns (bytes32) {
         require(msg.sender == address(MIDNIGHT), NotMidnight());
         require(buyer == address(this), NotSelfBuyer());
 
@@ -405,7 +415,9 @@ contract Series is IBuyCallback {
         // calls through a fully-consumed offer's callback.
         if (units == 0 && buyerAssets == 0) return bytes32(keccak256("morpho.midnight.callbackSuccess"));
 
-        require(state == SeriesState.DEPLOYING && block.timestamp <= T_DEPLOY_END, WrongState(SeriesState.DEPLOYING, state));
+        require(
+            state == SeriesState.DEPLOYING && block.timestamp <= T_DEPLOY_END, WrongState(SeriesState.DEPLOYING, state)
+        );
         require(units > 0, ZeroUnits());
 
         uint256 i = abi.decode(data, (uint256));
@@ -583,7 +595,8 @@ contract Series is IBuyCallback {
     function _faceNetNow() internal view returns (uint256 fNetNow) {
         uint256 length = _marketIds.length;
         for (uint256 i = 0; i < length; i++) {
-            (uint128 credit, uint128 pendingFee,) = MIDNIGHT.updatePositionView(_markets[i], _marketIds[i], address(this));
+            (uint128 credit, uint128 pendingFee,) =
+                MIDNIGHT.updatePositionView(_markets[i], _marketIds[i], address(this));
             fNetNow += (uint256(credit) - uint256(pendingFee)) + collected[i];
         }
     }
@@ -648,7 +661,15 @@ contract Series is IBuyCallback {
         }
 
         return SeriesMath.nav(
-            elapsed, tau, totalFilled, faceNetAtFinalize, faceLoss, seniorDeployed, seniorClaim, juniorDeployed, THETA_WAD
+            elapsed,
+            tau,
+            totalFilled,
+            faceNetAtFinalize,
+            faceLoss,
+            seniorDeployed,
+            seniorClaim,
+            juniorDeployed,
+            THETA_WAD
         );
     }
 
@@ -747,7 +768,8 @@ contract Series is IBuyCallback {
     /// and fee already paid out (feeClaimed) are never double counted since they're added back explicitly, not
     /// re-read from a balance that no longer holds them.
     function _proceeds() internal view returns (uint256) {
-        return IERC20Like(USDC).balanceOf(address(this)) + PARKING.totalAssets(address(this)) + paidS + paidJ + feeClaimed;
+        return
+            IERC20Like(USDC).balanceOf(address(this)) + PARKING.totalAssets(address(this)) + paidS + paidJ + feeClaimed;
     }
 
     /// @dev The cumulative waterfall rerun. Correct for recoveries automatically because senior/junior/fee

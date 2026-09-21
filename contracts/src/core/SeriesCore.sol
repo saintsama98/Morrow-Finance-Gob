@@ -179,24 +179,24 @@ contract SeriesCore {
 
         policy = Policy({
             covWad: 0.15e18,
-            aMaxWad: 0.30e18,
-            covVaultWad: 0.20e18,
+            aMaxWad: 0.3e18,
+            covVaultWad: 0.2e18,
             covVaultMinWad: 0.15e18,
-            pi0Wad: 0.10e18,
-            piTWad: 0.20e18,
+            pi0Wad: 0.1e18,
+            piTWad: 0.2e18,
             pi1Wad: 0.35e18,
-            thetaWad: 0.10e18,
+            thetaWad: 0.1e18,
             minRateFloorWad: 0.005e18,
             maxSeries: 12,
             maxRecovering: 8,
             maxPerSeriesAssets: 1_000_000e6,
-            maxPerMaturityWindowWad: 0.50e18,
+            maxPerMaturityWindowWad: 0.5e18,
             minIdleSeniorWad: 0.05e18,
             minIdleJuniorWad: 0.05e18,
-            stressJuniorFloorWad: 0.50e18,
+            stressJuniorFloorWad: 0.5e18,
             backstopEnabled: true, // decided: on by default for this build
-            backstopWad: 0.50e18,
-            curatorMinShareWad: 0.10e18
+            backstopWad: 0.5e18,
+            curatorMinShareWad: 0.1e18
         });
     }
 
@@ -218,7 +218,11 @@ contract SeriesCore {
     /// @param S Senior capital to allocate.
     /// @param J Junior capital to allocate.
     /// @return seriesAddr The newly deployed and funded series.
-    function openSeries(SeriesParams calldata p, uint256 S, uint256 J) external onlyAllocator returns (address seriesAddr) {
+    function openSeries(SeriesParams calldata p, uint256 S, uint256 J)
+        external
+        onlyAllocator
+        returns (address seriesAddr)
+    {
         require(!paused, Paused());
         require(liveSeries.length < policy.maxSeries, MaxSeriesExceeded());
 
@@ -241,9 +245,7 @@ contract SeriesCore {
         uint256 T = _maturityOfFirstMarket(p.marketIds[0]);
         uint256 windowExposure = _maturityWindowExposure(T) + kAlloc;
         uint256 totalAum = seniorAssets() + juniorAssets();
-        require(
-            windowExposure <= totalAum.mulDivDown(policy.maxPerMaturityWindowWad, WAD), MaturityWindowExceeded()
-        );
+        require(windowExposure <= totalAum.mulDivDown(policy.maxPerMaturityWindowWad, WAD), MaturityWindowExceeded());
 
         seriesAddr = FACTORY.createSeries(p);
 

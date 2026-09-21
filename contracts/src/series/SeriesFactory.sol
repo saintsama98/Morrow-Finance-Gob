@@ -84,8 +84,9 @@ contract SeriesFactory {
         USDC = usdc;
         governance = governance_;
         maxLltvWad = initialMaxLltvWad <= HARD_MAX_LLTV_WAD ? initialMaxLltvWad : HARD_MAX_LLTV_WAD;
-        maxMarketsPerSeries =
-            initialMaxMarketsPerSeries <= HARD_MAX_MARKETS_PER_SERIES ? initialMaxMarketsPerSeries : HARD_MAX_MARKETS_PER_SERIES;
+        maxMarketsPerSeries = initialMaxMarketsPerSeries <= HARD_MAX_MARKETS_PER_SERIES
+            ? initialMaxMarketsPerSeries
+            : HARD_MAX_MARKETS_PER_SERIES;
     }
 
     /// @notice Binds the core contract, once. Core and factory reference each other, so neither can be passed
@@ -116,7 +117,11 @@ contract SeriesFactory {
     }
 
     /// @notice Queues a change to whether `oracle` is allowed for `token`, executable after the timelock.
-    function proposeOracleAllowed(address token, address oracle, bool allowed) external onlyGovernance returns (bytes32 id) {
+    function proposeOracleAllowed(address token, address oracle, bool allowed)
+        external
+        onlyGovernance
+        returns (bytes32 id)
+    {
         id = keccak256(abi.encode("oracle", token, oracle, allowed));
         uint256 executableAt = block.timestamp + TIMELOCK;
         pendingChanges[id] = PendingChange(true, executableAt);
@@ -202,9 +207,9 @@ contract SeriesFactory {
             p.rateFloorWad.length == p.marketIds.length && p.marketCapAssets.length == p.marketIds.length,
             MarketArrayLengthMismatch()
         );
-        require(p.covWad >= 0.05e18 && p.covWad <= 0.50e18, InvalidCovBand());
+        require(p.covWad >= 0.05e18 && p.covWad <= 0.5e18, InvalidCovBand());
         require(p.pi0Wad <= p.piTWad && p.piTWad <= p.pi1Wad && p.pi1Wad < 1e18, InvalidPremiumAnchors());
-        require(p.thetaWad <= 0.20e18, ThetaAboveCeiling());
+        require(p.thetaWad <= 0.2e18, ThetaAboveCeiling());
         for (uint256 i = 0; i < p.rateFloorWad.length; i++) {
             require(p.rateFloorWad[i] > 0, ZeroRateFloor());
         }
