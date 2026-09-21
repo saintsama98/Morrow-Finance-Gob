@@ -46,7 +46,7 @@ contract AllocatorHandler is Test {
         // junior's share is kept in [0.15, 0.30] (the curator band) by construction; enforcing the coverage
         // band is SeriesCore's job, not Series's, so this is just a realistic default for this handler, not an
         // invariant.
-        uint256 aWad = bound(jSeed, 0.15e18, 0.30e18);
+        uint256 aWad = bound(jSeed, 0.15e18, 0.3e18);
         uint256 j = s.mulDivDown(aWad, WAD - aWad);
 
         maturityCounter++;
@@ -70,29 +70,30 @@ contract AllocatorHandler is Test {
             tDeployEnd: uint64(block.timestamp + 2 days), // must stay < T - MIN_TERM (14 days); see maturity above
             dWriteOff: uint64(1 days), // shortened from a realistic default so write-off is reachable in-run
             covWad: 0.15e18,
-            pi0Wad: 0.10e18,
-            piTWad: 0.20e18,
+            pi0Wad: 0.1e18,
+            piTWad: 0.2e18,
             pi1Wad: 0.35e18,
             rateFloorWad: rateFloors,
             marketCapAssets: caps,
             kMinAssets: 50_000e6,
-            thetaWad: 0.10e18,
+            thetaWad: 0.1e18,
             feeRecipient: registry.FEE_RECIPIENT(),
             allocator: registry.ALLOCATOR(),
             parking: IParking(address(registry.parking())),
             offchainAttestationHash: bytes32(0)
         });
 
-        (bool ok, bytes memory ret) = address(registry.core()).call(
-            abi.encodeWithSelector(registry.core().createAndFund.selector, registry.factory(), p, s, j)
-        );
+        (bool ok, bytes memory ret) = address(registry.core())
+            .call(abi.encodeWithSelector(registry.core().createAndFund.selector, registry.factory(), p, s, j));
         registry.recordCall(this.openSeries.selector, !ok);
         if (!ok) return;
 
         address seriesAddr = abi.decode(ret, (address));
         registry.pushActive(
             seriesAddr,
-            SeriesRegistry.SeriesInfo({marketId: marketId, maturity: maturity, registeredAnOffer: false, lastBorrower: address(0)})
+            SeriesRegistry.SeriesInfo({
+                marketId: marketId, maturity: maturity, registeredAnOffer: false, lastBorrower: address(0)
+            })
         );
         registry.recordFunded(s + j);
 
@@ -101,7 +102,9 @@ contract AllocatorHandler is Test {
 
     /// @dev Registers one bid for roughly the whole allocation and has a dedicated synthetic borrower take it
     /// immediately, in the same call as funding. See the contract-level doc for why this needs to be atomic.
-    function _registerAndFillAtomically(address seriesAddr, bytes32 marketId, uint256 maturity, uint256 kAlloc) internal {
+    function _registerAndFillAtomically(address seriesAddr, bytes32 marketId, uint256 maturity, uint256 kAlloc)
+        internal
+    {
         Series series = Series(seriesAddr);
         uint256 tick = series.tickMaxFor(0);
         uint256 price = TickLib.tickToPrice(tick);
@@ -148,7 +151,9 @@ contract AllocatorHandler is Test {
             registry.recordUnitsBought(units);
             registry.updateInfo(
                 seriesAddr,
-                SeriesRegistry.SeriesInfo({marketId: marketId, maturity: maturity, registeredAnOffer: true, lastBorrower: borrower})
+                SeriesRegistry.SeriesInfo({
+                    marketId: marketId, maturity: maturity, registeredAnOffer: true, lastBorrower: borrower
+                })
             );
             registry.setLastOffer(seriesAddr, offer, root);
         } catch {
@@ -156,7 +161,9 @@ contract AllocatorHandler is Test {
             // series (it already has a bid) even though nobody took it this time.
             registry.updateInfo(
                 seriesAddr,
-                SeriesRegistry.SeriesInfo({marketId: marketId, maturity: maturity, registeredAnOffer: true, lastBorrower: address(0)})
+                SeriesRegistry.SeriesInfo({
+                    marketId: marketId, maturity: maturity, registeredAnOffer: true, lastBorrower: address(0)
+                })
             );
             registry.setLastOffer(seriesAddr, offer, root);
         }
@@ -203,7 +210,9 @@ contract AllocatorHandler is Test {
 
         registry.updateInfo(
             seriesAddr,
-            SeriesRegistry.SeriesInfo({marketId: marketId, maturity: maturity, registeredAnOffer: true, lastBorrower: address(0)})
+            SeriesRegistry.SeriesInfo({
+                marketId: marketId, maturity: maturity, registeredAnOffer: true, lastBorrower: address(0)
+            })
         );
         registry.setLastOffer(seriesAddr, offer, root);
     }
