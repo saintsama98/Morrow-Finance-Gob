@@ -50,15 +50,40 @@ a series with allocated `S` (senior) and `J` (junior) sets `a = J / (S + J)` and
 
 early losses hit junior in full immediately (via live loss factor sync). if junior is wiped, senior takes the next loss (stress gate then closes senior deposits). if a series underperforms, recovery flows senior-first, keeping strict seniority.
 
+## arithmetic (model under simulation)
+
+[`/docs/morrow-finance-gob-arithmatic.md`](docs/morrow-finance-gob-arithmatic.md) is the mathematical model behind all of Morrow-Finance-Gob. it defines every variable, states every expression the protocol uses, explains why each takes its form, and checks the arithmetic against exact rational computation. read it to understand how a series is priced, how the waterfall divides proceeds, and why senior is fixed and junior is the residual.
+
+it covers: the zero coupon Midnight market underneath, the premium curve and senior claim, the cushion and junior share floor, the waterfall and its recoveries rerun, the three properties that define subordination, per-series loss isolation, rounding and signed arithmetic, and the risk side (loss frequency, expected loss, stress thresholds, tenor and liquidity buffer sizing).
+
+the document holds three kinds of statement, and it marks which is which:
+
+| kind | meaning |
+|---|---|
+| derivation | true given the stated definitions |
+| audited result | produced by an exact integer reference implementation, reproducible by anyone |
+| simulation result | depends on modelled market behaviour. this part is still under simulation, and figures not yet computed are marked `[Pending]` |
+
+two Python models in `/docs` produce every number in the document, using only the standard library:
+
+| file | role |
+|---|---|
+| [`docs/morrow-finance-gob-reference_model.py`](docs/morrow-finance-gob-reference_model.py) | exact integer implementation of the tranche arithmetic, audited against exact rational computation. writes `audit_tables.md` and `audit_results.json` |
+| [`docs/morrow-finance-gob-stress_model.py`](docs/morrow-finance-gob-stress_model.py) | deterministic stress model mapping a collateral price shock to pool loss and each claim's outcome. writes `stress_tables.md` |
+
+run each with `python3 <file>`. the document refers to them by their short names, `reference_model.py` and `stress_model.py`.
+
+the contracts implement this arithmetic, so the document is the reference for what the code is meant to compute. where the two ever disagree, treat it as a defect to resolve, not as a choice of source. the simulation results are model output, not a forecast or a guarantee of returns.
+
 ## parameters (defaults)
 
 coverage minimum `COV = 0.15`, junior share band `[0.15, 0.30]`, premium anchors `pi0/piT/pi1 = 0.10/0.20/0.35`, operator fee on junior profit `theta = 0.10`, series size typically 250k–1m USDC per maturity, max 4 markets per basket (cbBTC and WBTC collateral, ungated, Base only), write-off delay after maturity 7 days, epoch length 7 days, backstop enabled by default (junior is first loss for entire senior book).
 
 ## build
 
-Foundry, solc 0.8.34, EVM version `osaka` (Midnight uses `clz`). tests deploy the real Midnight contract from a pinned commit, not a mock. unit tests per module, fuzz tests per main invariant, stateful invariant suite with handlers for every actor, scenario tests S0–S14 (base and fork), differential tests (Solidity vs Python twins of all math).
+Foundry, solc 0.8.34, EVM version `osaka` (Midnight uses `clz`). tests deploy the real Midnight contract from a pinned commit, not a mock. unit tests per module, fuzz tests per main invariant, stateful invariant suite with handlers for every actor, scenario tests S0–S14 (base and fork). differential tests (Solidity vs Python twins of the math) are planned and not in the suite yet.
 
-repository layout: `/contracts/src` (contracts), `/contracts/test` (tests), `/sim` (Python harness), `/docs` (this spec + VERIFY_LOG.md).
+repository layout: `/contracts/src` (contracts), `/contracts/test` (tests), `/docs` (build spec, VERIFY_LOG.md, the arithmetic model `morrow-finance-gob-arithmatic.md`, and its two Python models).
 
 ## status
 

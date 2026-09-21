@@ -120,9 +120,8 @@ library SeriesMath {
         pure
         returns (uint256)
     {
-        uint256 accretion = (tau > 0 && faceNetAtFinalize >= kDeployed)
-            ? (faceNetAtFinalize - kDeployed).mulDivDown(s, tau)
-            : 0; // faceNetAtFinalize < kDeployed only in the negativeCarry case, where accretion is meaningless.
+        uint256 accretion =
+            (tau > 0 && faceNetAtFinalize >= kDeployed) ? (faceNetAtFinalize - kDeployed).mulDivDown(s, tau) : 0; // faceNetAtFinalize < kDeployed only in the negativeCarry case, where accretion is meaningless.
         uint256 grossV = kDeployed + accretion;
         return grossV > faceLoss ? grossV - faceLoss : 0;
     }
