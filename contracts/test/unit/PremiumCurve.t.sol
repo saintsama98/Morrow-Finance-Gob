@@ -12,8 +12,8 @@ import {PremiumCurve} from "../../src/libraries/PremiumCurve.sol";
 contract PremiumCurveTest is Test {
     uint256 constant WAD = 1e18;
     uint256 constant UT = 0.9e18;
-    uint256 constant PI0 = 0.10e18;
-    uint256 constant PIT = 0.20e18;
+    uint256 constant PI0 = 0.1e18;
+    uint256 constant PIT = 0.2e18;
     uint256 constant PI1 = 0.35e18;
     uint256 constant COV = 0.15e18;
 
@@ -21,7 +21,7 @@ contract PremiumCurveTest is Test {
     /// directly since that's the pure function's actual input.
     function test_exactReferenceTable() public pure {
         // a = 0.15 -> u = 1.00 -> pi = 0.35
-        assertEq(PremiumCurve.pi(1.00e18, UT, PI0, PIT, PI1), 0.35e18);
+        assertEq(PremiumCurve.pi(1.0e18, UT, PI0, PIT, PI1), 0.35e18);
 
         // a = 200_000 / 1_100_000 = 0.181818... -> u = 0.825 -> pi = 0.191666...
         // pi = 0.20 - (0.075/0.9)*0.10 rounded up; exact rational is 23/120 = 0.1916666...6
@@ -33,11 +33,11 @@ contract PremiumCurveTest is Test {
         assertApproxEqAbs(piAt75, 183333333333333334, 1, "u=0.75");
 
         // a = 0.25 -> u = 0.60 -> pi = 0.166666...
-        uint256 piAt60 = PremiumCurve.pi(0.60e18, UT, PI0, PIT, PI1);
+        uint256 piAt60 = PremiumCurve.pi(0.6e18, UT, PI0, PIT, PI1);
         assertApproxEqAbs(piAt60, 166666666666666667, 1, "u=0.60");
 
         // a = 0.30 -> u = 0.50 -> pi = 0.155555...
-        uint256 piAt50 = PremiumCurve.pi(0.50e18, UT, PI0, PIT, PI1);
+        uint256 piAt50 = PremiumCurve.pi(0.5e18, UT, PI0, PIT, PI1);
         assertApproxEqAbs(piAt50, 155555555555555556, 1, "u=0.50");
 
         // u -> 0 (limit) -> pi = pi0

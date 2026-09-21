@@ -9,4 +9,5 @@ __pycache__/
 *.pyc
 
 # pre-beta / confidential build docs: kept locally, never tracked
-docs/
+docs/SERIES_BUILD_SPEC.md
+docs/VERIFY_LOG.md

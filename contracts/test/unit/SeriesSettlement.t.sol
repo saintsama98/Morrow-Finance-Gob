@@ -78,13 +78,13 @@ contract SeriesSettlementTest is Test, MidnightHarness {
             tDeployEnd: uint64(block.timestamp + 3 days),
             dWriteOff: uint64(7 days),
             covWad: 0.15e18,
-            pi0Wad: 0.10e18,
-            piTWad: 0.20e18,
+            pi0Wad: 0.1e18,
+            piTWad: 0.2e18,
             pi1Wad: 0.35e18,
             rateFloorWad: rateFloors,
             marketCapAssets: caps,
             kMinAssets: 50_000e6,
-            thetaWad: 0.10e18,
+            thetaWad: 0.1e18,
             feeRecipient: feeRecipient,
             allocator: allocator,
             parking: IParking(address(parking)),
@@ -176,7 +176,7 @@ contract SeriesSettlementTest is Test, MidnightHarness {
         assertEq(uint8(series.state()), uint8(SeriesState.SETTLED));
 
         (uint256 expectedXs, uint256 expectedXj, uint256 expectedFee) =
-            SeriesMath.waterfall(units, seniorClaim, juniorDeployed, 0.10e18);
+            SeriesMath.waterfall(units, seniorClaim, juniorDeployed, 0.1e18);
         assertEq(core.lastPayoutToSenior(), expectedXs, "senior payout must match SeriesMath.waterfall");
         assertEq(core.lastPayoutToJunior(), expectedXj, "junior payout must match SeriesMath.waterfall");
         assertGt(expectedFee, 0, "no-loss case should recognize a positive operator fee");
@@ -196,7 +196,7 @@ contract SeriesSettlementTest is Test, MidnightHarness {
         (uint256 navS, uint256 navJ, uint256 feeAccrued) = series.navs();
 
         (uint256 expectedXs, uint256 expectedXj, uint256 expectedFee) =
-            SeriesMath.waterfall(units, series.seniorClaim(), series.juniorDeployed(), 0.10e18);
+            SeriesMath.waterfall(units, series.seniorClaim(), series.juniorDeployed(), 0.1e18);
 
         assertEq(navS, expectedXs, "navS must converge to the waterfall's XS at maturity");
         assertEq(navJ, expectedXj, "navJ must converge to the waterfall's XJ at maturity");

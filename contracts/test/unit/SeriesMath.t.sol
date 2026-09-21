@@ -26,10 +26,10 @@ contract SeriesMathTest is Test {
     uint256 constant F_NET = 1_010_000 * USDC;
     uint256 constant COV = 0.15e18;
     uint256 constant UT = 0.9e18;
-    uint256 constant PI0 = 0.10e18;
-    uint256 constant PIT = 0.20e18;
+    uint256 constant PI0 = 0.1e18;
+    uint256 constant PIT = 0.2e18;
     uint256 constant PI1 = 0.35e18;
-    uint256 constant THETA = 0.10e18;
+    uint256 constant THETA = 0.1e18;
 
     // exact expected values, cross-checked against sim/series_math.py
     uint256 constant EXPECTED_A = 181818181818181818;
@@ -43,7 +43,11 @@ contract SeriesMathTest is Test {
     uint256 constant EXPECTED_A_F = 183370837085148514;
     int256 constant EXPECTED_B0 = 185204545456;
 
-    function _pricingResult() internal pure returns (SeriesMath.PricingResult memory r, uint256 a, uint256 u, uint256 pi) {
+    function _pricingResult()
+        internal
+        pure
+        returns (SeriesMath.PricingResult memory r, uint256 a, uint256 u, uint256 pi)
+    {
         a = uint256(J).wDivDown(K_ALLOC);
         u = COV.wDivUp(a);
         pi = PremiumCurve.pi(u, UT, PI0, PIT, PI1);
@@ -104,10 +108,12 @@ contract SeriesMathTest is Test {
     }
 
     /// @dev XS, XJ and fee are non-decreasing in P; every delta >= 0.
-    function testFuzz_waterfall_monotoneInProceeds(uint256 seniorClaim, uint256 juniorDeployed, uint256 pLow, uint256 pHigh)
-        public
-        pure
-    {
+    function testFuzz_waterfall_monotoneInProceeds(
+        uint256 seniorClaim,
+        uint256 juniorDeployed,
+        uint256 pLow,
+        uint256 pHigh
+    ) public pure {
         seniorClaim = bound(seniorClaim, 0, 1e15 * USDC);
         juniorDeployed = bound(juniorDeployed, 0, 1e15 * USDC);
         pLow = bound(pLow, 0, 2e15 * USDC);
@@ -123,7 +129,10 @@ contract SeriesMathTest is Test {
     }
 
     /// @dev XS + XJ + fee == P at every P, including P=0, P<C_S, P==C_S, very large P, J_d==0.
-    function testFuzz_waterfall_conservation(uint256 proceeds, uint256 seniorClaim, uint256 juniorDeployed) public pure {
+    function testFuzz_waterfall_conservation(uint256 proceeds, uint256 seniorClaim, uint256 juniorDeployed)
+        public
+        pure
+    {
         proceeds = bound(proceeds, 0, 1e15 * USDC);
         seniorClaim = bound(seniorClaim, 0, 1e15 * USDC);
         juniorDeployed = bound(juniorDeployed, 0, 1e15 * USDC);

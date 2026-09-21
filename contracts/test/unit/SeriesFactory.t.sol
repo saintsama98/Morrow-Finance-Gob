@@ -21,7 +21,9 @@ contract SeriesFactoryTest is Test, MidnightHarness {
 
     function setUp() public {
         _setUpMidnightHarness();
-        factory = new SeriesFactory(IMidnightMinimal(address(midnight)), address(setterRatifier), address(usdc), governance, 0.86e18, 4);
+        factory = new SeriesFactory(
+            IMidnightMinimal(address(midnight)), address(setterRatifier), address(usdc), governance, 0.86e18, 4
+        );
 
         vm.startPrank(governance);
         _allow(cbBTC, address(cbBtcOracle));
@@ -43,7 +45,9 @@ contract SeriesFactoryTest is Test, MidnightHarness {
         // a token with no decimals() to trigger the revert path.
         address badToken = address(new NoDecimals());
         vm.expectRevert(SeriesFactory.DecimalsNotSix.selector);
-        new SeriesFactory(IMidnightMinimal(address(midnight)), address(setterRatifier), badToken, governance, 0.86e18, 4);
+        new SeriesFactory(
+            IMidnightMinimal(address(midnight)), address(setterRatifier), badToken, governance, 0.86e18, 4
+        );
     }
 
     function test_eligibility_happyPath() public {
@@ -119,7 +123,9 @@ contract SeriesFactoryTest is Test, MidnightHarness {
     function test_E4_disallowedCollateral() public {
         address randomCollateral = address(new NoDecimals());
         MidnightHarnessMarketBuilder builder = new MidnightHarnessMarketBuilder();
-        Market memory m = builder.buildMarket(address(midnight), address(usdc), randomCollateral, LLTV_77, CURSOR_25, address(cbBtcOracle), maturity);
+        Market memory m = builder.buildMarket(
+            address(midnight), address(usdc), randomCollateral, LLTV_77, CURSOR_25, address(cbBtcOracle), maturity
+        );
         bytes32 id = _touch(m);
 
         bytes32[] memory ids = new bytes32[](1);
@@ -131,8 +137,9 @@ contract SeriesFactoryTest is Test, MidnightHarness {
     /// @dev E4: oracle must be on the allowlist for that collateral.
     function test_E4_disallowedOracle() public {
         MidnightHarnessMarketBuilder builder = new MidnightHarnessMarketBuilder();
-        Market memory m =
-            builder.buildMarket(address(midnight), address(usdc), cbBTC, LLTV_77, CURSOR_25, address(wbtcOracle), maturity);
+        Market memory m = builder.buildMarket(
+            address(midnight), address(usdc), cbBTC, LLTV_77, CURSOR_25, address(wbtcOracle), maturity
+        );
         bytes32 id = _touch(m);
 
         bytes32[] memory ids = new bytes32[](1);

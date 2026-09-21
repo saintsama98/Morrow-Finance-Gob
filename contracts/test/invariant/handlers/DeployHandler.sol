@@ -80,7 +80,9 @@ contract DeployHandler is Test {
             (bytes32 marketId, uint256 maturity,,) = registry.info(seriesAddr);
             registry.updateInfo(
                 seriesAddr,
-                SeriesRegistry.SeriesInfo({marketId: marketId, maturity: maturity, registeredAnOffer: true, lastBorrower: borrower})
+                SeriesRegistry.SeriesInfo({
+                    marketId: marketId, maturity: maturity, registeredAnOffer: true, lastBorrower: borrower
+                })
             );
         } catch {
             registry.recordCall(this.borrowerTakesBid.selector, true);
