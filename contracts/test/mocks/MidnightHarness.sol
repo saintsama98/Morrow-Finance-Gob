@@ -52,7 +52,8 @@ abstract contract MidnightHarness is Test {
     /// @dev Builds (but does not touch) a single-collateral Market struct for cbBTC/USDC at the given maturity.
     function _cbBtcMarket(uint256 maturity, uint256 lltvWad) internal view returns (Market memory market) {
         CollateralParams[] memory params = new CollateralParams[](1);
-        params[0] = CollateralParams({token: cbBTC, lltv: lltvWad, liquidationCursor: CURSOR_25, oracle: address(cbBtcOracle)});
+        params[0] =
+            CollateralParams({token: cbBTC, lltv: lltvWad, liquidationCursor: CURSOR_25, oracle: address(cbBtcOracle)});
         market = Market({
             chainId: block.chainid,
             midnight: address(midnight),
@@ -67,7 +68,8 @@ abstract contract MidnightHarness is Test {
 
     function _wbtcMarket(uint256 maturity, uint256 lltvWad) internal view returns (Market memory market) {
         CollateralParams[] memory params = new CollateralParams[](1);
-        params[0] = CollateralParams({token: wbtc, lltv: lltvWad, liquidationCursor: CURSOR_25, oracle: address(wbtcOracle)});
+        params[0] =
+            CollateralParams({token: wbtc, lltv: lltvWad, liquidationCursor: CURSOR_25, oracle: address(wbtcOracle)});
         market = Market({
             chainId: block.chainid,
             midnight: address(midnight),

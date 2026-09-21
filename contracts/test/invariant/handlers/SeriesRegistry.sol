@@ -85,7 +85,9 @@ contract SeriesRegistry is Test {
         oracle = new MockOracle(1e36 * 60_000);
         collateralToken = address(new MockUSDC());
 
-        factory = new SeriesFactory(IMidnightMinimal(address(midnight)), address(setterRatifier), address(usdc), address(this), 0.86e18, 4);
+        factory = new SeriesFactory(
+            IMidnightMinimal(address(midnight)), address(setterRatifier), address(usdc), address(this), 0.86e18, 4
+        );
         core = new StubCore(address(usdc), SENTINEL);
         factory.setCore(address(core));
 
@@ -109,7 +111,8 @@ contract SeriesRegistry is Test {
 
     function marketFor(uint256 maturity) public view returns (Market memory market) {
         CollateralParams[] memory params = new CollateralParams[](1);
-        params[0] = CollateralParams({token: collateralToken, lltv: LLTV, liquidationCursor: CURSOR, oracle: address(oracle)});
+        params[0] =
+            CollateralParams({token: collateralToken, lltv: LLTV, liquidationCursor: CURSOR, oracle: address(oracle)});
         market = Market({
             chainId: block.chainid,
             midnight: address(midnight),
@@ -136,7 +139,11 @@ contract SeriesRegistry is Test {
     /// independent uniform-random picks (e.g. registerOffer's target and borrowerTakesBid's target) rarely land
     /// on the same series once more than a handful exist; scanning is what makes registerOffer ->
     /// borrowerTakesBid sequences actually correlate often enough to exercise real fills during fuzzing.
-    function pickActiveWithOffer(uint256 seed, bool wantOfferRegistered) external view returns (address series, uint256 index) {
+    function pickActiveWithOffer(uint256 seed, bool wantOfferRegistered)
+        external
+        view
+        returns (address series, uint256 index)
+    {
         uint256 length = activeSeries.length;
         if (length == 0) return (address(0), 0);
         uint256 start = seed % length;

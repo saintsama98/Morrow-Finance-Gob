@@ -149,8 +149,9 @@ contract SeniorVault is ERC20 {
     function claim(uint256 epochId) external returns (uint256 assets) {
         RedeemEpoch storage e = epochs[epochId];
         uint256 requested = requestedShares[epochId][msg.sender];
-        uint256 entitled =
-            EpochMath.claimableAssets(requested, e.assetsFulfilled, e.totalSharesRequested, claimedAssets[epochId][msg.sender]);
+        uint256 entitled = EpochMath.claimableAssets(
+            requested, e.assetsFulfilled, e.totalSharesRequested, claimedAssets[epochId][msg.sender]
+        );
         require(entitled > 0, NothingToClaim());
 
         claimedAssets[epochId][msg.sender] += entitled;
