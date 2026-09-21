@@ -1,6 +1,8 @@
-# Morrow-Finance-Gob (Gob - symbolizes early beta and testing cascade for the protocol, similar to early form of glass as a base material, also known as "Gob") 
+# Morrow-Finance-Gob  
 
 dated senior and junior credit tranches on Morpho Midnight, one surface with two tokens.
+
+(** Gob - symbolizes early beta and testing cascade for the protocol, similar to early form of glass as a base material, also known as "Gob" **)
 
 morrow runs a series engine and two vault tokens. the allocator opens series against staggered maturities on Midnight, each series lends into a basket of 1–4 ungated USDC markets maturing at the same date, and splits every outcome through a strict waterfall. senior vault holders (`srUSDC`) are paid first at maturity up to a fixed senior claim. junior vault holders (`jrUSDC`) take the first loss of every series and receive the residual.
 
