@@ -48,8 +48,7 @@ contract MidnightChaosHandler is Test {
         if (borrower == address(0)) return;
 
         Midnight midnight = registry.midnight();
-        try midnight.liquidate(registry.marketFor(maturity), 0, 0, 0, borrower, false, address(this), address(0), "")
-        {
+        try midnight.liquidate(registry.marketFor(maturity), 0, 0, 0, borrower, false, address(this), address(0), "") {
             registry.recordCall(this.liquidate.selector, false);
         } catch {
             registry.recordCall(this.liquidate.selector, true);

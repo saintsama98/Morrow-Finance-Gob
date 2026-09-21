@@ -61,7 +61,9 @@ contract SeriesCoreTest is Test, MidnightHarness {
             IMidnightMinimal(address(midnight)), address(setterRatifier), address(usdc), governance, 0.86e18, 4
         );
 
-        core = new SeriesCore(address(usdc), factory, IParking(address(parking)), governance, allocator, curator, sentinel);
+        core = new SeriesCore(
+            address(usdc), factory, IParking(address(parking)), governance, allocator, curator, sentinel
+        );
 
         vm.prank(governance);
         factory.setCore(address(core));
@@ -106,13 +108,13 @@ contract SeriesCoreTest is Test, MidnightHarness {
             tDeployEnd: uint64(block.timestamp + 2 days),
             dWriteOff: uint64(1 days),
             covWad: 0.15e18,
-            pi0Wad: 0.10e18,
-            piTWad: 0.20e18,
+            pi0Wad: 0.1e18,
+            piTWad: 0.2e18,
             pi1Wad: 0.35e18,
             rateFloorWad: rateFloors,
             marketCapAssets: caps,
             kMinAssets: 50_000e6,
-            thetaWad: 0.10e18,
+            thetaWad: 0.1e18,
             feeRecipient: feeRecipient,
             allocator: allocator,
             parking: IParking(address(parking)),
@@ -132,28 +134,17 @@ contract SeriesCoreTest is Test, MidnightHarness {
             uint256 covWad,
             uint256 aMaxWad,
             uint256 covVaultWad,
-            uint256 covVaultMinWad,
-            ,
-            ,
-            ,
-            uint256 thetaWad,
-            ,
+            uint256 covVaultMinWad,,,,
+            uint256 thetaWad,,
             uint256 maxSeries,
-            uint256 maxRecovering,
-            ,
-            ,
-            ,
-            ,
-            ,
-            bool backstopEnabled,
-            ,
-
+            uint256 maxRecovering,,,,,,
+            bool backstopEnabled,,
         ) = core.policy();
         assertEq(covWad, 0.15e18);
-        assertEq(aMaxWad, 0.30e18);
-        assertEq(covVaultWad, 0.20e18);
+        assertEq(aMaxWad, 0.3e18);
+        assertEq(covVaultWad, 0.2e18);
         assertEq(covVaultMinWad, 0.15e18);
-        assertEq(thetaWad, 0.10e18);
+        assertEq(thetaWad, 0.1e18);
         assertEq(maxSeries, 12);
         assertEq(maxRecovering, 8);
         assertTrue(backstopEnabled, "backstop must default to ON per the locked decision");
@@ -494,7 +485,7 @@ contract SeriesCoreTest is Test, MidnightHarness {
     function test_sentinel_canOnlyLowerAMaxWad() public {
         vm.prank(sentinel);
         vm.expectRevert(SeriesCore.TimelockIsRiskDecreasing.selector);
-        core.lowerAMaxWad(0.40e18); // raising is not allowed via the sentinel fast path
+        core.lowerAMaxWad(0.4e18); // raising is not allowed via the sentinel fast path
     }
 
     function test_sentinel_canPause() public {
