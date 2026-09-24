@@ -11,3 +11,8 @@ __pycache__/
 # pre-beta / confidential build docs: kept locally, never tracked
 docs/SERIES_BUILD_SPEC.md
 docs/VERIFY_LOG.md
+docs/morrow-finance-gob-arithmatic.md
+docs/morrow-finance-gob-reference_model.py
+docs/morrow-finance-gob-stress_model.py
+
+
