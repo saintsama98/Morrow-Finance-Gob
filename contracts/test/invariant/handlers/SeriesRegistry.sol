@@ -16,6 +16,9 @@ import {SeriesParams} from "../../../src/interfaces/ISeries.sol";
 import {IMidnightMinimal} from "../../../src/interfaces/IMidnightMinimal.sol";
 import {IParking} from "../../../src/parking/IParking.sol";
 import {IdleParking} from "../../../src/parking/IdleParking.sol";
+import {SeriesCore} from "../../../src/core/SeriesCore.sol";
+import {SeniorVault} from "../../../src/vaults/SeniorVault.sol";
+import {JuniorVault} from "../../../src/vaults/JuniorVault.sol";
 
 // Morrow Finance — shared system-under-test setup, series registry and ghost variables for the invariant suite.
 // @author adiii.eth
@@ -36,11 +39,21 @@ contract SeriesRegistry is Test {
     address public collateralToken;
     SeriesFactory public factory;
     StubCore public core;
+    SeriesFactory public realFactory;
     IdleParking public parking;
+
+    /// @dev A second, parallel harness for the M8 core+vault invariant suite (CoreVaultInvariants.t.sol): the
+    /// real SeriesCore and both vaults, sharing the same midnight/factory/oracle/usdc/parking instances above.
+    /// Unused by the series-only suite (SeriesInvariants.t.sol / StubCore path); purely additive.
+    SeriesCore public realCore;
+    SeniorVault public seniorVault;
+    JuniorVault public juniorVault;
 
     address public constant ALLOCATOR = address(0xA110C000);
     address public constant SENTINEL = address(0xC0FFEE);
     address public constant FEE_RECIPIENT = address(0xFEE);
+    address public constant CURATOR = address(0xCADA702);
+    address public constant GOVERNANCE = address(0x60F);
 
     /// @dev Per-series bookkeeping the handlers need. `active` series are anything not yet SETTLED/CANCELED.
     struct SeriesInfo {
@@ -91,14 +104,32 @@ contract SeriesRegistry is Test {
         core = new StubCore(address(usdc), SENTINEL);
         factory.setCore(address(core));
 
+        // second, independent factory for the real-core harness (realCore below) -- kept fully separate from
+        // the stub's factory (never touching its `core` pointer) so the two suites can never interfere with
+        // each other through shared factory state, even though both live in this one constructor.
+        realFactory = new SeriesFactory(
+            IMidnightMinimal(address(midnight)), address(setterRatifier), address(usdc), address(this), 0.86e18, 4
+        );
+
         factory.proposeCollateralAllowed(collateralToken, true);
         factory.proposeOracleAllowed(collateralToken, address(oracle), true);
+        realFactory.proposeCollateralAllowed(collateralToken, true);
+        realFactory.proposeOracleAllowed(collateralToken, address(oracle), true);
         vm.warp(block.timestamp + 48 hours);
         factory.executeCollateralAllowed(collateralToken, true);
         factory.executeOracleAllowed(collateralToken, address(oracle), true);
+        realFactory.executeCollateralAllowed(collateralToken, true);
+        realFactory.executeOracleAllowed(collateralToken, address(oracle), true);
 
         parking = new IdleParking(address(usdc));
         usdc.mint(address(core), 100_000_000e6);
+
+        realCore = new SeriesCore(address(usdc), realFactory, parking, GOVERNANCE, ALLOCATOR, CURATOR, SENTINEL);
+        realFactory.setCore(address(realCore));
+        seniorVault = new SeniorVault(realCore, address(usdc));
+        juniorVault = new JuniorVault(realCore, address(usdc));
+        vm.prank(GOVERNANCE);
+        realCore.setVaults(address(seniorVault), address(juniorVault));
     }
 
     function activeSeriesCount() external view returns (uint256) {

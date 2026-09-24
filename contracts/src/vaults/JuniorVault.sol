@@ -27,6 +27,7 @@ contract JuniorVault is ERC20 {
     error EpochNotClosed();
     error NothingToClaim();
     error NothingToCancel();
+    error CuratorBelowMinShare();
 
     event DepositRequested(address indexed owner, uint256 indexed epochId, uint256 assets);
     event DepositEpochClosed(uint256 indexed epochId, uint256 ppsCloseWad);
@@ -93,6 +94,13 @@ contract JuniorVault is ERC20 {
     function pricePerShareWad() public view returns (uint256) {
         uint256 supply = totalSupply();
         return supply == 0 ? INITIAL_PRICE_WAD : CORE.juniorAssets().mulDivDown(WAD, supply);
+    }
+
+    /// @notice Total assets backing this vault, live. Reads straight through to the core's book: this vault
+    /// keeps no separate ledger of its own, so this can never diverge from what pricePerShareWad() already
+    /// prices against.
+    function totalAssets() external view returns (uint256) {
+        return CORE.juniorAssets();
     }
 
     // --- deposit (async, epoch-based) ---------------------------------------------------------------------
@@ -181,10 +189,23 @@ contract JuniorVault is ERC20 {
     // --- redeem (async, epoch-based) ----------------------------------------------------------------------
 
     /// @notice Escrows `shares` and queues a redemption request against the currently open redeem epoch.
+    /// @dev I23 / spec section 20.8: the curator is the junior book's permanent first-loss commitment (the
+    /// party that picks eligible markets takes the first loss of the first loss), so the curator specifically
+    /// is never allowed to request a redemption that would take their own wallet balance below
+    /// curatorMinShareWad of supply. This is checked right after the escrow transfer, using the unchanged
+    /// totalSupply() at request time (redemption only burns supply at fulfillment, not at request) -- nobody
+    /// else's request is restricted by this, since another holder's redemption only ever raises the curator's
+    /// share of a shrinking supply, never lowers it.
     function requestRedeem(uint256 shares) external returns (uint256 epochId) {
         require(shares > 0, ZeroShares());
         epochId = openRedeemEpochId;
         _transfer(msg.sender, address(this), shares);
+
+        if (msg.sender == CORE.curator()) {
+            (,,,,,,,,,,,,,,,,,, uint256 curatorMinShareWad) = CORE.policy();
+            require(balanceOf(msg.sender) * WAD >= curatorMinShareWad * totalSupply(), CuratorBelowMinShare());
+        }
+
         requestedShares[epochId][msg.sender] += shares;
         redeemEpochs[epochId].totalSharesRequested += shares;
         emit RedeemRequested(msg.sender, epochId, shares);
