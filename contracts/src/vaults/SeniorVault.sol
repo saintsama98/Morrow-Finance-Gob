@@ -76,6 +76,13 @@ contract SeniorVault is ERC20 {
         return supply == 0 ? INITIAL_PRICE_WAD : CORE.seniorAssets().mulDivDown(WAD, supply);
     }
 
+    /// @notice Total assets backing this vault, live. Reads straight through to the core's book: this vault
+    /// keeps no separate ledger of its own, so this can never diverge from what pricePerShareWad() already
+    /// prices against.
+    function totalAssets() external view returns (uint256) {
+        return CORE.seniorAssets();
+    }
+
     // --- deposit (synchronous) ----------------------------------------------------------------------------
 
     /// @notice Deposits `assets` and mints shares to `receiver` at the live price. Reverts while paused, while
