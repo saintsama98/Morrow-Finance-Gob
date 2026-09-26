@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.34;
-
-// Morrow Finance — minimal 6-decimal ERC20 mock, standing in for USDC in tests.
+// Morrow Finance: minimal 6-decimal ERC20 mock, standing in for USDC in tests.
 // @author adiii.eth
 
-/// @notice Minimal 6-decimal ERC20 for tests. The protocol requires the loan token to have exactly 6 decimals.
+pragma solidity 0.8.34;
+
 contract MockUSDC {
     string public constant name = "Mock USDC";
     string public constant symbol = "mUSDC";
