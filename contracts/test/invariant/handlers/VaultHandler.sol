@@ -1,29 +1,24 @@
 // SPDX-License-Identifier: BUSL-1.1
+// Morrow Finance: invariant-suite handler for direct depositor/curator actions on the two vaults.
+// @author adiii.eth
+
 pragma solidity 0.8.34;
 
 import {Test} from "forge-std/Test.sol";
 import {SeriesRegistry} from "./SeriesRegistry.sol";
 import {MockUSDC} from "../../mocks/MockUSDC.sol";
-import {SeriesCore} from "../../../src/core/SeriesCore.sol";
-import {SeniorVault} from "../../../src/vaults/SeniorVault.sol";
-import {JuniorVault} from "../../../src/vaults/JuniorVault.sol";
+import {seriesCore} from "../../../src/core/seriesCore.sol";
+import {usdcSeniorVault} from "../../../src/vaults/senior/usdcSeniorVault.sol";
+import {usdcJuniorVault} from "../../../src/vaults/junior/usdcJuniorVault.sol";
 
-// Morrow Finance — invariant-suite handler for direct depositor/curator actions on the two vaults (M8).
-// @author adiii.eth
-
-/// @notice Fuzz handler: senior deposit, junior requestDeposit, senior/junior requestRedeem, cancels, share
-/// transfers between depositors, and curator risk-policy actions. Runs against a small fixed set of synthetic
-/// depositor addresses (so later redeem/cancel/transfer calls can target cash/shares an earlier call actually
-/// created) plus the registry's fixed CURATOR/GOVERNANCE addresses.
-///
-/// I22 ("senior deposits revert whenever the stress gate is closed") is asserted actively inside seniorDeposit
-/// itself, since it is a transition property (something must revert), not a state readable at rest between
-/// calls -- everything else this handler feeds is checked by CoreVaultInvariants' invariant_ functions instead.
 contract VaultHandler is Test {
     SeriesRegistry public registry;
 
     uint256 public constant N_ACTORS = 6;
     address[] public actors;
+
+    uint256 public ghost_grossUsdcIn;
+    uint256 public ghost_grossUsdcOut;
 
     constructor(SeriesRegistry registry_) {
         registry = registry_;
@@ -40,13 +35,11 @@ contract VaultHandler is Test {
         return actors[seed % N_ACTORS];
     }
 
-    // --- senior: synchronous deposit, async redeem -------------------------------------------------------------
-
     function seniorDeposit(uint256 actorSeed, uint256 assetsSeed) external {
         address who = _actor(actorSeed);
         uint256 assets = bound(assetsSeed, 1e6, 3_000_000e6);
 
-        SeriesCore core = registry.realCore();
+        seriesCore core = registry.realCore();
         MockUSDC usdc = registry.usdc();
         usdc.mint(who, assets);
 
@@ -56,12 +49,8 @@ contract VaultHandler is Test {
         try registry.seniorVault().deposit(assets, who) {
             vm.stopPrank();
             registry.recordCall(this.seniorDeposit.selector, false);
-            // I22: a deposit must never succeed while the gate reads closed at the moment it was attempted.
+            ghost_grossUsdcIn += assets;
             assertFalse(gateWasClosed, "senior deposit succeeded while the stress gate was closed");
-            // I20: checked right here, not as a standing invariant -- capacity is an entry-time gate on THIS
-            // deposit (SeniorVault.deposit checks it before minting); it is not maintained afterward, so a
-            // later junior redemption can legitimately shrink capacity below an already-admitted senior book
-            // without that being a violation of this property.
             assertLe(
                 core.seniorAssets(),
                 core.seniorCapacity(),
@@ -75,38 +64,51 @@ contract VaultHandler is Test {
 
     function seniorRequestRedeem(uint256 actorSeed, uint256 sharesSeed) external {
         address who = _actor(actorSeed);
-        SeniorVault sv = registry.seniorVault();
+        usdcSeniorVault sv = registry.seniorVault();
         uint256 bal = sv.balanceOf(who);
         if (bal == 0) return;
         uint256 shares = bound(sharesSeed, 1, bal);
 
         vm.prank(who);
-        try sv.requestRedeem(shares) {
+        try sv.requestRedeem(shares, who, who) {
             registry.recordCall(this.seniorRequestRedeem.selector, false);
         } catch {
             registry.recordCall(this.seniorRequestRedeem.selector, true);
         }
     }
 
-    function seniorCancelRedeem(uint256 actorSeed, uint256 epochSeed) external {
+    function seniorCancelRedeemRequest(uint256 actorSeed) external {
         address who = _actor(actorSeed);
-        SeniorVault sv = registry.seniorVault();
-        uint256 openId = sv.openEpochId();
-        if (openId == 0) return;
-        uint256 epochId = bound(epochSeed, 1, openId);
+        usdcSeniorVault sv = registry.seniorVault();
+        uint256 requestId = sv.activeRedeemRequestId(who);
+        if (requestId == 0) return;
 
         vm.prank(who);
-        try sv.cancelRedeem(epochId) {
-            registry.recordCall(this.seniorCancelRedeem.selector, false);
+        try sv.cancelRedeemRequest(requestId, who) {
+            registry.recordCall(this.seniorCancelRedeemRequest.selector, false);
         } catch {
-            registry.recordCall(this.seniorCancelRedeem.selector, true);
+            registry.recordCall(this.seniorCancelRedeemRequest.selector, true);
+        }
+    }
+
+    function seniorClaimCancelRedeem(uint256 actorSeed) external {
+        address who = _actor(actorSeed);
+        usdcSeniorVault sv = registry.seniorVault();
+        uint256 requestId = sv.activeRedeemRequestId(who);
+        if (requestId == 0) return;
+
+        vm.prank(who);
+        try sv.claimCancelRedeemRequest(requestId, who, who) {
+            registry.recordCall(this.seniorClaimCancelRedeem.selector, false);
+        } catch {
+            registry.recordCall(this.seniorClaimCancelRedeem.selector, true);
         }
     }
 
     function transferSeniorShares(uint256 fromSeed, uint256 toSeed, uint256 amountSeed) external {
         address from = _actor(fromSeed);
         address to = _actor(toSeed);
-        SeniorVault sv = registry.seniorVault();
+        usdcSeniorVault sv = registry.seniorVault();
         uint256 bal = sv.balanceOf(from);
         if (bal == 0) return;
         uint256 amount = bound(amountSeed, 1, bal);
@@ -119,8 +121,6 @@ contract VaultHandler is Test {
         }
     }
 
-    // --- junior: async deposit and redeem, both epoch-based -----------------------------------------------------
-
     function juniorRequestDeposit(uint256 actorSeed, uint256 assetsSeed) external {
         address who = _actor(actorSeed);
         uint256 assets = bound(assetsSeed, 1e6, 3_000_000e6);
@@ -130,16 +130,15 @@ contract VaultHandler is Test {
 
         vm.startPrank(who);
         usdc.approve(address(registry.juniorVault()), assets);
-        try registry.juniorVault().requestDeposit(assets) {
+        try registry.juniorVault().requestDeposit(assets, who, who) {
             registry.recordCall(this.juniorRequestDeposit.selector, false);
+            ghost_grossUsdcIn += assets;
         } catch {
             registry.recordCall(this.juniorRequestDeposit.selector, true);
         }
         vm.stopPrank();
     }
 
-    /// @dev I23: the curator making a NEW deposit widens their own cushion above curatorMinShareWad. Fuzzing
-    /// this alongside curatorJuniorRequestRedeemAttempt lets a run explore both directions of the floor.
     function curatorJuniorRequestDeposit(uint256 assetsSeed) external {
         address curator = registry.CURATOR();
         uint256 assets = bound(assetsSeed, 1e6, 3_000_000e6);
@@ -149,21 +148,18 @@ contract VaultHandler is Test {
 
         vm.startPrank(curator);
         usdc.approve(address(registry.juniorVault()), assets);
-        try registry.juniorVault().requestDeposit(assets) {
+        try registry.juniorVault().requestDeposit(assets, curator, curator) {
             registry.recordCall(this.curatorJuniorRequestDeposit.selector, false);
+            ghost_grossUsdcIn += assets;
         } catch {
             registry.recordCall(this.curatorJuniorRequestDeposit.selector, true);
         }
         vm.stopPrank();
     }
 
-    /// @dev I23's actual guard: JuniorVault.requestRedeem reverts if it would take the curator below
-    /// curatorMinShareWad. Only requestRedeem is restricted (matches build spec section 20.8's exact wording);
-    /// a plain ERC20 transfer of the curator's own jrUSDC is NOT guarded by this check -- that is the spec's
-    /// stated design, not an oversight here, and is worth remembering as a real limit of what I23 covers.
     function curatorJuniorRequestRedeemAttempt(uint256 sharesSeed) external {
         address curator = registry.CURATOR();
-        JuniorVault jv = registry.juniorVault();
+        usdcJuniorVault jv = registry.juniorVault();
         uint256 bal = jv.balanceOf(curator);
         if (bal == 0) return;
         uint256 shares = bound(sharesSeed, 1, bal);
@@ -171,10 +167,8 @@ contract VaultHandler is Test {
         uint256 supply = jv.totalSupply();
 
         vm.prank(curator);
-        try jv.requestRedeem(shares) {
+        try jv.requestRedeem(shares, curator, curator) {
             registry.recordCall(this.curatorJuniorRequestRedeemAttempt.selector, false);
-            // Active check, not just trusting the require() in the vault: confirm the post-state genuinely
-            // respects the floor, using the pre-call supply (requestRedeem does not change totalSupply()).
             assertGe(
                 jv.balanceOf(curator) * 1e18,
                 curatorMinShareWad * supply,
@@ -185,55 +179,83 @@ contract VaultHandler is Test {
         }
     }
 
-    function juniorCancelDeposit(uint256 actorSeed, uint256 epochSeed) external {
+    function juniorCancelDepositRequest(uint256 actorSeed) external {
         address who = _actor(actorSeed);
-        JuniorVault jv = registry.juniorVault();
-        uint256 openId = jv.openDepositEpochId();
-        if (openId == 0) return;
-        uint256 epochId = bound(epochSeed, 1, openId);
+        usdcJuniorVault jv = registry.juniorVault();
+        uint256 requestId = jv.activeDepositRequestId(who);
+        if (requestId == 0) return;
 
         vm.prank(who);
-        try jv.cancelDeposit(epochId) {
-            registry.recordCall(this.juniorCancelDeposit.selector, false);
+        try jv.cancelDepositRequest(requestId, who) {
+            registry.recordCall(this.juniorCancelDepositRequest.selector, false);
         } catch {
-            registry.recordCall(this.juniorCancelDeposit.selector, true);
+            registry.recordCall(this.juniorCancelDepositRequest.selector, true);
+        }
+    }
+
+    function juniorClaimCancelDeposit(uint256 actorSeed) external {
+        address who = _actor(actorSeed);
+        usdcJuniorVault jv = registry.juniorVault();
+        uint256 requestId = jv.activeDepositRequestId(who);
+        if (requestId == 0) return;
+        uint256 pending = jv.claimableCancelDepositRequest(requestId, who);
+
+        vm.prank(who);
+        try jv.claimCancelDepositRequest(requestId, who, who) {
+            registry.recordCall(this.juniorClaimCancelDeposit.selector, false);
+            ghost_grossUsdcOut += pending;
+        } catch {
+            registry.recordCall(this.juniorClaimCancelDeposit.selector, true);
         }
     }
 
     function juniorRequestRedeem(uint256 actorSeed, uint256 sharesSeed) external {
         address who = _actor(actorSeed);
-        JuniorVault jv = registry.juniorVault();
+        usdcJuniorVault jv = registry.juniorVault();
         uint256 bal = jv.balanceOf(who);
         if (bal == 0) return;
         uint256 shares = bound(sharesSeed, 1, bal);
 
         vm.prank(who);
-        try jv.requestRedeem(shares) {
+        try jv.requestRedeem(shares, who, who) {
             registry.recordCall(this.juniorRequestRedeem.selector, false);
         } catch {
             registry.recordCall(this.juniorRequestRedeem.selector, true);
         }
     }
 
-    function juniorCancelRedeem(uint256 actorSeed, uint256 epochSeed) external {
+    function juniorCancelRedeemRequest(uint256 actorSeed) external {
         address who = _actor(actorSeed);
-        JuniorVault jv = registry.juniorVault();
-        uint256 openId = jv.openRedeemEpochId();
-        if (openId == 0) return;
-        uint256 epochId = bound(epochSeed, 1, openId);
+        usdcJuniorVault jv = registry.juniorVault();
+        uint256 requestId = jv.activeRedeemRequestId(who);
+        if (requestId == 0) return;
 
         vm.prank(who);
-        try jv.cancelRedeem(epochId) {
-            registry.recordCall(this.juniorCancelRedeem.selector, false);
+        try jv.cancelRedeemRequest(requestId, who) {
+            registry.recordCall(this.juniorCancelRedeemRequest.selector, false);
         } catch {
-            registry.recordCall(this.juniorCancelRedeem.selector, true);
+            registry.recordCall(this.juniorCancelRedeemRequest.selector, true);
+        }
+    }
+
+    function juniorClaimCancelRedeem(uint256 actorSeed) external {
+        address who = _actor(actorSeed);
+        usdcJuniorVault jv = registry.juniorVault();
+        uint256 requestId = jv.activeRedeemRequestId(who);
+        if (requestId == 0) return;
+
+        vm.prank(who);
+        try jv.claimCancelRedeemRequest(requestId, who, who) {
+            registry.recordCall(this.juniorClaimCancelRedeem.selector, false);
+        } catch {
+            registry.recordCall(this.juniorClaimCancelRedeem.selector, true);
         }
     }
 
     function transferJuniorShares(uint256 fromSeed, uint256 toSeed, uint256 amountSeed) external {
         address from = _actor(fromSeed);
         address to = _actor(toSeed);
-        JuniorVault jv = registry.juniorVault();
+        usdcJuniorVault jv = registry.juniorVault();
         uint256 bal = jv.balanceOf(from);
         if (bal == 0) return;
         uint256 amount = bound(amountSeed, 1, bal);
@@ -246,10 +268,8 @@ contract VaultHandler is Test {
         }
     }
 
-    // --- curator policy: immediate risk-decreasing setters + the timelocked path for two anchor keys ------------
-
     function curatorLowerAMaxWad(uint256 newSeed) external {
-        SeriesCore core = registry.realCore();
+        seriesCore core = registry.realCore();
         (, uint256 aMaxWad,,,,,,,,,,,,,,,,,) = core.policy();
         if (aMaxWad == 0) return;
         uint256 newAMax = bound(newSeed, 0, aMaxWad);
@@ -263,7 +283,7 @@ contract VaultHandler is Test {
     }
 
     function curatorRaiseMinIdleSeniorWad(uint256 deltaSeed) external {
-        SeriesCore core = registry.realCore();
+        seriesCore core = registry.realCore();
         (,,,,,,,,,,,,, uint256 minIdleSeniorWad,,,,,) = core.policy();
         uint256 newFloor = minIdleSeniorWad + bound(deltaSeed, 0, 0.1e18);
         if (newFloor > 1e18) newFloor = 1e18;
@@ -277,7 +297,7 @@ contract VaultHandler is Test {
     }
 
     function curatorRaiseCovVaultMinWad(uint256 deltaSeed) external {
-        SeriesCore core = registry.realCore();
+        seriesCore core = registry.realCore();
         (,,, uint256 covVaultMinWad,,,,,,,,,,,,,,,) = core.policy();
         uint256 newFloor = covVaultMinWad + bound(deltaSeed, 0, 0.05e18);
         if (newFloor >= 1e18) newFloor = 0.99e18;
@@ -291,7 +311,7 @@ contract VaultHandler is Test {
     }
 
     function curatorPause() external {
-        SeriesCore core = registry.realCore();
+        seriesCore core = registry.realCore();
         vm.prank(registry.CURATOR());
         try core.pause() {
             registry.recordCall(this.curatorPause.selector, false);
@@ -301,7 +321,7 @@ contract VaultHandler is Test {
     }
 
     function governanceUnpause() external {
-        SeriesCore core = registry.realCore();
+        seriesCore core = registry.realCore();
         vm.prank(registry.GOVERNANCE());
         try core.unpause() {
             registry.recordCall(this.governanceUnpause.selector, false);
