@@ -1,28 +1,27 @@
 // SPDX-License-Identifier: BUSL-1.1
+// Morrow Finance: unit tests for usdcJuniorVault: deposit and redemption epochs, and pro-rata claims.
+// @author adiii.eth
+
 pragma solidity 0.8.34;
 
 import {Test} from "forge-std/Test.sol";
 import {MockUSDC} from "../mocks/MockUSDC.sol";
-import {SeriesFactory} from "../../src/series/SeriesFactory.sol";
-import {SeriesCore} from "../../src/core/SeriesCore.sol";
-import {SeniorVault} from "../../src/vaults/SeniorVault.sol";
-import {JuniorVault} from "../../src/vaults/JuniorVault.sol";
-import {IMidnightMinimal} from "../../src/interfaces/IMidnightMinimal.sol";
-import {IParking} from "../../src/parking/IParking.sol";
-import {IdleParking} from "../../src/parking/IdleParking.sol";
+import {seriesFactory} from "../../src/series/seriesFactory.sol";
+import {seriesCore} from "../../src/core/seriesCore.sol";
+import {usdcSeniorVault} from "../../src/vaults/senior/usdcSeniorVault.sol";
+import {usdcJuniorVault} from "../../src/vaults/junior/usdcJuniorVault.sol";
+import {iMidnightMinimal} from "../../src/interfaces/iMidnightMinimal.sol";
+import {iParking} from "../../src/parking/iParking.sol";
+import {idleParking} from "../../src/parking/idleParking.sol";
+import {usdcVaultBase} from "../../src/vaults/shared/usdcVaultBase.sol";
 
-// Morrow Finance — unit tests for JuniorVault: deposit and redemption epochs, and pro-rata claims.
-// @author adiii.eth
-
-/// @notice Exercises JuniorVault against a real SeriesCore and IdleParking, with no series opened, so the
-/// books behave as plain idle cash and both queues can be driven end to end without any Midnight setup.
 contract JuniorVaultTest is Test {
     MockUSDC usdc;
-    IdleParking parking;
-    SeriesFactory factory;
-    SeriesCore core;
-    SeniorVault seniorVault;
-    JuniorVault juniorVault;
+    idleParking parking;
+    seriesFactory factory;
+    seriesCore core;
+    usdcSeniorVault seniorVault;
+    usdcJuniorVault juniorVault;
 
     address governance = makeAddr("governance");
     address allocator = makeAddr("allocator");
@@ -33,16 +32,16 @@ contract JuniorVaultTest is Test {
 
     function setUp() public {
         usdc = new MockUSDC();
-        parking = new IdleParking(address(usdc));
-        factory = new SeriesFactory(IMidnightMinimal(address(0x1)), address(0x2), address(usdc), governance, 0.86e18, 4);
-        core = new SeriesCore(
-            address(usdc), factory, IParking(address(parking)), governance, allocator, curator, sentinel
+        parking = new idleParking(address(usdc));
+        factory = new seriesFactory(iMidnightMinimal(address(0x1)), address(0x2), address(usdc), governance, 0.86e18, 4);
+        core = new seriesCore(
+            address(usdc), factory, iParking(address(parking)), governance, allocator, curator, sentinel
         );
         vm.prank(governance);
         factory.setCore(address(core));
 
-        seniorVault = new SeniorVault(core, address(usdc));
-        juniorVault = new JuniorVault(core, address(usdc));
+        seniorVault = new usdcSeniorVault(core, address(usdc));
+        juniorVault = new usdcJuniorVault(core, address(usdc));
         vm.prank(governance);
         core.setVaults(address(seniorVault), address(juniorVault));
 
@@ -53,11 +52,9 @@ contract JuniorVaultTest is Test {
     function _requestDeposit(address who, uint256 assets) internal returns (uint256 epochId) {
         vm.startPrank(who);
         usdc.approve(address(juniorVault), assets);
-        epochId = juniorVault.requestDeposit(assets);
+        epochId = juniorVault.requestDeposit(assets, who, who);
         vm.stopPrank();
     }
-
-    // --- deposit ---------------------------------------------------------------------------------------------
 
     function test_requestDeposit_queuesPendingOnCore() public {
         _requestDeposit(alice, 500_000e6);
@@ -87,7 +84,7 @@ contract JuniorVaultTest is Test {
     function test_fulfillDeposit_beforeClose_reverts() public {
         uint256 epochId = _requestDeposit(alice, 500_000e6);
         vm.prank(curator);
-        vm.expectRevert(JuniorVault.EpochNotClosed.selector);
+        vm.expectRevert(usdcVaultBase.EpochNotClosed.selector);
         juniorVault.fulfillDeposit(epochId, 500_000e6);
     }
 
@@ -109,22 +106,32 @@ contract JuniorVaultTest is Test {
         assertEq(aliceShares + bobShares, core.juniorAssets() * 1e12, "sum of claimed shares must match total invested");
     }
 
-    function test_cancelDeposit_refundsUnfilledPortion() public {
+    function test_cancelDepositRequest_thenClaim_refundsFullAmount() public {
         uint256 epochId = _requestDeposit(alice, 1_000_000e6);
-        vm.prank(curator);
-        juniorVault.closeDepositEpoch();
-        vm.prank(curator);
-        juniorVault.fulfillDeposit(epochId, 400_000e6);
 
         uint256 balanceBefore = usdc.balanceOf(alice);
         vm.prank(alice);
-        uint256 returned = juniorVault.cancelDeposit(epochId);
+        juniorVault.cancelDepositRequest(epochId, alice);
+        uint256 pending = juniorVault.claimableCancelDepositRequest(epochId, alice);
+        assertEq(
+            pending, 1_000_000e6, "with the epoch still open nothing has been invested, so the full request cancels"
+        );
+        assertEq(usdc.balanceOf(alice), balanceBefore, "stage 1 must not move any cash yet");
 
-        assertEq(returned, 600_000e6, "only the uninvested portion is refundable");
-        assertEq(usdc.balanceOf(alice), balanceBefore + returned);
+        vm.prank(alice);
+        juniorVault.claimCancelDepositRequest(epochId, alice, alice);
+        assertEq(usdc.balanceOf(alice), balanceBefore + pending);
     }
 
-    // --- redeem ----------------------------------------------------------------------------------------------
+    function test_cancelDepositRequest_afterEpochCloses_reverts() public {
+        uint256 epochId = _requestDeposit(alice, 1_000_000e6);
+        vm.prank(curator);
+        juniorVault.closeDepositEpoch();
+
+        vm.prank(alice);
+        vm.expectRevert(usdcVaultBase.EpochAlreadyClosed.selector);
+        juniorVault.cancelDepositRequest(epochId, alice);
+    }
 
     function _fundJunior(address who, uint256 assets) internal returns (uint256 shares) {
         uint256 epochId = _requestDeposit(who, assets);
@@ -140,7 +147,7 @@ contract JuniorVaultTest is Test {
         uint256 shares = _fundJunior(alice, 1_000_000e6);
 
         vm.prank(alice);
-        uint256 epochId = juniorVault.requestRedeem(shares);
+        uint256 epochId = juniorVault.requestRedeem(shares, alice, alice);
 
         assertEq(juniorVault.balanceOf(alice), 0);
         assertEq(juniorVault.balanceOf(address(juniorVault)), shares);
@@ -148,7 +155,6 @@ contract JuniorVaultTest is Test {
     }
 
     function test_fulfillRedeem_boundedByJuniorRedeemable() public {
-        // senior book present too, so juniorRedeemable's coverage floor actually binds.
         uint256 shares = _fundJunior(alice, 1_000_000e6);
         vm.startPrank(bob);
         usdc.approve(address(seniorVault), 3_000_000e6);
@@ -156,7 +162,7 @@ contract JuniorVaultTest is Test {
         vm.stopPrank();
 
         vm.prank(alice);
-        uint256 epochId = juniorVault.requestRedeem(shares);
+        uint256 epochId = juniorVault.requestRedeem(shares, alice, alice);
         vm.prank(curator);
         juniorVault.closeRedeemEpoch();
 
@@ -166,7 +172,8 @@ contract JuniorVaultTest is Test {
         vm.prank(curator);
         juniorVault.fulfillRedeem(epochId, type(uint256).max);
 
-        (uint256 totalRequested, uint256 sharesFulfilled, uint256 assetsFulfilled,,) = juniorVault.redeemEpochs(epochId);
+        (uint256 totalRequested,, uint256 sharesFulfilled, uint256 assetsFulfilled,,) =
+            juniorVault.redeemEpochs(epochId);
         assertEq(totalRequested, shares);
         assertLt(sharesFulfilled, shares, "fulfillment must be partial, bounded by the coverage floor");
         assertEq(assetsFulfilled, available);
@@ -176,7 +183,7 @@ contract JuniorVaultTest is Test {
         uint256 shares = _fundJunior(alice, 1_000_000e6);
 
         vm.prank(alice);
-        uint256 epochId = juniorVault.requestRedeem(shares);
+        uint256 epochId = juniorVault.requestRedeem(shares, alice, alice);
         vm.prank(curator);
         juniorVault.closeRedeemEpoch();
 
@@ -193,20 +200,33 @@ contract JuniorVaultTest is Test {
         assertEq(claim2, 100_000e6);
     }
 
-    function test_cancelRedeem_returnsUnfilledShares() public {
+    function test_cancelRedeemRequest_thenClaim_returnsFullAmount() public {
         uint256 shares = _fundJunior(alice, 1_000_000e6);
 
         vm.prank(alice);
-        uint256 epochId = juniorVault.requestRedeem(shares);
-        vm.prank(curator);
-        juniorVault.closeRedeemEpoch();
-        vm.prank(curator);
-        juniorVault.fulfillRedeem(epochId, 100_000e6);
+        uint256 epochId = juniorVault.requestRedeem(shares, alice, alice);
 
         vm.prank(alice);
-        uint256 returned = juniorVault.cancelRedeem(epochId);
+        juniorVault.cancelRedeemRequest(epochId, alice);
+        uint256 pending = juniorVault.claimableCancelRedeemRequest(epochId, alice);
+        assertEq(pending, shares, "with the epoch still open nothing has been filled, so the whole request cancels");
+        assertEq(juniorVault.balanceOf(alice), 0, "stage 1 must not move any shares yet");
 
-        assertEq(juniorVault.balanceOf(alice), returned);
-        assertLt(returned, shares);
+        vm.prank(alice);
+        juniorVault.claimCancelRedeemRequest(epochId, alice, alice);
+        assertEq(juniorVault.balanceOf(alice), pending);
+    }
+
+    function test_cancelRedeemRequest_afterEpochCloses_reverts() public {
+        uint256 shares = _fundJunior(alice, 1_000_000e6);
+
+        vm.prank(alice);
+        uint256 epochId = juniorVault.requestRedeem(shares, alice, alice);
+        vm.prank(curator);
+        juniorVault.closeRedeemEpoch();
+
+        vm.prank(alice);
+        vm.expectRevert(usdcVaultBase.EpochAlreadyClosed.selector);
+        juniorVault.cancelRedeemRequest(epochId, alice);
     }
 }

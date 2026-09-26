@@ -1,4 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
+// Morrow Finance: shared system-under-test setup, series registry and ghost variables for the invariant suite.
+// @author adiii.eth
+
 pragma solidity 0.8.34;
 
 import {Test} from "forge-std/Test.sol";
@@ -10,23 +13,16 @@ import {IdLib} from "@morpho-org/midnight/src/libraries/IdLib.sol";
 import {MockUSDC} from "../../mocks/MockUSDC.sol";
 import {MockOracle} from "../../mocks/MockOracle.sol";
 import {StubCore} from "../../mocks/StubCore.sol";
-import {SeriesFactory} from "../../../src/series/SeriesFactory.sol";
-import {Series} from "../../../src/series/Series.sol";
-import {SeriesParams} from "../../../src/interfaces/ISeries.sol";
-import {IMidnightMinimal} from "../../../src/interfaces/IMidnightMinimal.sol";
-import {IParking} from "../../../src/parking/IParking.sol";
-import {IdleParking} from "../../../src/parking/IdleParking.sol";
-import {SeriesCore} from "../../../src/core/SeriesCore.sol";
-import {SeniorVault} from "../../../src/vaults/SeniorVault.sol";
-import {JuniorVault} from "../../../src/vaults/JuniorVault.sol";
+import {seriesFactory} from "../../../src/series/seriesFactory.sol";
+import {creditSeries} from "../../../src/series/creditSeries.sol";
+import {SeriesParams} from "../../../src/interfaces/iSeries.sol";
+import {iMidnightMinimal} from "../../../src/interfaces/iMidnightMinimal.sol";
+import {iParking} from "../../../src/parking/iParking.sol";
+import {idleParking} from "../../../src/parking/idleParking.sol";
+import {seriesCore} from "../../../src/core/seriesCore.sol";
+import {usdcSeniorVault} from "../../../src/vaults/senior/usdcSeniorVault.sol";
+import {usdcJuniorVault} from "../../../src/vaults/junior/usdcJuniorVault.sol";
 
-// Morrow Finance — shared system-under-test setup, series registry and ghost variables for the invariant suite.
-// @author adiii.eth
-
-/// @notice Shared SUT references, series registry and ghost variables for the invariant suite.
-/// @dev Not itself a handler (not registered as a fuzz target) -- every handler holds a reference to one
-/// instance of this and reads/writes its state. All series share ALLOCATOR = address(this registry), so any
-/// handler calling an allocator-gated Series function must prank as the registry.
 contract SeriesRegistry is Test {
     uint256 public constant WAD = 1e18;
     uint256 public constant LLTV = 0.77e18;
@@ -37,17 +33,14 @@ contract SeriesRegistry is Test {
     MockUSDC public usdc;
     MockOracle public oracle;
     address public collateralToken;
-    SeriesFactory public factory;
+    seriesFactory public factory;
     StubCore public core;
-    SeriesFactory public realFactory;
-    IdleParking public parking;
+    seriesFactory public realFactory;
+    iParking public parking;
 
-    /// @dev A second, parallel harness for the M8 core+vault invariant suite (CoreVaultInvariants.t.sol): the
-    /// real SeriesCore and both vaults, sharing the same midnight/factory/oracle/usdc/parking instances above.
-    /// Unused by the series-only suite (SeriesInvariants.t.sol / StubCore path); purely additive.
-    SeriesCore public realCore;
-    SeniorVault public seniorVault;
-    JuniorVault public juniorVault;
+    seriesCore public realCore;
+    usdcSeniorVault public seniorVault;
+    usdcJuniorVault public juniorVault;
 
     address public constant ALLOCATOR = address(0xA110C000);
     address public constant SENTINEL = address(0xC0FFEE);
@@ -55,7 +48,6 @@ contract SeriesRegistry is Test {
     address public constant CURATOR = address(0xCADA702);
     address public constant GOVERNANCE = address(0x60F);
 
-    /// @dev Per-series bookkeeping the handlers need. `active` series are anything not yet SETTLED/CANCELED.
     struct SeriesInfo {
         bytes32 marketId;
         uint256 maturity;
@@ -64,18 +56,18 @@ contract SeriesRegistry is Test {
     }
 
     address[] public activeSeries;
+    address[] public everSeries;
+    mapping(address => bool) public everSeen;
     mapping(address => SeriesInfo) public info;
     mapping(address => Offer) internal _lastOffer;
     mapping(address => bytes32) public lastOfferRoot;
 
-    // ghost variables, read by the invariant assertions
     uint256 public ghost_totalUsdcFundedIntoSeries;
     uint256 public ghost_totalUnitsBought;
     uint256 public ghost_callCount;
     mapping(bytes4 => uint256) public ghost_callsPerSelector;
     mapping(bytes4 => uint256) public ghost_revertsPerSelector;
 
-    /// @dev per-series snapshots the invariant test compares against on each run.
     mapping(address => uint256) public ghost_lastCredit;
     mapping(address => uint8) public ghost_lastState;
     mapping(address => bool) public ghost_seenState;
@@ -98,17 +90,14 @@ contract SeriesRegistry is Test {
         oracle = new MockOracle(1e36 * 60_000);
         collateralToken = address(new MockUSDC());
 
-        factory = new SeriesFactory(
-            IMidnightMinimal(address(midnight)), address(setterRatifier), address(usdc), address(this), 0.86e18, 4
+        factory = new seriesFactory(
+            iMidnightMinimal(address(midnight)), address(setterRatifier), address(usdc), address(this), 0.86e18, 4
         );
         core = new StubCore(address(usdc), SENTINEL);
         factory.setCore(address(core));
 
-        // second, independent factory for the real-core harness (realCore below) -- kept fully separate from
-        // the stub's factory (never touching its `core` pointer) so the two suites can never interfere with
-        // each other through shared factory state, even though both live in this one constructor.
-        realFactory = new SeriesFactory(
-            IMidnightMinimal(address(midnight)), address(setterRatifier), address(usdc), address(this), 0.86e18, 4
+        realFactory = new seriesFactory(
+            iMidnightMinimal(address(midnight)), address(setterRatifier), address(usdc), address(this), 0.86e18, 4
         );
 
         factory.proposeCollateralAllowed(collateralToken, true);
@@ -121,15 +110,21 @@ contract SeriesRegistry is Test {
         realFactory.executeCollateralAllowed(collateralToken, true);
         realFactory.executeOracleAllowed(collateralToken, address(oracle), true);
 
-        parking = new IdleParking(address(usdc));
+        parking = _deployParking();
         usdc.mint(address(core), 100_000_000e6);
 
-        realCore = new SeriesCore(address(usdc), realFactory, parking, GOVERNANCE, ALLOCATOR, CURATOR, SENTINEL);
+        realCore = new seriesCore(address(usdc), realFactory, parking, GOVERNANCE, ALLOCATOR, CURATOR, SENTINEL);
         realFactory.setCore(address(realCore));
-        seniorVault = new SeniorVault(realCore, address(usdc));
-        juniorVault = new JuniorVault(realCore, address(usdc));
+        seniorVault = new usdcSeniorVault(realCore, address(usdc));
+        juniorVault = new usdcJuniorVault(realCore, address(usdc));
         vm.prank(GOVERNANCE);
         realCore.setVaults(address(seniorVault), address(juniorVault));
+        vm.prank(GOVERNANCE);
+        realCore.setFeeRecipient(FEE_RECIPIENT);
+    }
+
+    function _deployParking() internal virtual returns (iParking) {
+        return new idleParking(address(usdc));
     }
 
     function activeSeriesCount() external view returns (uint256) {
@@ -156,8 +151,6 @@ contract SeriesRegistry is Test {
         });
     }
 
-    /// @dev Picks a pseudo-random already-known active series (or address(0) if none), bounded by a caller
-    /// supplied seed. Kept here so every handler resolves "which series" the same way.
     function pickActive(uint256 seed) public view returns (address series, uint256 index) {
         uint256 length = activeSeries.length;
         if (length == 0) return (address(0), 0);
@@ -165,11 +158,6 @@ contract SeriesRegistry is Test {
         series = activeSeries[index];
     }
 
-    /// @dev Like pickActive, but scans forward (wrapping) from the random start index for the first series
-    /// whose registeredAnOffer flag matches `wantOfferRegistered`, instead of giving up on the first miss. Two
-    /// independent uniform-random picks (e.g. registerOffer's target and borrowerTakesBid's target) rarely land
-    /// on the same series once more than a handful exist; scanning is what makes registerOffer ->
-    /// borrowerTakesBid sequences actually correlate often enough to exercise real fills during fuzzing.
     function pickActiveWithOffer(uint256 seed, bool wantOfferRegistered)
         external
         view
@@ -198,9 +186,16 @@ contract SeriesRegistry is Test {
     function pushActive(address series, SeriesInfo memory i) external {
         activeSeries.push(series);
         info[series] = i;
+        if (!everSeen[series]) {
+            everSeen[series] = true;
+            everSeries.push(series);
+        }
     }
 
-    /// @dev Mutates an already-active series' bookkeeping without re-appending it to activeSeries.
+    function everSeriesCount() external view returns (uint256) {
+        return everSeries.length;
+    }
+
     function updateInfo(address series, SeriesInfo memory i) external {
         info[series] = i;
     }
@@ -222,8 +217,6 @@ contract SeriesRegistry is Test {
         ghost_totalUnitsBought += units;
     }
 
-    /// @dev The registry itself is Midnight's feeSetter (set in the constructor); handlers route fee changes
-    /// through this passthrough rather than calling Midnight directly.
     function setDefaultContinuousFee(uint256 fee) external {
         midnight.setDefaultContinuousFee(address(usdc), fee);
     }
