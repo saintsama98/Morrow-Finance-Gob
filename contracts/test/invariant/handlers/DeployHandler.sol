@@ -1,4 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
+// Morrow Finance: invariant-suite handler for borrower fills against live series bids.
+// @author adiii.eth
+
 pragma solidity 0.8.34;
 
 import {Test} from "forge-std/Test.sol";
@@ -10,20 +13,9 @@ import {ORACLE_PRICE_SCALE} from "@morpho-org/midnight/src/libraries/ConstantsLi
 
 import {SeriesRegistry} from "./SeriesRegistry.sol";
 import {MockUSDC} from "../../mocks/MockUSDC.sol";
-import {Series} from "../../../src/series/Series.sol";
-import {SeriesState} from "../../../src/interfaces/ISeries.sol";
+import {creditSeries} from "../../../src/series/creditSeries.sol";
+import {SeriesState} from "../../../src/interfaces/iSeries.sol";
 
-// Morrow Finance — invariant-suite handler for borrower fills against live series bids.
-// @author adiii.eth
-
-/// @notice Fuzz handler: borrowerTakesBid (a funded borrower takes a series bid on the real Midnight),
-/// noOpTake, warp.
-///
-/// IMPORTANT: `vm.prank` (single-shot) only overrides msg.sender for the very next call this contract makes.
-/// Writing `vm.prank(x); registry.midnight().take(...)` is a bug: `registry.midnight()` is itself an external
-/// call (to read the address), so it -- not take() -- consumes the prank, leaving take() called as this
-/// handler and reverting with TakerUnauthorized. Every reference needed after a prank is resolved into a local
-/// variable *before* the prank line, here.
 contract DeployHandler is Test {
     using UtilsLib for uint256;
 
@@ -38,7 +30,7 @@ contract DeployHandler is Test {
         (address seriesAddr,) = registry.pickActiveWithOffer(seriesSeed, true);
         if (seriesAddr == address(0)) return;
 
-        Series series = Series(seriesAddr);
+        creditSeries series = creditSeries(seriesAddr);
         if (uint8(series.state()) != uint8(SeriesState.DEPLOYING)) return;
         if (block.timestamp > series.T_DEPLOY_END()) return;
 
@@ -89,8 +81,6 @@ contract DeployHandler is Test {
         }
     }
 
-    /// @dev A no-op take (units 0) against a registered offer must change no series state, even on an offer
-    /// that's fully consumed or expired.
     function noOpTake(uint256 seriesSeed) external {
         (address seriesAddr,) = registry.pickActiveWithOffer(seriesSeed, true);
         if (seriesAddr == address(0)) return;
@@ -109,10 +99,6 @@ contract DeployHandler is Test {
         }
     }
 
-    /// @dev Bimodal on purpose: Series.MIN_TERM forces maturities >= 14 days out, which needs large cumulative
-    /// jumps to ever reach settlement within a bounded-depth run, but a run made entirely of large jumps blows
-    /// through any deployment window before registerOffer -> borrowerTakesBid can ever correlate. Mixing mostly
-    /// small jumps (fill correlation) with occasional large ones (progress toward maturity) gives both.
     function warp(uint256 seed) external {
         if (seed % 5 == 0) {
             uint256 bigDelta = bound(seed, 3 days, 10 days);

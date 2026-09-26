@@ -1,4 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
+// Morrow Finance: invariant-suite handler for series creation, cancellation, offer registration, and finalize.
+// @author adiii.eth
+
 pragma solidity 0.8.34;
 
 import {Test} from "forge-std/Test.sol";
@@ -12,24 +15,10 @@ import {ORACLE_PRICE_SCALE} from "@morpho-org/midnight/src/libraries/ConstantsLi
 
 import {SeriesRegistry} from "./SeriesRegistry.sol";
 import {MockUSDC} from "../../mocks/MockUSDC.sol";
-import {Series} from "../../../src/series/Series.sol";
-import {SeriesParams, SeriesState} from "../../../src/interfaces/ISeries.sol";
-import {IParking} from "../../../src/parking/IParking.sol";
+import {creditSeries} from "../../../src/series/creditSeries.sol";
+import {SeriesParams, SeriesState} from "../../../src/interfaces/iSeries.sol";
+import {iParking} from "../../../src/parking/iParking.sol";
 
-// Morrow Finance — invariant-suite handler for series creation, cancellation, offer registration, and finalize.
-// @author adiii.eth
-
-/// @notice Fuzz handler: openSeries within policy (immediately registering and filling one bid, see rationale
-/// below), cancel, registerOffers (additional bids on top), finalize.
-///
-/// openSeries fills its own series atomically rather than relying on a later, independently-random
-/// registerOffer + borrowerTakesBid pair to happen to land on it before its deployment window or offer expiry
-/// passes: Series.MIN_TERM forces maturities >= 14 days out, which needs large warps to ever reach within a
-/// bounded-depth run, and any run containing even one such large warp reliably blows through a short
-/// deployment window before two *independently* random handler calls can coincidentally correlate on the same
-/// series. registerOffer/borrowerTakesBid are kept as separate handler actions for exercising *additional*
-/// bids and fills against a series that already has one (partial fills, repeated takes), which is what those
-/// two independent steps are actually meant to test -- not whether a series gets its first fill at all.
 contract AllocatorHandler is Test {
     using UtilsLib for uint256;
 
@@ -43,16 +32,10 @@ contract AllocatorHandler is Test {
 
     function openSeries(uint256 sSeed, uint256 jSeed) external {
         uint256 s = bound(sSeed, 100_000e6, 2_000_000e6);
-        // junior's share is kept in [0.15, 0.30] (the curator band) by construction; enforcing the coverage
-        // band is SeriesCore's job, not Series's, so this is just a realistic default for this handler, not an
-        // invariant.
         uint256 aWad = bound(jSeed, 0.15e18, 0.3e18);
         uint256 j = s.mulDivDown(aWad, WAD - aWad);
 
         maturityCounter++;
-        // Series.MIN_TERM is a hard 14-day floor (T >= 14 days, tDeployEnd < T - 14 days); staying close to it
-        // (rather than a longer, more realistic tenor) keeps full lifecycles reachable within a single
-        // invariant run's warp budget.
         uint256 maturity = block.timestamp + 17 days + maturityCounter * 10 minutes;
         Market memory market = registry.marketFor(maturity);
         registry.midnight().touchMarket(market);
@@ -67,8 +50,8 @@ contract AllocatorHandler is Test {
 
         SeriesParams memory p = SeriesParams({
             marketIds: ids,
-            tDeployEnd: uint64(block.timestamp + 2 days), // must stay < T - MIN_TERM (14 days); see maturity above
-            dWriteOff: uint64(1 days), // shortened from a realistic default so write-off is reachable in-run
+            tDeployEnd: uint64(block.timestamp + 2 days),
+            dWriteOff: uint64(1 days),
             covWad: 0.15e18,
             pi0Wad: 0.1e18,
             piTWad: 0.2e18,
@@ -79,7 +62,7 @@ contract AllocatorHandler is Test {
             thetaWad: 0.1e18,
             feeRecipient: registry.FEE_RECIPIENT(),
             allocator: registry.ALLOCATOR(),
-            parking: IParking(address(registry.parking())),
+            parking: iParking(address(registry.parking())),
             offchainAttestationHash: bytes32(0)
         });
 
@@ -100,12 +83,10 @@ contract AllocatorHandler is Test {
         _registerAndFillAtomically(seriesAddr, marketId, maturity, s + j);
     }
 
-    /// @dev Registers one bid for roughly the whole allocation and has a dedicated synthetic borrower take it
-    /// immediately, in the same call as funding. See the contract-level doc for why this needs to be atomic.
     function _registerAndFillAtomically(address seriesAddr, bytes32 marketId, uint256 maturity, uint256 kAlloc)
         internal
     {
-        Series series = Series(seriesAddr);
+        creditSeries series = creditSeries(seriesAddr);
         uint256 tick = series.tickMaxFor(0);
         uint256 price = TickLib.tickToPrice(tick);
         if (price == 0) return;
@@ -157,8 +138,6 @@ contract AllocatorHandler is Test {
             );
             registry.setLastOffer(seriesAddr, offer, root);
         } catch {
-            // registration still succeeded; leave registeredAnOffer set so registerOffer's scan skips this
-            // series (it already has a bid) even though nobody took it this time.
             registry.updateInfo(
                 seriesAddr,
                 SeriesRegistry.SeriesInfo({
@@ -172,7 +151,7 @@ contract AllocatorHandler is Test {
     function registerOffer(uint256 seriesSeed, uint256 unitsSeed) external {
         (address seriesAddr,) = registry.pickActiveWithOffer(seriesSeed, false);
         if (seriesAddr == address(0)) return;
-        Series series = Series(seriesAddr);
+        creditSeries series = creditSeries(seriesAddr);
         if (uint8(series.state()) != uint8(SeriesState.DEPLOYING)) return;
         if (block.timestamp > series.T_DEPLOY_END()) return;
 
@@ -190,7 +169,7 @@ contract AllocatorHandler is Test {
         offer.market = registry.marketFor(series.T());
         offer.buy = true;
         offer.maker = seriesAddr;
-        offer.expiry = series.T_DEPLOY_END(); // valid for the whole deployment window, not an arbitrary short window
+        offer.expiry = series.T_DEPLOY_END();
         offer.tick = tick;
         offer.group = keccak256(abi.encode("group", seriesAddr));
         offer.callback = seriesAddr;
@@ -220,7 +199,7 @@ contract AllocatorHandler is Test {
     function finalizeSeries(uint256 seriesSeed) external {
         (address seriesAddr,) = registry.pickActive(seriesSeed);
         if (seriesAddr == address(0)) return;
-        Series series = Series(seriesAddr);
+        creditSeries series = creditSeries(seriesAddr);
         if (uint8(series.state()) != uint8(SeriesState.DEPLOYING)) return;
 
         vm.prank(registry.ALLOCATOR());
@@ -231,7 +210,7 @@ contract AllocatorHandler is Test {
     function cancelSeries(uint256 seriesSeed) external {
         (address seriesAddr, uint256 idx) = registry.pickActive(seriesSeed);
         if (seriesAddr == address(0)) return;
-        Series series = Series(seriesAddr);
+        creditSeries series = creditSeries(seriesAddr);
         if (uint8(series.state()) != uint8(SeriesState.DEPLOYING) || series.totalFilled() != 0) return;
 
         vm.prank(registry.ALLOCATOR());

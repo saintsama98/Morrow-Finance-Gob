@@ -1,4 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
+// Morrow Finance: invariant-suite handler injecting oracle/liquidation chaos shared across every series.
+// @author adiii.eth
+
 pragma solidity 0.8.34;
 
 import {Test} from "forge-std/Test.sol";
@@ -9,15 +12,6 @@ import {MAX_CONTINUOUS_FEE} from "@morpho-org/midnight/src/libraries/ConstantsLi
 import {SeriesRegistry} from "./SeriesRegistry.sol";
 import {MockUSDC} from "../../mocks/MockUSDC.sol";
 
-// Morrow Finance — invariant-suite handler injecting oracle/liquidation chaos shared across every series.
-// @author adiii.eth
-
-/// @notice Fuzz handler: injectBadDebt (oracle crash + liquidate), repay, setFees (within caps), warp, oracle
-/// moves. Shares one oracle/collateral token across every series (set up by SeriesRegistry), so a crash
-/// affects every open position at once -- deliberately, to stress cross-series isolation.
-///
-/// See DeployHandler's header note on why every address/reference used after `vm.prank` must be resolved into
-/// a local variable *before* the prank line, not inline in the same expression as the pranked call.
 contract MidnightChaosHandler is Test {
     using UtilsLib for uint256;
 
@@ -30,7 +24,7 @@ contract MidnightChaosHandler is Test {
     }
 
     function crashOracle(uint256 dropBps) external {
-        dropBps = bound(dropBps, 0, 9000); // up to a 90% drop
+        dropBps = bound(dropBps, 0, 9000);
         uint256 newPrice = initialOraclePrice - initialOraclePrice.mulDivDown(dropBps, 10_000);
         registry.oracle().setPrice(newPrice);
     }
@@ -39,8 +33,6 @@ contract MidnightChaosHandler is Test {
         registry.oracle().setPrice(initialOraclePrice);
     }
 
-    /// @dev Realizes bad debt on a series' borrower if their position is currently unhealthy: a no-op,
-    /// non-reverting liquidation with 0 seized/repaid still realizes bad debt on Midnight.
     function liquidate(uint256 seriesSeed) external {
         (address seriesAddr,) = registry.pickActive(seriesSeed);
         if (seriesAddr == address(0)) return;
@@ -88,8 +80,6 @@ contract MidnightChaosHandler is Test {
         }
     }
 
-    /// @dev Bimodal, same rationale as DeployHandler.warp: mostly small jumps to let fill sequences correlate,
-    /// occasional large jumps so runs still make progress toward the 14-day MIN_TERM maturity floor.
     function warp(uint256 seed) external {
         if (seed % 5 == 0) {
             uint256 bigDelta = bound(seed, 3 days, 10 days);

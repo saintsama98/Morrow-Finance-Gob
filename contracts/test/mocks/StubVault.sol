@@ -1,24 +1,22 @@
 // SPDX-License-Identifier: BUSL-1.1
+// Morrow Finance: minimal stand-in vault, letting seriesCore's accounting be tested before the real vaults exist.
+// @author adiii.eth
+
 pragma solidity 0.8.34;
 
-import {SeriesCore} from "../../src/core/SeriesCore.sol";
+import {seriesCore} from "../../src/core/seriesCore.sol";
 
 interface IERC20Mintable {
     function transfer(address to, uint256 amount) external returns (bool);
     function approve(address spender, uint256 amount) external returns (bool);
 }
 
-// Morrow Finance — minimal stand-in vault, letting SeriesCore's accounting be tested before the real vaults exist.
-// @author adiii.eth
-
-/// @notice Minimal stand-in for the senior/junior vaults, exposing thin passthroughs to SeriesCore's
-/// vault-only functions so SeriesCore's own accounting can be tested before the real vaults exist.
 contract StubVault {
-    SeriesCore public core;
+    seriesCore public core;
     address public usdc;
     bool public isSenior;
 
-    constructor(SeriesCore core_, address usdc_, bool isSenior_) {
+    constructor(seriesCore core_, address usdc_, bool isSenior_) {
         core = core_;
         usdc = usdc_;
         isSenior = isSenior_;
