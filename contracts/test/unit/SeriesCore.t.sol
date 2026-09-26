@@ -1,4 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
+// Morrow Finance: unit tests for seriesCore: openSeries checks, payout hooks, backstop, valuation, and policy.
+// @author adiii.eth
+
 pragma solidity 0.8.34;
 
 import {Test} from "forge-std/Test.sol";
@@ -12,33 +15,24 @@ import {MidnightHarness} from "../mocks/MidnightHarness.sol";
 import {MockUSDC} from "../mocks/MockUSDC.sol";
 import {MockOracle} from "../mocks/MockOracle.sol";
 import {StubVault} from "../mocks/StubVault.sol";
-import {SeriesFactory} from "../../src/series/SeriesFactory.sol";
-import {SeriesCore} from "../../src/core/SeriesCore.sol";
-import {Series} from "../../src/series/Series.sol";
-import {SeriesParams, SeriesState} from "../../src/interfaces/ISeries.sol";
-import {IMidnightMinimal} from "../../src/interfaces/IMidnightMinimal.sol";
-import {IParking} from "../../src/parking/IParking.sol";
-import {IdleParking} from "../../src/parking/IdleParking.sol";
+import {seriesFactory} from "../../src/series/seriesFactory.sol";
+import {seriesCore} from "../../src/core/seriesCore.sol";
+import {creditSeries} from "../../src/series/creditSeries.sol";
+import {SeriesParams, SeriesState} from "../../src/interfaces/iSeries.sol";
+import {iMidnightMinimal} from "../../src/interfaces/iMidnightMinimal.sol";
+import {iParking} from "../../src/parking/iParking.sol";
+import {idleParking} from "../../src/parking/idleParking.sol";
+import {coreStorage} from "../../src/core/modules/coreStorage.sol";
 
-// Morrow Finance — unit tests for SeriesCore: openSeries checks, payout hooks, backstop, valuation, and policy.
-// @author adiii.eth
-
-/// @notice openSeries checks, receiveReturn/receivePayout (backstop included, ON by default for this build),
-/// valuation, capacity/coverage floor, stress gate, curator timelock.
-///
-/// Senior capacity and junior coverage-floor enforcement *at deposit/redemption time* actually live in the
-/// vaults, which don't exist yet in this codebase -- the core only exposes the view functions
-/// (seniorCapacity(), juniorRedeemable()) those checks read. Tested here as "the views compute correctly", not
-/// as enforced reverts, since there's nothing yet that enforces them.
 contract SeriesCoreTest is Test, MidnightHarness {
     using UtilsLib for uint256;
 
     uint256 constant WAD = 1e18;
-    SeriesFactory factory;
-    SeriesCore core;
+    seriesFactory factory;
+    seriesCore core;
     StubVault seniorVaultStub;
     StubVault juniorVaultStub;
-    IdleParking parking;
+    idleParking parking;
 
     address governance = makeAddr("governance");
     address allocator = makeAddr("allocator");
@@ -55,14 +49,14 @@ contract SeriesCoreTest is Test, MidnightHarness {
         _setUpMidnightHarness();
         maturity = block.timestamp + 20 days;
 
-        parking = new IdleParking(address(usdc));
+        parking = new idleParking(address(usdc));
 
-        factory = new SeriesFactory(
-            IMidnightMinimal(address(midnight)), address(setterRatifier), address(usdc), governance, 0.86e18, 4
+        factory = new seriesFactory(
+            iMidnightMinimal(address(midnight)), address(setterRatifier), address(usdc), governance, 0.86e18, 4
         );
 
-        core = new SeriesCore(
-            address(usdc), factory, IParking(address(parking)), governance, allocator, curator, sentinel
+        core = new seriesCore(
+            address(usdc), factory, iParking(address(parking)), governance, allocator, curator, sentinel
         );
 
         vm.prank(governance);
@@ -72,6 +66,8 @@ contract SeriesCoreTest is Test, MidnightHarness {
         juniorVaultStub = new StubVault(core, address(usdc), false);
         vm.prank(governance);
         core.setVaults(address(seniorVaultStub), address(juniorVaultStub));
+        vm.prank(governance);
+        core.setFeeRecipient(feeRecipient);
 
         vm.startPrank(governance);
         factory.proposeCollateralAllowed(cbBTC, true);
@@ -90,7 +86,6 @@ contract SeriesCoreTest is Test, MidnightHarness {
     function _fundBook(bool isSenior, uint256 assets) internal {
         StubVault vault = isSenior ? seniorVaultStub : juniorVaultStub;
         usdc.mint(address(this), assets);
-        // StubVault.deposit() calls usdc.transfer(core, assets) as itself, so it needs the balance directly.
         usdc.transfer(address(vault), assets);
         vault.deposit(assets);
     }
@@ -117,7 +112,7 @@ contract SeriesCoreTest is Test, MidnightHarness {
             thetaWad: 0.1e18,
             feeRecipient: feeRecipient,
             allocator: allocator,
-            parking: IParking(address(parking)),
+            parking: iParking(address(parking)),
             offchainAttestationHash: bytes32(0)
         });
     }
@@ -126,8 +121,6 @@ contract SeriesCoreTest is Test, MidnightHarness {
         ids = new bytes32[](1);
         ids[0] = id;
     }
-
-    // --- setup sanity --------------------------------------------------------------------------------------
 
     function test_defaultPolicy() public view {
         (
@@ -152,11 +145,9 @@ contract SeriesCoreTest is Test, MidnightHarness {
 
     function test_setVaults_onlyOnce() public {
         vm.prank(governance);
-        vm.expectRevert(SeriesCore.VaultsAlreadySet.selector);
+        vm.expectRevert(coreStorage.VaultsAlreadySet.selector);
         core.setVaults(address(1), address(2));
     }
-
-    // --- openSeries ------------------------------------------------------------------------------------------
 
     function test_openSeries_happyPath() public {
         _fundBook(true, 2_000_000e6);
@@ -165,8 +156,8 @@ contract SeriesCoreTest is Test, MidnightHarness {
         vm.prank(allocator);
         address seriesAddr = core.openSeries(_defaultParams(_idsOf(marketId), 1_000_000e6), 800_000e6, 200_000e6);
 
-        assertEq(Series(seriesAddr).seniorAllocated(), 800_000e6);
-        assertEq(Series(seriesAddr).juniorAllocated(), 200_000e6);
+        assertEq(creditSeries(seriesAddr).seniorAllocated(), 800_000e6);
+        assertEq(creditSeries(seriesAddr).juniorAllocated(), 200_000e6);
         assertEq(core.liveSeriesCount(), 1);
     }
 
@@ -174,25 +165,25 @@ contract SeriesCoreTest is Test, MidnightHarness {
         _fundBook(true, 2_000_000e6);
         _fundBook(false, 500_000e6);
 
-        vm.expectRevert(SeriesCore.NotAllocator.selector);
+        vm.expectRevert(coreStorage.NotAllocator.selector);
         core.openSeries(_defaultParams(_idsOf(marketId), 1_000_000e6), 800_000e6, 200_000e6);
     }
 
     function test_openSeries_coverageBandTooLow() public {
         _fundBook(true, 990_000e6);
-        _fundBook(false, 10_000e6); // a = 10k/1m = 1% < covWad (15%)
+        _fundBook(false, 10_000e6);
 
         vm.prank(allocator);
-        vm.expectRevert(abi.encodeWithSelector(SeriesCore.CoverageBand.selector, 0.01e18));
+        vm.expectRevert(abi.encodeWithSelector(coreStorage.CoverageBand.selector, 0.01e18));
         core.openSeries(_defaultParams(_idsOf(marketId), 1_000_000e6), 990_000e6, 10_000e6);
     }
 
     function test_openSeries_coverageBandTooHigh() public {
         _fundBook(true, 600_000e6);
-        _fundBook(false, 400_000e6); // a = 40% > aMaxWad (30%)
+        _fundBook(false, 400_000e6);
 
         vm.prank(allocator);
-        vm.expectRevert(abi.encodeWithSelector(SeriesCore.CoverageBand.selector, 0.4e18));
+        vm.expectRevert(abi.encodeWithSelector(coreStorage.CoverageBand.selector, 0.4e18));
         core.openSeries(_defaultParams(_idsOf(marketId), 1_000_000e6), 600_000e6, 400_000e6);
     }
 
@@ -201,8 +192,7 @@ contract SeriesCoreTest is Test, MidnightHarness {
         _fundBook(false, 200_000e6);
 
         vm.prank(allocator);
-        // idleAvailable subtracts the 5% minIdleSeniorWad floor: 100_000e6 funded -> 95_000e6 available.
-        vm.expectRevert(abi.encodeWithSelector(SeriesCore.IdleInsufficient.selector, true, 800_000e6, 95_000e6));
+        vm.expectRevert(abi.encodeWithSelector(coreStorage.IdleInsufficient.selector, true, 800_000e6, 95_000e6));
         core.openSeries(_defaultParams(_idsOf(marketId), 1_000_000e6), 800_000e6, 200_000e6);
     }
 
@@ -211,8 +201,7 @@ contract SeriesCoreTest is Test, MidnightHarness {
         _fundBook(false, 500_000e6);
 
         vm.prank(allocator);
-        vm.expectRevert(SeriesCore.PerSeriesCapExceeded.selector);
-        // default maxPerSeriesAssets is 1_000_000e6
+        vm.expectRevert(coreStorage.PerSeriesCapExceeded.selector);
         core.openSeries(_defaultParams(_idsOf(marketId), 2_500_000e6), 2_000_000e6, 500_000e6);
     }
 
@@ -224,7 +213,7 @@ contract SeriesCoreTest is Test, MidnightHarness {
         core.pause();
 
         vm.prank(allocator);
-        vm.expectRevert(SeriesCore.Paused.selector);
+        vm.expectRevert(coreStorage.Paused.selector);
         core.openSeries(_defaultParams(_idsOf(marketId), 1_000_000e6), 800_000e6, 200_000e6);
     }
 
@@ -236,14 +225,12 @@ contract SeriesCoreTest is Test, MidnightHarness {
         _fundBook(false, 500_000e6);
 
         vm.prank(allocator);
-        vm.expectRevert(SeriesCore.MaxSeriesExceeded.selector);
+        vm.expectRevert(coreStorage.MaxSeriesExceeded.selector);
         core.openSeries(_defaultParams(_idsOf(marketId), 1_000_000e6), 800_000e6, 200_000e6);
     }
 
-    // --- receiveReturn / receivePayout ------------------------------------------------------------------------
-
     function test_receiveReturn_onlyRegisteredSeries() public {
-        vm.expectRevert(SeriesCore.NotRegisteredSeries.selector);
+        vm.expectRevert(coreStorage.NotRegisteredSeries.selector);
         core.receiveReturn(1, 1);
     }
 
@@ -256,17 +243,13 @@ contract SeriesCoreTest is Test, MidnightHarness {
         assertEq(core.liveSeriesCount(), 1);
 
         vm.prank(allocator);
-        Series(seriesAddr).cancel();
+        creditSeries(seriesAddr).cancel();
 
         assertEq(core.liveSeriesCount(), 0, "canceled series must be pruned from liveSeries");
-        (uint256 sharesSenior,,) = core.senior();
-        (uint256 sharesJunior,,) = core.junior();
-        assertEq(sharesSenior, 2_000_000e6, "senior book must get its full allocation back");
-        assertEq(sharesJunior, 500_000e6, "junior book must get its full allocation back");
+        assertEq(core.idle(true), 2_000_000e6, "senior book must get its full allocation back");
+        assertEq(core.idle(false), 500_000e6, "junior book must get its full allocation back");
     }
 
-    /// @dev Core usdc balance == senior reserved + junior reserved + junior pending deposits (bounded dust),
-    /// and core parking shares == senior book shares + junior book shares.
     function test_balanceConservation_afterDepositsAndCancel() public {
         _fundBook(true, 2_000_000e6);
         _fundBook(false, 500_000e6);
@@ -274,23 +257,25 @@ contract SeriesCoreTest is Test, MidnightHarness {
         vm.prank(allocator);
         address seriesAddr = core.openSeries(_defaultParams(_idsOf(marketId), 1_000_000e6), 800_000e6, 200_000e6);
         vm.prank(allocator);
-        Series(seriesAddr).cancel();
+        creditSeries(seriesAddr).cancel();
 
-        (uint256 sSh, uint256 sRes,) = core.senior();
-        (uint256 jSh, uint256 jRes, uint256 jPend) = core.junior();
+        (, uint256 sRes,) = core.senior();
+        (, uint256 jRes, uint256 jPend) = core.junior();
 
         assertEq(usdc.balanceOf(address(core)), sRes + jRes + jPend, "core usdc balance == reserved + pending");
-        assertEq(parking.balanceOf(address(core)), sSh + jSh, "core parking shares == senior + junior book shares");
+        assertEq(core.idle(true), 2_000_000e6, "senior idle back to its full deposit after the cancel");
+        assertEq(core.idle(false), 500_000e6, "junior idle back to its full deposit after the cancel");
+        assertEq(
+            parking.balanceOf(address(core)), core.idle(true) + core.idle(false), "books value the whole core account"
+        );
     }
-
-    // --- backstop (ON by default) -----------------------------------------------------------------------------
 
     function _fillAndFinalize(address seriesAddr, uint256 units) internal {
         _fillAndFinalizeMarket(seriesAddr, units, market);
     }
 
     function _fillAndFinalizeMarket(address seriesAddr, uint256 units, Market memory m) internal {
-        Series series = Series(seriesAddr);
+        creditSeries series = creditSeries(seriesAddr);
         uint256 tick = series.tickMaxFor(0);
         uint256 price = TickLib.tickToPrice(tick);
 
@@ -333,29 +318,24 @@ contract SeriesCoreTest is Test, MidnightHarness {
     function test_backstop_topsUpSeniorFromJuniorIdle_whenSeniorImpaired() public {
         _fundBook(true, 2_000_000e6);
         _fundBook(false, 500_000e6);
-        // extra junior idle sitting in the book, available for backstop beyond what's allocated to the series
         _fundBook(false, 500_000e6);
 
         vm.prank(allocator);
         address seriesAddr = core.openSeries(_defaultParams(_idsOf(marketId), 1_000_000e6), 800_000e6, 200_000e6);
         _fillAndFinalize(seriesAddr, 1_000_000e6);
 
-        Series series = Series(seriesAddr);
+        creditSeries series = creditSeries(seriesAddr);
         uint256 seniorClaim = series.seniorClaim();
 
         vm.warp(maturity + 1);
         series.startSettlement();
-        // nobody repays -> write off after the delay -> senior collects nothing, fully impaired
         vm.warp(maturity + series.D_WRITE_OFF() + 1);
         series.writeOff();
 
-        assertLt(core.backstopPaid(seriesAddr), seniorClaim + 1); // sanity: some bound exists
+        assertLt(core.backstopPaid(seriesAddr), seniorClaim + 1);
         assertGt(core.backstopPaid(seriesAddr), 0, "backstop must have topped up senior from junior's idle cash");
 
-        // senior book had 2_000_000e6 - 800_000e6 = 1_200_000e6 idle right after opening; backstop must have
-        // topped it up further from junior's idle cash.
-        (uint256 sSh,,) = core.senior();
-        assertGt(sSh, 1_200_000e6, "senior book must have received the backstop transfer");
+        assertGt(core.idle(true), 1_200_000e6, "senior book must have received the backstop transfer");
     }
 
     function test_backstop_disabled_doesNotMoveJuniorFunds() public {
@@ -370,7 +350,7 @@ contract SeriesCoreTest is Test, MidnightHarness {
         address seriesAddr = core.openSeries(_defaultParams(_idsOf(marketId), 1_000_000e6), 800_000e6, 200_000e6);
         _fillAndFinalize(seriesAddr, 1_000_000e6);
 
-        Series series = Series(seriesAddr);
+        creditSeries series = creditSeries(seriesAddr);
         vm.warp(maturity + 1);
         series.startSettlement();
         vm.warp(maturity + series.D_WRITE_OFF() + 1);
@@ -379,14 +359,10 @@ contract SeriesCoreTest is Test, MidnightHarness {
         assertEq(core.backstopPaid(seriesAddr), 0, "backstop must not fire once disabled");
     }
 
-    // --- with backstop off, a loss in one series never changes another series' legs ---------------------------
-
     function test_lossIsolatedAcrossSeries_whenBackstopOff() public {
         vm.prank(curator);
         core.disableBackstop();
 
-        // opens two series with overlapping maturities, so plenty of headroom is needed against both the
-        // per-series idle floors and the 30-day maturity window cap (default 50% of total AUM).
         _fundBook(true, 4_000_000e6);
         _fundBook(false, 1_000_000e6);
 
@@ -398,7 +374,6 @@ contract SeriesCoreTest is Test, MidnightHarness {
         factory.executeCollateralAllowed(wbtc, true);
         factory.executeOracleAllowed(wbtc, address(wbtcOracle), true);
 
-        // fresh, generously-spaced maturities computed post-warp so MIN_TERM headroom is never tight.
         uint256 maturityA = block.timestamp + 40 days;
         uint256 maturityB = maturityA + 5 days;
         bytes32 marketIdA = _touch(_cbBtcMarket(maturityA, LLTV_77));
@@ -410,23 +385,22 @@ contract SeriesCoreTest is Test, MidnightHarness {
         address seriesB = core.openSeries(_defaultParams(_idsOf(marketIdB), 1_000_000e6), 800_000e6, 200_000e6);
 
         _fillAndFinalizeMarket(seriesA, 1_000_000e6, _cbBtcMarket(maturityA, LLTV_77));
-        // seriesB never gets filled/finalized; seriesA is impaired via write-off while B just sits DEPLOYING
 
-        uint256 bSeniorBefore = Series(seriesB).seniorAllocated();
-        uint256 bJuniorBefore = Series(seriesB).juniorAllocated();
+        uint256 bSeniorBefore = creditSeries(seriesB).seniorAllocated();
+        uint256 bJuniorBefore = creditSeries(seriesB).juniorAllocated();
 
-        Series a = Series(seriesA);
+        creditSeries a = creditSeries(seriesA);
         vm.warp(maturityA + 1);
         a.startSettlement();
         vm.warp(maturityA + a.D_WRITE_OFF() + 1);
         a.writeOff();
 
-        assertEq(Series(seriesB).seniorAllocated(), bSeniorBefore, "series B's senior leg must be untouched");
-        assertEq(Series(seriesB).juniorAllocated(), bJuniorBefore, "series B's junior leg must be untouched");
-        assertEq(uint8(Series(seriesB).state()), uint8(SeriesState.DEPLOYING), "series B's state must be untouched");
+        assertEq(creditSeries(seriesB).seniorAllocated(), bSeniorBefore, "series B's senior leg must be untouched");
+        assertEq(creditSeries(seriesB).juniorAllocated(), bJuniorBefore, "series B's junior leg must be untouched");
+        assertEq(
+            uint8(creditSeries(seriesB).state()), uint8(SeriesState.DEPLOYING), "series B's state must be untouched"
+        );
     }
-
-    // --- registry bounds ---------------------------------------------------------------------------------------
 
     function test_liveSeriesNeverExceedsMaxSeries() public {
         vm.prank(sentinel);
@@ -444,21 +418,17 @@ contract SeriesCoreTest is Test, MidnightHarness {
         bytes32 marketId2 = _touch(market2);
 
         vm.prank(allocator);
-        vm.expectRevert(SeriesCore.MaxSeriesExceeded.selector);
+        vm.expectRevert(coreStorage.MaxSeriesExceeded.selector);
         core.openSeries(_defaultParams(_idsOf(marketId2), 1_000_000e6), 800_000e6, 200_000e6);
     }
 
-    // --- views -----------------------------------------------------------------------------------------------
-
     function test_seniorCapacity_scalesWithJuniorAssets() public {
         _fundBook(false, 200_000e6);
-        // covVaultWad default 0.20 -> capacity = juniorAssets * 0.8/0.2 = juniorAssets * 4
         assertEq(core.seniorCapacity(), 800_000e6);
     }
 
     function test_idleAvailable_subtractsFloor() public {
         _fundBook(true, 1_000_000e6);
-        // minIdleSeniorWad default 0.05 -> floor = 50_000e6, all of it idle (no series open)
         assertEq(core.idleAvailable(true), 950_000e6);
     }
 
@@ -466,13 +436,11 @@ contract SeriesCoreTest is Test, MidnightHarness {
         assertTrue(core.stressGateOpen());
     }
 
-    // --- curator policy timelock -----------------------------------------------------------------------------
-
     function test_policyChange_requiresTimelock() public {
         vm.prank(curator);
         core.proposePolicyChange(keccak256("thetaWad"), 0.15e18);
 
-        vm.expectRevert(SeriesCore.TimelockNotElapsed.selector);
+        vm.expectRevert(coreStorage.TimelockNotElapsed.selector);
         core.executePolicyChange(keccak256("thetaWad"));
 
         vm.warp(block.timestamp + 3 days);
@@ -484,8 +452,8 @@ contract SeriesCoreTest is Test, MidnightHarness {
 
     function test_sentinel_canOnlyLowerAMaxWad() public {
         vm.prank(sentinel);
-        vm.expectRevert(SeriesCore.TimelockIsRiskDecreasing.selector);
-        core.lowerAMaxWad(0.4e18); // raising is not allowed via the sentinel fast path
+        vm.expectRevert(coreStorage.TimelockIsRiskDecreasing.selector);
+        core.lowerAMaxWad(0.4e18);
     }
 
     function test_sentinel_canPause() public {

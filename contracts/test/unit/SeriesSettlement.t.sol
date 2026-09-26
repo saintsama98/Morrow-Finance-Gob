@@ -1,4 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
+// Morrow Finance: unit tests for creditSeries accounting and settlement: sync, navs, and the waterfall rerun.
+// @author adiii.eth
+
 pragma solidity 0.8.34;
 
 import {Test} from "forge-std/Test.sol";
@@ -11,31 +14,26 @@ import {ORACLE_PRICE_SCALE} from "@morpho-org/midnight/src/libraries/ConstantsLi
 import {MidnightHarness} from "../mocks/MidnightHarness.sol";
 import {MockUSDC} from "../mocks/MockUSDC.sol";
 import {StubCore} from "../mocks/StubCore.sol";
-import {SeriesFactory} from "../../src/series/SeriesFactory.sol";
-import {Series} from "../../src/series/Series.sol";
-import {SeriesParams, SeriesState} from "../../src/interfaces/ISeries.sol";
-import {IMidnightMinimal} from "../../src/interfaces/IMidnightMinimal.sol";
-import {IParking} from "../../src/parking/IParking.sol";
-import {IdleParking} from "../../src/parking/IdleParking.sol";
-import {SeriesMath} from "../../src/libraries/SeriesMath.sol";
+import {seriesFactory} from "../../src/series/seriesFactory.sol";
+import {creditSeries} from "../../src/series/creditSeries.sol";
+import {SeriesParams, SeriesState} from "../../src/interfaces/iSeries.sol";
+import {iMidnightMinimal} from "../../src/interfaces/iMidnightMinimal.sol";
+import {iParking} from "../../src/parking/iParking.sol";
+import {idleParking} from "../../src/parking/idleParking.sol";
+import {seriesMath} from "../../src/libraries/seriesMath.sol";
+import {seriesStorage} from "../../src/series/modules/seriesStorage.sol";
 
-// Morrow Finance — unit tests for Series accounting and settlement: sync, navs, and the waterfall rerun.
-// @author adiii.eth
-
-/// @notice sync, navs, startSettlement, collect, settle, writeOff, and the cumulative waterfall rerun. Takes a
-/// real series from LOCKED through SETTLED against the real Midnight contract, with a real borrower actually
-/// repaying (or not, for the write-off path).
 contract SeriesSettlementTest is Test, MidnightHarness {
     using UtilsLib for uint256;
 
     uint256 constant WAD = 1e18;
-    SeriesFactory factory;
+    seriesFactory factory;
     StubCore core;
     address allocator = makeAddr("allocator");
     address sentinel = makeAddr("sentinel");
     address feeRecipient = makeAddr("feeRecipient");
     address borrower = makeAddr("borrower");
-    IdleParking parking;
+    idleParking parking;
 
     uint256 maturity;
     bytes32 marketId;
@@ -46,8 +44,8 @@ contract SeriesSettlementTest is Test, MidnightHarness {
         maturity = block.timestamp + 90 days;
 
         core = new StubCore(address(usdc), sentinel);
-        factory = new SeriesFactory(
-            IMidnightMinimal(address(midnight)), address(setterRatifier), address(usdc), address(this), 0.86e18, 4
+        factory = new seriesFactory(
+            iMidnightMinimal(address(midnight)), address(setterRatifier), address(usdc), address(this), 0.86e18, 4
         );
         factory.setCore(address(core));
 
@@ -61,7 +59,7 @@ contract SeriesSettlementTest is Test, MidnightHarness {
         market = _cbBtcMarket(maturity, LLTV_77);
         marketId = _touch(market);
 
-        parking = new IdleParking(address(usdc));
+        parking = new idleParking(address(usdc));
         usdc.mint(address(core), 10_000_000e6);
     }
 
@@ -87,16 +85,16 @@ contract SeriesSettlementTest is Test, MidnightHarness {
             thetaWad: 0.1e18,
             feeRecipient: feeRecipient,
             allocator: allocator,
-            parking: IParking(address(parking)),
+            parking: iParking(address(parking)),
             offchainAttestationHash: bytes32(0)
         });
     }
 
-    function _openAndFund(uint256 s, uint256 j) internal returns (Series series) {
+    function _openAndFund(uint256 s, uint256 j) internal returns (creditSeries series) {
         SeriesParams memory p = _defaultParams(s + j);
         vm.prank(address(core));
         address seriesAddr = core.createAndFund(factory, p, s, j);
-        series = Series(seriesAddr);
+        series = creditSeries(seriesAddr);
     }
 
     function _collateralizeAndBorrow(address who, uint256 units) internal {
@@ -110,8 +108,7 @@ contract SeriesSettlementTest is Test, MidnightHarness {
         vm.stopPrank();
     }
 
-    /// @dev Fills the series fully via the maker path and finalizes it, returning the units borrowed.
-    function _fillAndFinalize(Series series, uint256 units) internal {
+    function _fillAndFinalize(creditSeries series, uint256 units) internal {
         uint256 tick = series.tickMaxFor(0);
 
         Offer memory offer;
@@ -144,23 +141,18 @@ contract SeriesSettlementTest is Test, MidnightHarness {
         series.finalize();
     }
 
-    // --- happy path: full repayment, no loss ------------------------------------------------------------
-
     function test_fullLifecycle_repaymentNoLoss() public {
-        Series series = _openAndFund(900_000e6, 200_000e6);
+        creditSeries series = _openAndFund(900_000e6, 200_000e6);
         uint256 units = 1_000_000e6;
         _fillAndFinalize(series, units);
 
         uint256 seniorClaim = series.seniorClaim();
         uint256 juniorDeployed = series.juniorDeployed();
 
-        // the resolved_i flag requires block.timestamp > T (strictly), not just >= T like startSettlement
-        // itself, so warp one second past maturity.
         vm.warp(maturity + 1);
         series.startSettlement();
         assertEq(uint8(series.state()), uint8(SeriesState.SETTLING));
 
-        // borrower repays their full debt
         uint128 debtOwed = midnight.debt(marketId, borrower);
         usdc.mint(borrower, uint256(debtOwed));
         vm.startPrank(borrower);
@@ -176,19 +168,17 @@ contract SeriesSettlementTest is Test, MidnightHarness {
         assertEq(uint8(series.state()), uint8(SeriesState.SETTLED));
 
         (uint256 expectedXs, uint256 expectedXj, uint256 expectedFee) =
-            SeriesMath.waterfall(units, seniorClaim, juniorDeployed, 0.1e18);
-        assertEq(core.lastPayoutToSenior(), expectedXs, "senior payout must match SeriesMath.waterfall");
-        assertEq(core.lastPayoutToJunior(), expectedXj, "junior payout must match SeriesMath.waterfall");
+            seriesMath.waterfall(units, seniorClaim, juniorDeployed, 0.1e18);
+        assertEq(core.lastPayoutToSenior(), expectedXs, "senior payout must match seriesMath.waterfall");
+        assertEq(core.lastPayoutToJunior(), expectedXj, "junior payout must match seriesMath.waterfall");
         assertGt(expectedFee, 0, "no-loss case should recognize a positive operator fee");
 
         series.claimFee();
         assertEq(usdc.balanceOf(feeRecipient), expectedFee, "fee recipient must receive exactly the recognized fee");
     }
 
-    // --- navs / sync -------------------------------------------------------------------------------------
-
     function test_navs_convergeToWaterfallAtMaturity() public {
-        Series series = _openAndFund(900_000e6, 200_000e6);
+        creditSeries series = _openAndFund(900_000e6, 200_000e6);
         uint256 units = 1_000_000e6;
         _fillAndFinalize(series, units);
 
@@ -196,7 +186,7 @@ contract SeriesSettlementTest is Test, MidnightHarness {
         (uint256 navS, uint256 navJ, uint256 feeAccrued) = series.navs();
 
         (uint256 expectedXs, uint256 expectedXj, uint256 expectedFee) =
-            SeriesMath.waterfall(units, series.seniorClaim(), series.juniorDeployed(), 0.1e18);
+            seriesMath.waterfall(units, series.seniorClaim(), series.juniorDeployed(), 0.1e18);
 
         assertEq(navS, expectedXs, "navS must converge to the waterfall's XS at maturity");
         assertEq(navJ, expectedXj, "navJ must converge to the waterfall's XJ at maturity");
@@ -204,24 +194,21 @@ contract SeriesSettlementTest is Test, MidnightHarness {
     }
 
     function test_sync_permissionless_emitsBufferUpdated() public {
-        Series series = _openAndFund(900_000e6, 200_000e6);
+        creditSeries series = _openAndFund(900_000e6, 200_000e6);
         _fillAndFinalize(series, 1_000_000e6);
 
         vm.warp(maturity);
-        series.sync(0); // must not revert; callable by anyone (no prank needed)
+        series.sync(0);
     }
 
-    // --- write-off path ------------------------------------------------------------------------------------
-
     function test_writeOff_noRepayment_pushesNothingBeyondWhatWasCollected() public {
-        Series series = _openAndFund(900_000e6, 200_000e6);
+        creditSeries series = _openAndFund(900_000e6, 200_000e6);
         uint256 units = 1_000_000e6;
         _fillAndFinalize(series, units);
 
         vm.warp(maturity);
         series.startSettlement();
 
-        // no repayment happens -- warp past the write-off delay
         vm.warp(maturity + series.D_WRITE_OFF() + 1);
 
         assertFalse(series.resolved(0));
@@ -229,37 +216,34 @@ contract SeriesSettlementTest is Test, MidnightHarness {
 
         assertEq(uint8(series.state()), uint8(SeriesState.SETTLED));
         assertTrue(series.writtenOff(0));
-        // nothing was ever collected, so proceeds are 0 and both payouts are 0
         assertEq(core.lastPayoutToSenior(), 0);
         assertEq(core.lastPayoutToJunior(), 0);
     }
 
     function test_writeOff_beforeDelay_reverts() public {
-        Series series = _openAndFund(900_000e6, 200_000e6);
+        creditSeries series = _openAndFund(900_000e6, 200_000e6);
         _fillAndFinalize(series, 1_000_000e6);
 
         vm.warp(maturity);
         series.startSettlement();
 
-        vm.expectRevert(abi.encodeWithSelector(Series.TooEarly.selector, block.timestamp));
+        vm.expectRevert(abi.encodeWithSelector(seriesStorage.TooEarly.selector, block.timestamp));
         series.writeOff();
     }
 
     function test_settle_beforeAllResolved_reverts() public {
-        Series series = _openAndFund(900_000e6, 200_000e6);
+        creditSeries series = _openAndFund(900_000e6, 200_000e6);
         _fillAndFinalize(series, 1_000_000e6);
 
         vm.warp(maturity);
         series.startSettlement();
 
-        vm.expectRevert(abi.encodeWithSelector(Series.NotResolved.selector, 0));
+        vm.expectRevert(abi.encodeWithSelector(seriesStorage.NotResolved.selector, 0));
         series.settle();
     }
 
-    /// @dev A recovery collected after write-off reruns the waterfall and flows to the books: written-off
-    /// markets keep their credit, and every later receipt is a recovery.
     function test_collect_afterWriteOff_isARecoveryThatRerunsWaterfall() public {
-        Series series = _openAndFund(900_000e6, 200_000e6);
+        creditSeries series = _openAndFund(900_000e6, 200_000e6);
         uint256 units = 1_000_000e6;
         _fillAndFinalize(series, units);
 
@@ -270,7 +254,6 @@ contract SeriesSettlementTest is Test, MidnightHarness {
 
         assertEq(core.lastPayoutToSenior(), 0);
 
-        // a late repayment arrives after write-off
         uint128 debtOwed = midnight.debt(marketId, borrower);
         usdc.mint(borrower, uint256(debtOwed));
         vm.startPrank(borrower);

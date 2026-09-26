@@ -8,7 +8,6 @@ broadcast/*/dry-run/
 __pycache__/
 *.pyc
 
-# docs
 docs/morrow-finance-gob-arithmatic.md
 docs/morrow-finance-gob-reference_model.py
 docs/morrow-finance-gob-stress_model.py

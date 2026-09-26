@@ -1,4 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
+// Morrow Finance: shared test harness deploying the real Midnight contract with mock markets and oracles.
+// @author adiii.eth
+
 pragma solidity 0.8.34;
 
 import {Test} from "forge-std/Test.sol";
@@ -9,12 +12,6 @@ import {IdLib} from "@morpho-org/midnight/src/libraries/IdLib.sol";
 import {MockUSDC} from "./MockUSDC.sol";
 import {MockOracle} from "./MockOracle.sol";
 
-// Morrow Finance — shared test harness deploying the real Midnight contract with mock markets and oracles.
-// @author adiii.eth
-
-/// @notice Deploys the real Midnight contract (not a mock) plus the shipped SetterRatifier, enables the lltv
-/// tiers and liquidation cursors used in tests, and creates cbBTC/USDC and WBTC/USDC markets with settable
-/// mock oracles. Loan token is always MockUSDC.
 abstract contract MidnightHarness is Test {
     uint256 internal constant LLTV_77 = 0.77e18;
     uint256 internal constant LLTV_86 = 0.86e18;
@@ -43,13 +40,12 @@ abstract contract MidnightHarness is Test {
 
         usdc = new MockUSDC();
 
-        cbBtcOracle = new MockOracle(1e36 * 60_000); // ~$60k btc, ORACLE_PRICE_SCALE = 1e36 per unit collateral
+        cbBtcOracle = new MockOracle(1e36 * 60_000);
         wbtcOracle = new MockOracle(1e36 * 60_000);
-        cbBTC = address(new MockUSDC()); // stand-in ERC20 for the collateral token itself (balance/transfer only)
+        cbBTC = address(new MockUSDC());
         wbtc = address(new MockUSDC());
     }
 
-    /// @dev Builds (but does not touch) a single-collateral Market struct for cbBTC/USDC at the given maturity.
     function _cbBtcMarket(uint256 maturity, uint256 lltvWad) internal view returns (Market memory market) {
         CollateralParams[] memory params = new CollateralParams[](1);
         params[0] =
@@ -82,8 +78,6 @@ abstract contract MidnightHarness is Test {
         });
     }
 
-    /// @dev Creates the market on chain (idempotent: touchMarket is a no-op if already created) and returns
-    /// its id.
     function _touch(Market memory market) internal returns (bytes32 id) {
         id = midnight.touchMarket(market);
     }
