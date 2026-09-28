@@ -18,7 +18,6 @@ import {seriesCore} from "../../src/core/seriesCore.sol";
 import {creditSeries} from "../../src/series/creditSeries.sol";
 import {usdcSeniorVault} from "../../src/vaults/senior/usdcSeniorVault.sol";
 import {usdcJuniorVault} from "../../src/vaults/junior/usdcJuniorVault.sol";
-import {epochMath} from "../../src/libraries/epochMath.sol";
 
 contract CoreVaultInvariantsTest is Test {
     SeriesRegistry registry;
@@ -87,6 +86,20 @@ contract CoreVaultInvariantsTest is Test {
         assertLe(parked - booked, 2, "the books must account for the whole parking account, up to rounding");
     }
 
+    function invariant_I16_vaultAssetsEqualCoreBooks() public view {
+        seriesCore core = registry.realCore();
+        assertEq(
+            registry.seniorVault().totalAssets(),
+            core.seniorAssets(),
+            "I16: srUSDC totalAssets must equal the senior book"
+        );
+        assertEq(
+            registry.juniorVault().totalAssets(),
+            core.juniorAssets(),
+            "I16: jrUSDC totalAssets must equal the junior book"
+        );
+    }
+
     function invariant_I17_reservedCoversUnclaimed() public view {
         (, uint256 seniorReserved,) = registry.realCore().senior();
         assertGe(
@@ -111,7 +124,7 @@ contract CoreVaultInvariantsTest is Test {
             assertLe(sharesFulfilled, totalShares, "senior redeem: sharesFulfilled must never exceed totalShares");
             assertLe(
                 _sumClaimablePlusClaimedRedeemAssets(true, id, sharesFulfilled, totalShares),
-                assetsFulfilled,
+                assetsFulfilled + _sumFrozenRedeemAssets(true, id),
                 "senior redeem: claimable + already-claimed assets must never exceed assetsFulfilled"
             );
         }
@@ -123,7 +136,7 @@ contract CoreVaultInvariantsTest is Test {
             assertLe(sharesFulfilled, totalShares, "junior redeem: sharesFulfilled must never exceed totalShares");
             assertLe(
                 _sumClaimablePlusClaimedRedeemAssets(false, id, sharesFulfilled, totalShares),
-                assetsFulfilled,
+                assetsFulfilled + _sumFrozenRedeemAssets(false, id),
                 "junior redeem: claimable + already-claimed assets must never exceed assetsFulfilled"
             );
         }
@@ -134,7 +147,7 @@ contract CoreVaultInvariantsTest is Test {
             assertLe(assetsFulfilled, totalAssets, "junior deposit: assetsFulfilled must never exceed totalAssets");
             assertLe(
                 _sumClaimablePlusClaimedDepositShares(id, sharesFulfilled, totalAssets),
-                sharesFulfilled,
+                sharesFulfilled + _sumFrozenDepositShares(id),
                 "junior deposit: claimable + already-claimed shares must never exceed sharesFulfilled"
             );
         }
@@ -144,21 +157,134 @@ contract CoreVaultInvariantsTest is Test {
         usdcSeniorVault sv = registry.seniorVault();
         for (uint256 id = 1; id < sv.openEpochId(); id++) {
             (,,, uint256 assetsFulfilled, uint256 ppsCloseWad,) = sv.epochs(id);
-            _assertRedeemPriceWithinCeiling(assetsFulfilled, _sharesFulfilledOf(sv, id), ppsCloseWad, "senior redeem");
+            _assertRedeemPriceWithinCeiling(
+                assetsFulfilled + _sumFrozenRedeemAssets(true, id),
+                _sharesFulfilledOf(sv, id) + _sumFrozenRedeemShares(true, id),
+                ppsCloseWad,
+                "senior redeem"
+            );
         }
 
         usdcJuniorVault jv = registry.juniorVault();
         for (uint256 id = 1; id < jv.openRedeemEpochId(); id++) {
-            (uint256 totalShares,, uint256 sharesFulfilled, uint256 assetsFulfilled, uint256 ppsCloseWad,) =
-                jv.redeemEpochs(id);
-            totalShares;
-            _assertRedeemPriceWithinCeiling(assetsFulfilled, sharesFulfilled, ppsCloseWad, "junior redeem");
+            (,, uint256 sharesFulfilled, uint256 assetsFulfilled, uint256 ppsCloseWad,) = jv.redeemEpochs(id);
+            _assertRedeemPriceWithinCeiling(
+                assetsFulfilled + _sumFrozenRedeemAssets(false, id),
+                sharesFulfilled + _sumFrozenRedeemShares(false, id),
+                ppsCloseWad,
+                "junior redeem"
+            );
         }
 
         for (uint256 id = 1; id < jv.openDepositEpochId(); id++) {
             (,, uint256 assetsFulfilled, uint256 sharesFulfilled, uint256 ppsCloseWad,) = jv.depositEpochs(id);
-            if (sharesFulfilled == 0) continue;
-            _assertDepositPriceAboveFloor(assetsFulfilled, sharesFulfilled, ppsCloseWad);
+            uint256 batchShares = sharesFulfilled + _sumFrozenDepositShares(id);
+            if (batchShares == 0) continue;
+            _assertDepositPriceAboveFloor(assetsFulfilled + _sumFrozenDepositAssets(id), batchShares, ppsCloseWad);
+        }
+    }
+
+    function invariant_I30_batchLedgerBalances() public view {
+        usdcSeniorVault sv = registry.seniorVault();
+        for (uint256 id = 1; id <= sv.openEpochId(); id++) {
+            (uint256 total, uint256 remaining, uint256 filled,,,) = sv.epochs(id);
+            assertEq(remaining, total - filled, "senior exit batch: remaining must equal requested minus filled");
+        }
+        usdcJuniorVault jv = registry.juniorVault();
+        for (uint256 id = 1; id <= jv.openRedeemEpochId(); id++) {
+            (uint256 total, uint256 remaining, uint256 filled,,,) = jv.redeemEpochs(id);
+            assertEq(remaining, total - filled, "junior exit batch: remaining must equal requested minus filled");
+        }
+        for (uint256 id = 1; id <= jv.openDepositEpochId(); id++) {
+            (uint256 total, uint256 remaining, uint256 filled,,,) = jv.depositEpochs(id);
+            assertEq(remaining, total - filled, "junior entry batch: remaining must equal requested minus filled");
+        }
+    }
+
+    function invariant_I31_fillsAreOldestFirst() public view {
+        usdcSeniorVault sv = registry.seniorVault();
+        uint256 ptr = sv.nextEpochToFill();
+        for (uint256 id = 1; id < ptr; id++) {
+            (, uint256 remaining,,,,) = sv.epochs(id);
+            assertEq(remaining, 0, "senior exit: a batch behind the fill pointer is unfinished");
+        }
+        for (uint256 id = ptr + 1; id < sv.openEpochId(); id++) {
+            (,, uint256 filled,,,) = sv.epochs(id);
+            assertEq(filled, 0, "senior exit: a batch ahead of the oldest unfinished one was filled");
+        }
+
+        usdcJuniorVault jv = registry.juniorVault();
+        ptr = jv.nextRedeemEpochToFill();
+        for (uint256 id = 1; id < ptr; id++) {
+            (, uint256 remaining,,,,) = jv.redeemEpochs(id);
+            assertEq(remaining, 0, "junior exit: a batch behind the fill pointer is unfinished");
+        }
+        for (uint256 id = ptr + 1; id < jv.openRedeemEpochId(); id++) {
+            (,, uint256 filled,,,) = jv.redeemEpochs(id);
+            assertEq(filled, 0, "junior exit: a batch ahead of the oldest unfinished one was filled");
+        }
+
+        ptr = jv.nextDepositEpochToFill();
+        for (uint256 id = 1; id < ptr; id++) {
+            (, uint256 remaining,,,,) = jv.depositEpochs(id);
+            assertEq(remaining, 0, "junior entry: a batch behind the fill pointer is unfinished");
+        }
+        for (uint256 id = ptr + 1; id < jv.openDepositEpochId(); id++) {
+            (,, uint256 filled,,,) = jv.depositEpochs(id);
+            assertEq(filled, 0, "junior entry: a batch ahead of the oldest unfinished one was filled");
+        }
+    }
+
+    function invariant_I32_queuedExitDemandMatchesClosedBatches() public view {
+        usdcSeniorVault sv = registry.seniorVault();
+        uint256 expected;
+        for (uint256 id = 1; id <= sv.openEpochId(); id++) {
+            (, uint256 remaining,,, uint256 pps, bool closed) = sv.epochs(id);
+            expected += _demandOf(remaining, pps, closed);
+        }
+        assertEq(sv.queuedExitAssets(), expected, "senior queued exit demand drifted from its closed batches");
+        assertEq(registry.realCore().queuedExits(true), expected, "core must see the senior exit demand");
+
+        usdcJuniorVault jv = registry.juniorVault();
+        expected = 0;
+        for (uint256 id = 1; id <= jv.openRedeemEpochId(); id++) {
+            (, uint256 remaining,,, uint256 pps, bool closed) = jv.redeemEpochs(id);
+            expected += _demandOf(remaining, pps, closed);
+        }
+        assertEq(jv.queuedExitAssets(), expected, "junior queued exit demand drifted from its closed batches");
+        assertEq(registry.realCore().queuedExits(false), expected, "core must see the junior exit demand");
+    }
+
+    function invariant_I33_completedBatchLeavesNobodyPending() public view {
+        usdcSeniorVault sv = registry.seniorVault();
+        usdcJuniorVault jv = registry.juniorVault();
+        uint256 count = vaultHandler.actorsCount();
+        for (uint256 id = 1; id < sv.openEpochId(); id++) {
+            (, uint256 remaining,,,,) = sv.epochs(id);
+            if (remaining != 0) continue;
+            for (uint256 i = 0; i < count; i++) {
+                assertEq(
+                    sv.pendingRedeemRequest(id, vaultHandler.actors(i)), 0, "senior exit: stranded in a done batch"
+                );
+            }
+        }
+        for (uint256 id = 1; id < jv.openRedeemEpochId(); id++) {
+            (, uint256 remaining,,,,) = jv.redeemEpochs(id);
+            if (remaining != 0) continue;
+            for (uint256 i = 0; i < count; i++) {
+                assertEq(
+                    jv.pendingRedeemRequest(id, vaultHandler.actors(i)), 0, "junior exit: stranded in a done batch"
+                );
+            }
+        }
+        for (uint256 id = 1; id < jv.openDepositEpochId(); id++) {
+            (, uint256 remaining,,,,) = jv.depositEpochs(id);
+            if (remaining != 0) continue;
+            for (uint256 i = 0; i < count; i++) {
+                assertEq(
+                    jv.pendingDepositRequest(id, vaultHandler.actors(i)), 0, "junior entry: stranded in a done batch"
+                );
+            }
         }
     }
 
@@ -224,23 +350,15 @@ contract CoreVaultInvariantsTest is Test {
         if (isSenior) {
             usdcSeniorVault sv = registry.seniorVault();
             for (uint256 id = 1; id < sv.openEpochId(); id++) {
-                (uint256 totalShares,,, uint256 assetsFulfilled,,) = sv.epochs(id);
                 for (uint256 i = 0; i < count; i++) {
-                    address a = vaultHandler.actors(i);
-                    total += epochMath.claimableAssets(
-                        sv.requestedShares(id, a), assetsFulfilled, totalShares, sv.claimedAssets(id, a)
-                    );
+                    total += sv.owedRedeemAssets(id, vaultHandler.actors(i));
                 }
             }
         } else {
             usdcJuniorVault jv = registry.juniorVault();
             for (uint256 id = 1; id < jv.openRedeemEpochId(); id++) {
-                (uint256 totalShares,,, uint256 assetsFulfilled,,) = jv.redeemEpochs(id);
                 for (uint256 i = 0; i < count; i++) {
-                    address a = vaultHandler.actors(i);
-                    total += epochMath.claimableAssets(
-                        jv.requestedShares(id, a), assetsFulfilled, totalShares, jv.claimedAssets(id, a)
-                    );
+                    total += jv.owedRedeemAssets(id, vaultHandler.actors(i));
                 }
             }
         }
@@ -253,25 +371,27 @@ contract CoreVaultInvariantsTest is Test {
         uint256 totalShares
     ) internal view returns (uint256 total) {
         sharesFulfilled;
+        totalShares;
         uint256 count = vaultHandler.actorsCount();
-        if (isSenior) {
-            usdcSeniorVault sv = registry.seniorVault();
-            (,,, uint256 assetsFulfilled,,) = sv.epochs(id);
-            for (uint256 i = 0; i < count; i++) {
-                address a = vaultHandler.actors(i);
-                uint256 claimed = sv.claimedAssets(id, a);
-                total += claimed
-                    + epochMath.claimableAssets(sv.requestedShares(id, a), assetsFulfilled, totalShares, claimed);
+        for (uint256 i = 0; i < count; i++) {
+            address a = vaultHandler.actors(i);
+            if (isSenior) {
+                usdcSeniorVault sv = registry.seniorVault();
+                total += sv.claimedAssets(id, a) + sv.owedRedeemAssets(id, a);
+            } else {
+                usdcJuniorVault jv = registry.juniorVault();
+                total += jv.claimedAssets(id, a) + jv.owedRedeemAssets(id, a);
             }
-        } else {
-            usdcJuniorVault jv = registry.juniorVault();
-            (,,, uint256 assetsFulfilled,,) = jv.redeemEpochs(id);
-            for (uint256 i = 0; i < count; i++) {
-                address a = vaultHandler.actors(i);
-                uint256 claimed = jv.claimedAssets(id, a);
-                total += claimed
-                    + epochMath.claimableAssets(jv.requestedShares(id, a), assetsFulfilled, totalShares, claimed);
-            }
+        }
+    }
+
+    function _sumFrozenRedeemAssets(bool isSenior, uint256 id) internal view returns (uint256 total) {
+        uint256 count = vaultHandler.actorsCount();
+        for (uint256 i = 0; i < count; i++) {
+            address a = vaultHandler.actors(i);
+            total += isSenior
+                ? registry.seniorVault().frozenAssets(id, a)
+                : registry.juniorVault().frozenRedeemAssets(id, a);
         }
     }
 
@@ -281,14 +401,40 @@ contract CoreVaultInvariantsTest is Test {
         returns (uint256 total)
     {
         sharesFulfilled;
+        totalAssets;
         usdcJuniorVault jv = registry.juniorVault();
-        (,,, uint256 epochSharesFulfilled,,) = jv.depositEpochs(id);
         uint256 count = vaultHandler.actorsCount();
         for (uint256 i = 0; i < count; i++) {
             address a = vaultHandler.actors(i);
-            uint256 claimed = jv.claimedShares(id, a);
-            total += claimed
-                + epochMath.claimableShares(jv.requestedAssets(id, a), epochSharesFulfilled, totalAssets, claimed);
+            total += jv.claimedShares(id, a) + jv.owedDepositShares(id, a);
         }
+    }
+
+    function _sumFrozenDepositShares(uint256 id) internal view returns (uint256 total) {
+        uint256 count = vaultHandler.actorsCount();
+        for (uint256 i = 0; i < count; i++) {
+            total += registry.juniorVault().frozenDepositShares(id, vaultHandler.actors(i));
+        }
+    }
+
+    function _sumFrozenRedeemShares(bool isSenior, uint256 id) internal view returns (uint256 total) {
+        uint256 count = vaultHandler.actorsCount();
+        for (uint256 i = 0; i < count; i++) {
+            address a = vaultHandler.actors(i);
+            total += isSenior
+                ? registry.seniorVault().frozenShares(id, a)
+                : registry.juniorVault().frozenRedeemShares(id, a);
+        }
+    }
+
+    function _sumFrozenDepositAssets(uint256 id) internal view returns (uint256 total) {
+        uint256 count = vaultHandler.actorsCount();
+        for (uint256 i = 0; i < count; i++) {
+            total += registry.juniorVault().frozenDepositAssets(id, vaultHandler.actors(i));
+        }
+    }
+
+    function _demandOf(uint256 remaining, uint256 ppsCloseWad, bool closed) internal pure returns (uint256) {
+        return closed ? (remaining * ppsCloseWad + 1e18 - 1) / 1e18 : 0;
     }
 }

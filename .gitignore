@@ -15,3 +15,9 @@ docs/morrow-finance-gob-reference_model.py
 docs/morrow-finance-gob-stress_model.py
 
 
+docs/LENDER_GATING_SURFACE.md
+docs/LENDER_GATING_SURFACE.pdf
+docs/DEFERRED_VERIFICATION.md
+docs/PENDING_ARCHITECTURE_DECISIONS.md
+docs/SPEC_DIVERGENCES.md
+docs/FORK_STRESS_TEST_PLAN.md
