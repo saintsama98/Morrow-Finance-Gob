@@ -14,6 +14,9 @@ abstract contract usdcVaultBase is ERC20, IERC165 {
 
     uint256 internal constant WAD = 1e18;
     uint8 internal constant DECIMALS_OFFSET = 12;
+    uint256 public constant MAX_EPOCH_DURATION = 7 days;
+    uint256 public constant FILL_GRACE = 3 days;
+    uint256 public constant CANCEL_AFTER_CLOSE = 14 days;
 
     error ZeroAssets();
     error ZeroShares();
@@ -28,6 +31,7 @@ abstract contract usdcVaultBase is ERC20, IERC165 {
     error RequestAlreadyActive();
     error NoActiveRequest();
     error PendingCancelation();
+    error NotOldestBatch(uint256 oldest);
 
     event Withdraw(
         address indexed sender, address indexed receiver, address indexed owner, uint256 assets, uint256 shares
@@ -46,11 +50,6 @@ abstract contract usdcVaultBase is ERC20, IERC165 {
     address public immutable USDC;
 
     mapping(address controller => mapping(address operator => bool)) public isOperator;
-
-    modifier onlyOperator() {
-        require(msg.sender == CORE.curator() || msg.sender == CORE.allocator(), NotOperator());
-        _;
-    }
 
     modifier onlyControllerOrOperator(address controller) {
         require(msg.sender == controller || isOperator[controller][msg.sender], NotControllerOrOperator());
@@ -95,6 +94,14 @@ abstract contract usdcVaultBase is ERC20, IERC165 {
 
     function _convertToAssetsUp(uint256 shares) internal view returns (uint256) {
         return shares.mulDivUp(_bookAssets() + 1, totalSupply() + 10 ** DECIMALS_OFFSET);
+    }
+
+    function _isOperator() internal view returns (bool) {
+        return msg.sender == CORE.curator() || msg.sender == CORE.allocator();
+    }
+
+    function _requireOperatorOrAfter(uint256 deadline) internal view {
+        require(_isOperator() || block.timestamp >= deadline, NotOperator());
     }
 
     function _bookAssets() internal view virtual returns (uint256);

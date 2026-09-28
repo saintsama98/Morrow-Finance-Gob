@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: BUSL-1.1
-// Morrow Finance: jrUSDC's ERC-7887 two-step exit cancel, allowed only while the request's batch is open.
+// Morrow Finance: jrUSDC's ERC-7887 two-step exit cancel: while the batch is open, or once a closed batch has sat
+// unfilled past the cancel timeout.
 // @author adiii.eth
 
 pragma solidity 0.8.34;
@@ -8,14 +9,13 @@ import {usdcJuniorRedeemClaims} from "./usdcJuniorRedeemClaims.sol";
 
 abstract contract usdcJuniorRedeemCancels is usdcJuniorRedeemClaims {
     function cancelRedeemRequest(uint256 requestId, address controller) external onlyControllerOrOperator(controller) {
-        require(!redeemEpochs[requestId].closed, EpochAlreadyClosed());
+        bool closed = redeemEpochs[requestId].closed;
+        require(!closed || block.timestamp >= redeemEpochClosedAt[requestId] + CANCEL_AFTER_CLOSE, EpochAlreadyClosed());
         require(pendingCancelShares[requestId][controller] == 0, PendingCancelation());
+        require(_redeemRemainingUnfulfilled(requestId, controller) > 0, NothingToCancel());
 
-        uint256 remaining = _redeemRemainingUnfulfilled(requestId, controller);
-        require(remaining > 0, NothingToCancel());
-
-        pendingCancelShares[requestId][controller] = remaining;
-        redeemEpochs[requestId].remainingFillable -= remaining;
+        pendingCancelShares[requestId][controller] = _detachRedeem(requestId, controller);
+        if (closed) _syncRedeemDemand(requestId);
         emit CancelRedeemRequest(controller, requestId, msg.sender);
     }
 
