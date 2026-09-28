@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-// Morrow Finance: srUSDC's exit batches: requests, batch close and liquidity-bounded fills at the lower price.
+// Morrow Finance: srUSDC's exit batches: requests, oldest-first fills at the lower price, and queued exit demand.
 // @author adiii.eth
 
 pragma solidity 0.8.34;
@@ -23,13 +23,24 @@ abstract contract usdcSeniorRedeemQueue is usdcSeniorDeposits {
     }
 
     uint256 public openEpochId = 1;
+    uint256 public nextEpochToFill = 1;
+    uint256 public queuedExitAssets;
     mapping(uint256 => RedeemEpoch) public epochs;
+    mapping(uint256 => uint256) public epochOpenedAt;
+    mapping(uint256 => uint256) public epochClosedAt;
+    mapping(uint256 => uint256) internal _epochDemand;
     mapping(uint256 => mapping(address => uint256)) public requestedShares;
+    mapping(uint256 => mapping(address => uint256)) public frozenShares;
+    mapping(uint256 => mapping(address => uint256)) public frozenAssets;
     mapping(uint256 => mapping(address => uint256)) public claimedShares;
     mapping(uint256 => mapping(address => uint256)) public claimedAssets;
     mapping(uint256 => mapping(address => uint256)) public pendingCancelShares;
     mapping(uint256 => mapping(address => uint256)) public claimedCancelShares;
     mapping(address controller => uint256 requestId) public activeRedeemRequestId;
+
+    constructor() {
+        epochOpenedAt[1] = block.timestamp;
+    }
 
     function requestRedeem(uint256 shares, address controller, address owner) external returns (uint256 requestId) {
         require(shares > 0, ZeroShares());
@@ -55,6 +66,10 @@ abstract contract usdcSeniorRedeemQueue is usdcSeniorDeposits {
         return _entitledSharesTotal(requestId, controller) - claimedShares[requestId][controller];
     }
 
+    function owedRedeemAssets(uint256 requestId, address controller) public view returns (uint256) {
+        return _owedAssetsTotal(requestId, controller);
+    }
+
     function maxRedeem(address controller) public view returns (uint256) {
         uint256 requestId = activeRedeemRequestId[controller];
         return requestId == 0 ? 0 : claimableRedeemRequest(requestId, controller);
@@ -73,19 +88,27 @@ abstract contract usdcSeniorRedeemQueue is usdcSeniorDeposits {
         revert AsyncPreviewUnsupported();
     }
 
-    function closeEpoch() external onlyOperator returns (uint256 epochId) {
+    function closeEpoch() external returns (uint256 epochId) {
         epochId = openEpochId;
+        _requireOperatorOrAfter(epochOpenedAt[epochId] + MAX_EPOCH_DURATION);
         RedeemEpoch storage e = epochs[epochId];
         require(!e.closed, EpochAlreadyClosed());
         e.closed = true;
         e.ppsCloseWad = pricePerShareWad();
+        epochClosedAt[epochId] = block.timestamp;
         openEpochId = epochId + 1;
+        epochOpenedAt[epochId + 1] = block.timestamp;
+        _syncDemand(epochId);
         emit EpochClosed(epochId, e.ppsCloseWad);
     }
 
-    function fulfill(uint256 epochId, uint256 assetsToUse) external onlyOperator {
+    function fulfill(uint256 epochId, uint256 assetsToUse) external {
         RedeemEpoch storage e = epochs[epochId];
         require(e.closed, EpochNotClosed());
+        _requireOperatorOrAfter(epochClosedAt[epochId] + FILL_GRACE);
+        uint256 oldest = _advanceFillPointer();
+        if (epochId < oldest) return;
+        require(epochId == oldest, NotOldestBatch(oldest));
 
         uint256 available = CORE.idleAvailable(true);
         uint256 liquid = CORE.parkingLiquidity();
@@ -97,36 +120,71 @@ abstract contract usdcSeniorRedeemQueue is usdcSeniorDeposits {
         if (sharesNow == 0) return;
         uint256 assetsNow = epochMath.assetsForShares(sharesNow, priceWad);
 
-        CORE.reserveFor(true, assetsNow);
-        _burn(address(this), sharesNow);
-
         e.remainingFillable -= sharesNow;
         e.sharesFulfilled += sharesNow;
         e.assetsFulfilled += assetsNow;
+        _syncDemand(epochId);
+        _advanceFillPointer();
+
+        CORE.reserveFor(true, assetsNow);
+        _burn(address(this), sharesNow);
         emit RedeemFulfilled(epochId, sharesNow, assetsNow, priceWad);
     }
 
-    function _entitledSharesTotal(uint256 requestId, address controller) internal view returns (uint256) {
+    function _advanceFillPointer() internal returns (uint256 pointer) {
+        pointer = nextEpochToFill;
+        while (pointer < openEpochId && epochs[pointer].remainingFillable == 0) {
+            pointer++;
+        }
+        nextEpochToFill = pointer;
+    }
+
+    function _syncDemand(uint256 epochId) internal {
+        RedeemEpoch storage e = epochs[epochId];
+        uint256 demand = e.closed ? e.remainingFillable.mulDivUp(e.ppsCloseWad, WAD) : 0;
+        queuedExitAssets = queuedExitAssets - _epochDemand[epochId] + demand;
+        _epochDemand[epochId] = demand;
+    }
+
+    function _detach(uint256 requestId, address controller) internal returns (uint256 unfilled) {
+        RedeemEpoch storage e = epochs[requestId];
+        uint256 requested = requestedShares[requestId][controller];
+        uint256 liveShares = requested.mulDivDown(e.sharesFulfilled, e.totalSharesRequested);
+        uint256 liveAssets = requested.mulDivDown(e.assetsFulfilled, e.totalSharesRequested);
+        unfilled = requested - liveShares;
+
+        frozenShares[requestId][controller] += liveShares;
+        frozenAssets[requestId][controller] += liveAssets;
+        requestedShares[requestId][controller] = 0;
+
+        e.totalSharesRequested -= requested;
+        e.sharesFulfilled -= liveShares;
+        e.assetsFulfilled -= liveAssets;
+        e.remainingFillable -= unfilled;
+    }
+
+    function _liveEntitledShares(uint256 requestId, address controller) internal view returns (uint256) {
         RedeemEpoch storage e = epochs[requestId];
         if (e.totalSharesRequested == 0) return 0;
         return requestedShares[requestId][controller].mulDivDown(e.sharesFulfilled, e.totalSharesRequested);
     }
 
+    function _entitledSharesTotal(uint256 requestId, address controller) internal view returns (uint256) {
+        return frozenShares[requestId][controller] + _liveEntitledShares(requestId, controller);
+    }
+
     function _owedAssetsTotal(uint256 requestId, address controller) internal view returns (uint256) {
         RedeemEpoch storage e = epochs[requestId];
-        return epochMath.claimableAssets(
-            requestedShares[requestId][controller],
-            e.assetsFulfilled,
-            e.totalSharesRequested,
-            claimedAssets[requestId][controller]
-        );
+        uint256 live = e.totalSharesRequested == 0
+            ? 0
+            : requestedShares[requestId][controller].mulDivDown(e.assetsFulfilled, e.totalSharesRequested);
+        uint256 entitled = frozenAssets[requestId][controller] + live;
+        uint256 claimed = claimedAssets[requestId][controller];
+        return entitled > claimed ? entitled - claimed : 0;
     }
 
     function _remainingUnfulfilled(uint256 requestId, address controller) internal view returns (uint256) {
-        uint256 requested = requestedShares[requestId][controller];
-        uint256 entitled = _entitledSharesTotal(requestId, controller);
-        uint256 canceled = pendingCancelShares[requestId][controller] + claimedCancelShares[requestId][controller];
-        return requested - entitled - canceled;
+        return requestedShares[requestId][controller] - _liveEntitledShares(requestId, controller);
     }
 
     function _clearIfFullyResolved(uint256 requestId, address controller) internal {
