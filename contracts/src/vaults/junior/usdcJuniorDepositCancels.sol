@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: BUSL-1.1
-// Morrow Finance: jrUSDC's ERC-7887 two-step entry cancel: queued USDC is refunded untouched by the core.
+// Morrow Finance: jrUSDC's ERC-7887 two-step entry cancel: while the batch is open, or once a closed batch has sat
+// unfilled past the cancel timeout; queued USDC is refunded untouched by the core.
 // @author adiii.eth
 
 pragma solidity 0.8.34;
@@ -13,14 +14,14 @@ abstract contract usdcJuniorDepositCancels is usdcJuniorDepositClaims {
     );
 
     function cancelDepositRequest(uint256 requestId, address controller) external onlyControllerOrOperator(controller) {
-        require(!depositEpochs[requestId].closed, EpochAlreadyClosed());
+        require(
+            !depositEpochs[requestId].closed || block.timestamp >= depositEpochClosedAt[requestId] + CANCEL_AFTER_CLOSE,
+            EpochAlreadyClosed()
+        );
         require(pendingCancelAssets[requestId][controller] == 0, PendingCancelation());
+        require(_depositRemainingUnfulfilled(requestId, controller) > 0, NothingToCancel());
 
-        uint256 remaining = _depositRemainingUnfulfilled(requestId, controller);
-        require(remaining > 0, NothingToCancel());
-
-        pendingCancelAssets[requestId][controller] = remaining;
-        depositEpochs[requestId].remainingFillable -= remaining;
+        pendingCancelAssets[requestId][controller] = _detachDeposit(requestId, controller);
         emit CancelDepositRequest(controller, requestId, msg.sender);
     }
 
