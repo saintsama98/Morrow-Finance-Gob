@@ -72,6 +72,12 @@ contract SeriesRegistry is Test {
     mapping(address => uint8) public ghost_lastState;
     mapping(address => bool) public ghost_seenState;
 
+    mapping(address => uint256) public ghost_lastProceeds;
+
+    function setGhostProceeds(address series, uint256 proceeds) external {
+        ghost_lastProceeds[series] = proceeds;
+    }
+
     function setGhostSnapshot(address series, uint256 credit, uint8 stateNow) external {
         ghost_lastCredit[series] = credit;
         ghost_lastState[series] = stateNow;

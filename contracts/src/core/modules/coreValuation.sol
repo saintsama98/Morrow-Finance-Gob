@@ -7,6 +7,7 @@ pragma solidity 0.8.34;
 import {coreParkingBooks} from "./coreParkingBooks.sol";
 import {creditSeries} from "../../series/creditSeries.sol";
 import {SeriesState} from "../../interfaces/iSeries.sol";
+import {iExitQueue} from "../../interfaces/iExitQueue.sol";
 import {wadMath} from "../../libraries/wadMath.sol";
 
 abstract contract coreValuation is coreParkingBooks {
@@ -66,6 +67,17 @@ abstract contract coreValuation is coreParkingBooks {
         uint256 floor = bookAssets.mulDivDown(floorWad, WAD);
         uint256 idleNow = idle(isSenior);
         return idleNow > floor ? idleNow - floor : 0;
+    }
+
+    function queuedExits(bool isSenior) public view returns (uint256) {
+        address vault = isSenior ? seniorVault : juniorVault;
+        return vault == address(0) ? 0 : iExitQueue(vault).queuedExitAssets();
+    }
+
+    function idleDeployable(bool isSenior) public view returns (uint256) {
+        uint256 available = idleAvailable(isSenior);
+        uint256 queued = queuedExits(isSenior);
+        return available > queued ? available - queued : 0;
     }
 
     function stressGateOpen() public view returns (bool) {

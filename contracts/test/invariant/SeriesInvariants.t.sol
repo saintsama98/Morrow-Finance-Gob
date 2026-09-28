@@ -4,7 +4,7 @@
 
 pragma solidity 0.8.34;
 
-import {Test} from "forge-std/Test.sol";
+import {Test, Vm} from "forge-std/Test.sol";
 
 import {SeriesRegistry} from "./handlers/SeriesRegistry.sol";
 import {AllocatorHandler} from "./handlers/AllocatorHandler.sol";
@@ -150,6 +150,85 @@ contract SeriesInvariantsTest is Test {
             assertEq(navJ, navJSynced, "navsSynced must match navs (sync only affects midnight's own storage)");
             assertEq(fee, feeSynced, "navsSynced must match navs (sync only affects midnight's own storage)");
         }
+    }
+
+    function invariant_syncMatchesProtocolAndBuffer() public {
+        bytes32 bufferTopic = keccak256("BufferUpdated(uint256,uint256,uint256,int256,uint256)");
+        uint256 count = registry.activeSeriesCount();
+        for (uint256 k = 0; k < count; k++) {
+            address seriesAddr = registry.activeSeries(k);
+            creditSeries series = creditSeries(seriesAddr);
+            bytes32 marketId = _marketIdOf(seriesAddr);
+
+            vm.recordLogs();
+            series.sync(0);
+            Vm.Log[] memory logs = vm.getRecordedLogs();
+
+            (uint128 viewCredit, uint128 viewPendingFee,) = registry.midnight()
+                .updatePositionView(registry.marketFor(_maturityOf(seriesAddr)), marketId, seriesAddr);
+            assertEq(
+                registry.midnight().credit(marketId, seriesAddr),
+                viewCredit,
+                "after sync the protocol's stored credit must equal the live credit"
+            );
+
+            uint256 faceNet = uint256(viewCredit) - uint256(viewPendingFee) + series.collected(0);
+            int256 expectedBuffer = int256(faceNet) - int256(series.seniorClaim());
+            bool seen;
+            for (uint256 j = 0; j < logs.length; j++) {
+                if (logs[j].emitter != seriesAddr || logs[j].topics[0] != bufferTopic) continue;
+                (uint256 credit, uint256 faceNetAtT, int256 buffer,) =
+                    abi.decode(logs[j].data, (uint256, uint256, int256, uint256));
+                assertEq(credit, viewCredit, "reported credit must equal the protocol credit");
+                assertEq(faceNetAtT, faceNet, "reported face must equal credit - pendingFee + collected");
+                assertEq(buffer, expectedBuffer, "reported buffer must equal face minus the senior claim");
+                seen = true;
+            }
+            assertTrue(seen, "sync must report the buffer");
+        }
+    }
+
+    function invariant_waterfallConservesAndIsSeniorFirst() public view {
+        uint256 count = registry.activeSeriesCount();
+        for (uint256 k = 0; k < count; k++) {
+            address seriesAddr = registry.activeSeries(k);
+            creditSeries series = creditSeries(seriesAddr);
+            if (uint8(series.state()) != uint8(SeriesState.SETTLED)) continue;
+
+            uint256 proceeds = _proceedsOf(series);
+            assertEq(
+                series.paidS() + series.paidJ() + series.feeAccounted(),
+                proceeds,
+                "senior + junior + fee must equal cumulative proceeds after every waterfall run"
+            );
+            if (!series.passThrough()) {
+                uint256 claim = series.seniorClaim();
+                assertEq(
+                    series.paidS(),
+                    proceeds < claim ? proceeds : claim,
+                    "cumulative senior payout must equal min(senior claim, proceeds)"
+                );
+            }
+        }
+    }
+
+    function invariant_proceedsNeverDecrease() public {
+        uint256 count = registry.activeSeriesCount();
+        for (uint256 k = 0; k < count; k++) {
+            address seriesAddr = registry.activeSeries(k);
+            creditSeries series = creditSeries(seriesAddr);
+            uint8 st = uint8(series.state());
+            if (st == uint8(SeriesState.DEPLOYING) || st == uint8(SeriesState.CANCELED)) continue;
+
+            uint256 proceeds = _proceedsOf(series);
+            assertGe(proceeds, registry.ghost_lastProceeds(seriesAddr), "cumulative proceeds must never decrease");
+            registry.setGhostProceeds(seriesAddr, proceeds);
+        }
+    }
+
+    function _proceedsOf(creditSeries series) internal view returns (uint256) {
+        return registry.usdc().balanceOf(address(series)) + registry.parking().totalAssets(address(series))
+            + series.paidS() + series.paidJ() + series.feeClaimed();
     }
 
     function afterInvariant() public view {

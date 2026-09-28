@@ -30,8 +30,8 @@ abstract contract coreSeriesLifecycle is coreVaultFlows {
         uint256 aWad = J.mulDivDown(WAD, kAlloc);
         require(policy.covWad <= aWad && aWad <= policy.aMaxWad, CoverageBand(aWad));
 
-        uint256 seniorAvail = idleAvailable(true);
-        uint256 juniorAvail = idleAvailable(false);
+        uint256 seniorAvail = idleDeployable(true);
+        uint256 juniorAvail = idleDeployable(false);
         require(S <= seniorAvail, IdleInsufficient(true, S, seniorAvail));
         require(J <= juniorAvail, IdleInsufficient(false, J, juniorAvail));
 
