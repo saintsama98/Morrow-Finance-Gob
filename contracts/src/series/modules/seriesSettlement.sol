@@ -56,9 +56,9 @@ abstract contract seriesSettlement is seriesFunding {
         for (uint256 i = 0; i < length; i++) {
             require(resolved[i], NotResolved(i));
         }
-        _rerunWaterfall();
         state = SeriesState.SETTLED;
         tSettled = block.timestamp;
+        _rerunWaterfall();
         emit Settled(_proceeds());
     }
 
@@ -68,9 +68,9 @@ abstract contract seriesSettlement is seriesFunding {
         for (uint256 i = 0; i < length; i++) {
             if (!resolved[i]) writtenOff[i] = true;
         }
-        _rerunWaterfall();
         state = SeriesState.SETTLED;
         tSettled = block.timestamp;
+        _rerunWaterfall();
         emit WrittenOff(_proceeds());
     }
 

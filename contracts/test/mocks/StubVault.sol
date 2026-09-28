@@ -22,6 +22,10 @@ contract StubVault {
         isSenior = isSenior_;
     }
 
+    function queuedExitAssets() external pure returns (uint256) {
+        return 0;
+    }
+
     function deposit(uint256 assets) external {
         require(IERC20Mintable(usdc).transfer(address(core), assets), "transfer failed");
         core.depositFor(isSenior, assets);
