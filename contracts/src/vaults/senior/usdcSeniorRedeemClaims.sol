@@ -59,7 +59,7 @@ abstract contract usdcSeniorRedeemClaims is usdcSeniorRedeemQueue {
 
         uint256 owedAssetsTotal = _owedAssetsTotal(requestId, controller);
         assets = shares == claimable ? owedAssetsTotal : owedAssetsTotal.mulDivDown(shares, claimable);
-        require(assets > 0, NothingToClaim());
+        require(assets > 0 || shares == claimable, NothingToClaim());
 
         claimedShares[requestId][controller] += shares;
         claimedAssets[requestId][controller] += assets;

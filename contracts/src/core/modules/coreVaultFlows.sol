@@ -38,7 +38,10 @@ abstract contract coreVaultFlows is coreGovernance {
             _removeFromBooks(0, assets);
             junior.reservedAssets += assets;
         }
+        uint256 balBefore = iErc20Like(USDC).balanceOf(address(this));
         PARKING.withdraw(assets, address(this));
+        uint256 received = iErc20Like(USDC).balanceOf(address(this)) - balBefore;
+        require(received == assets, ParkingShortPaid(assets, received));
     }
 
     function payFrom(bool isSenior, address to, uint256 assets) external {

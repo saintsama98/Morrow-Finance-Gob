@@ -45,6 +45,7 @@ abstract contract usdcSeniorRedeemQueue is usdcSeniorDeposits {
     function requestRedeem(uint256 shares, address controller, address owner) external returns (uint256 requestId) {
         require(shares > 0, ZeroShares());
         require(activeRedeemRequestId[controller] == 0, RequestAlreadyActive());
+        require(msg.sender == controller || isOperator[controller][msg.sender], NotControllerOrOperator());
         if (msg.sender != owner && !isOperator[owner][msg.sender]) {
             _spendAllowance(owner, msg.sender, shares);
         }
