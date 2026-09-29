@@ -59,7 +59,7 @@ abstract contract usdcJuniorDepositClaims is usdcJuniorDepositQueue {
 
         uint256 owedSharesTotal = _depositOwedSharesTotal(requestId, controller);
         shares = assets == claimable ? owedSharesTotal : owedSharesTotal.mulDivDown(assets, claimable);
-        require(shares > 0, NothingToClaim());
+        require(shares > 0 || assets == claimable, NothingToClaim());
 
         claimedAssetsOnDeposit[requestId][controller] += assets;
         claimedShares[requestId][controller] += shares;
