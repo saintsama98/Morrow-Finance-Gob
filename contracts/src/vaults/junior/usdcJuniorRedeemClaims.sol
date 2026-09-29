@@ -59,7 +59,7 @@ abstract contract usdcJuniorRedeemClaims is usdcJuniorRedeemQueue {
 
         uint256 owedAssetsTotal = _redeemOwedAssetsTotal(requestId, controller);
         assets = shares == claimable ? owedAssetsTotal : owedAssetsTotal.mulDivDown(shares, claimable);
-        require(assets > 0, NothingToClaim());
+        require(assets > 0 || shares == claimable, NothingToClaim());
 
         claimedSharesOnRedeem[requestId][controller] += shares;
         claimedAssets[requestId][controller] += assets;
