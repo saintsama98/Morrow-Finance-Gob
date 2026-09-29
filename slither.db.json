@@ -1,0 +1,1810 @@
+[
+ {
+  "id": "333aabf865f99963bb2505f2e0bd995d57ac99f36b8be0d620ac5d6051486232",
+  "check": "arbitrary-send-erc20",
+  "impact": "High",
+  "confidence": "High",
+  "description": "usdcJuniorDepositQueue.requestDeposit(uint256,address,address) (contracts/src/vaults/junior/usdcJuniorDepositQueue.sol#65-80) uses arbitrary from in transferFrom: require(bool,string)(iErc20Like(USDC).transferFrom(owner,address(CORE),assets),transfer failed) (contracts/src/vaults/junior/usdcJuniorDepositQueue.sol#73)\n",
+  "triage": "tooling limitation: owner and controller authorisation enforced (F-02)"
+ },
+ {
+  "id": "6e93e58a627385f706bdf5a3f7e26ea551014791a018d5b205092f8036befc49",
+  "check": "incorrect-exp",
+  "impact": "High",
+  "confidence": "Medium",
+  "description": "wadMath.mulDivDown(uint256,uint256,uint256) (contracts/src/libraries/wadMath.sol#13-58) has bitwise-xor operator ^ instead of the exponentiation operator **: \n\t - inv = (3 * d) ^ 2 (contracts/src/libraries/wadMath.sol#48)\n",
+  "triage": "tooling limitation: intended XOR Newton seed in mulDiv"
+ },
+ {
+  "id": "2690e78531d18dc5695d88794d4deb7a5d81e1339947ac3efef4918ec3b51de0",
+  "check": "reentrancy-balance",
+  "impact": "High",
+  "confidence": "Medium",
+  "description": "Reentrancy in seriesSettlement.collect(uint256) (contracts/src/series/modules/seriesSettlement.sol#22-52):\n\tExternal call allowing reentrancy:\n\t- MIDNIGHT.withdraw(m,units,address(this),address(this)) (contracts/src/series/modules/seriesSettlement.sol#38)\n\tBalance read before the call:\n\t- balBefore = iErc20Like(USDC).balanceOf(address(this)) (contracts/src/series/modules/seriesSettlement.sol#37)\n\tPossible stale balance used after the call in a condition:\n\t- require(bool,error)(received == units,revert TransferMismatch()()) (contracts/src/series/modules/seriesSettlement.sol#40)\n\t\t- stale variable `received`\n",
+  "triage": "confirmed property: balance delta brackets a call with no path back into the contract"
+ },
+ {
+  "id": "5b61eb32db83f90db0ab139e14e940773d4c58216f23b00a6482ab2a73352cad",
+  "check": "reentrancy-balance",
+  "impact": "High",
+  "confidence": "Medium",
+  "description": "Reentrancy in coreVaultFlows.reserveFor(bool,uint256) (contracts/src/core/modules/coreVaultFlows.sol#30-45):\n\tExternal call allowing reentrancy:\n\t- PARKING.withdraw(assets,address(this)) (contracts/src/core/modules/coreVaultFlows.sol#42)\n\tBalance read before the call:\n\t- balBefore = iErc20Like(USDC).balanceOf(address(this)) (contracts/src/core/modules/coreVaultFlows.sol#41)\n\tPossible stale balance used after the call in a condition:\n\t- require(bool,error)(received == assets,revert ParkingShortPaid(uint256,uint256)(assets,received)) (contracts/src/core/modules/coreVaultFlows.sol#44)\n\t\t- stale variable `received`\n",
+  "triage": "confirmed property: balance delta brackets a call with no path back into the contract"
+ },
+ {
+  "id": "13a4463db74797e5dc0da2f7b584073c20dd75f5bb71246884042662f82e87c1",
+  "check": "divide-before-multiply",
+  "impact": "Medium",
+  "confidence": "Medium",
+  "description": "wadMath.mulDivDown(uint256,uint256,uint256) (contracts/src/libraries/wadMath.sol#13-58) performs a multiplication on the result of a division:\n\t- d = d / twos (contracts/src/libraries/wadMath.sol#42)\n\t- inv = (3 * d) ^ 2 (contracts/src/libraries/wadMath.sol#48)\n",
+  "triage": "tooling limitation: full-precision mulDiv inverse"
+ },
+ {
+  "id": "2894777afda1c29ee76d47d5f49572bc40dc7ea61d55442234726a590975f4d6",
+  "check": "divide-before-multiply",
+  "impact": "Medium",
+  "confidence": "Medium",
+  "description": "wadMath.mulDivDown(uint256,uint256,uint256) (contracts/src/libraries/wadMath.sol#13-58) performs a multiplication on the result of a division:\n\t- d = d / twos (contracts/src/libraries/wadMath.sol#42)\n\t- inv *= 2 - d * inv (contracts/src/libraries/wadMath.sol#50)\n",
+  "triage": "tooling limitation: full-precision mulDiv inverse"
+ },
+ {
+  "id": "52349526383911e7bba7bef11536bfdabff7ba74c437930eb23b5bba0709ca49",
+  "check": "divide-before-multiply",
+  "impact": "Medium",
+  "confidence": "Medium",
+  "description": "wadMath.mulDivDown(uint256,uint256,uint256) (contracts/src/libraries/wadMath.sol#13-58) performs a multiplication on the result of a division:\n\t- d = d / twos (contracts/src/libraries/wadMath.sol#42)\n\t- inv *= 2 - d * inv (contracts/src/libraries/wadMath.sol#52)\n",
+  "triage": "tooling limitation: full-precision mulDiv inverse"
+ },
+ {
+  "id": "5a2665347b40790525b3e00d046a5695ad334c720b6ca1a2622dd2ad64eca46c",
+  "check": "divide-before-multiply",
+  "impact": "Medium",
+  "confidence": "Medium",
+  "description": "wadMath.mulDivDown(uint256,uint256,uint256) (contracts/src/libraries/wadMath.sol#13-58) performs a multiplication on the result of a division:\n\t- d = d / twos (contracts/src/libraries/wadMath.sol#42)\n\t- inv *= 2 - d * inv (contracts/src/libraries/wadMath.sol#51)\n",
+  "triage": "tooling limitation: full-precision mulDiv inverse"
+ },
+ {
+  "id": "5bcb3f840426c2bce0824567be042c393c5f33ec88982d9019299507dfc6d278",
+  "check": "divide-before-multiply",
+  "impact": "Medium",
+  "confidence": "Medium",
+  "description": "wadMath.mulDivDown(uint256,uint256,uint256) (contracts/src/libraries/wadMath.sol#13-58) performs a multiplication on the result of a division:\n\t- d = d / twos (contracts/src/libraries/wadMath.sol#42)\n\t- inv *= 2 - d * inv (contracts/src/libraries/wadMath.sol#49)\n",
+  "triage": "tooling limitation: full-precision mulDiv inverse"
+ },
+ {
+  "id": "6eb06a02f68a0e4aa34168cea3ead68d51375dd566fd8115fab689d4e94dfc26",
+  "check": "divide-before-multiply",
+  "impact": "Medium",
+  "confidence": "Medium",
+  "description": "wadMath.mulDivDown(uint256,uint256,uint256) (contracts/src/libraries/wadMath.sol#13-58) performs a multiplication on the result of a division:\n\t- d = d / twos (contracts/src/libraries/wadMath.sol#42)\n\t- inv *= 2 - d * inv (contracts/src/libraries/wadMath.sol#53)\n",
+  "triage": "tooling limitation: full-precision mulDiv inverse"
+ },
+ {
+  "id": "ccb05018dbc71f91ffb4d61f8fec200b2c20e5648a56daaef0d3b8c91212e905",
+  "check": "divide-before-multiply",
+  "impact": "Medium",
+  "confidence": "Medium",
+  "description": "wadMath.mulDivDown(uint256,uint256,uint256) (contracts/src/libraries/wadMath.sol#13-58) performs a multiplication on the result of a division:\n\t- d = d / twos (contracts/src/libraries/wadMath.sol#42)\n\t- inv *= 2 - d * inv (contracts/src/libraries/wadMath.sol#54)\n",
+  "triage": "tooling limitation: full-precision mulDiv inverse"
+ },
+ {
+  "id": "faced89654e77962c77a7f8f17ab2962fdf3f56cbc7f9bb6fbea46e60ce651f9",
+  "check": "divide-before-multiply",
+  "impact": "Medium",
+  "confidence": "Medium",
+  "description": "wadMath.mulDivDown(uint256,uint256,uint256) (contracts/src/libraries/wadMath.sol#13-58) performs a multiplication on the result of a division:\n\t- prod0 = prod0 / twos (contracts/src/libraries/wadMath.sol#43)\n\t- result = prod0 * inv (contracts/src/libraries/wadMath.sol#56)\n",
+  "triage": "tooling limitation: full-precision mulDiv inverse"
+ },
+ {
+  "id": "4338616c089fd0a6e58cc7442aed5ee78598a988ba4fcec689c378d3ade45a2f",
+  "check": "incorrect-equality",
+  "impact": "Medium",
+  "confidence": "High",
+  "description": "morphoParking._pull(uint256) (contracts/src/parking/morphoParking.sol#140-145) uses a dangerous strict equality:\n\t- amount == 0 (contracts/src/parking/morphoParking.sol#143)\n",
+  "triage": "tooling limitation or deliberate strict check, see triage doc"
+ },
+ {
+  "id": "5bac46edb469ed5f72e72c6da9f231a2239d8df33e7c115c6dea8bc97e331577",
+  "check": "incorrect-equality",
+  "impact": "Medium",
+  "confidence": "High",
+  "description": "seriesSettlement.collect(uint256) (contracts/src/series/modules/seriesSettlement.sol#22-52) uses a dangerous strict equality:\n\t- require(bool,error)(received == units,revert TransferMismatch()()) (contracts/src/series/modules/seriesSettlement.sol#40)\n",
+  "triage": "tooling limitation or deliberate strict check, see triage doc"
+ },
+ {
+  "id": "903e96b6ecb534c041a697c1e095fc08f48a5da6973dc61d5fba5a2a06f7f546",
+  "check": "incorrect-equality",
+  "impact": "Medium",
+  "confidence": "High",
+  "description": "coreSeriesLifecycle._requireParamsBound(SeriesParams) (contracts/src/core/modules/coreSeriesLifecycle.sol#121-136) uses a dangerous strict equality:\n\t- require(bool,error)(p.covWad == policy.covWad && p.pi0Wad == policy.pi0Wad && p.piTWad == policy.piTWad && p.pi1Wad == policy.pi1Wad && p.thetaWad == policy.thetaWad,revert PolicyMismatch()()) (contracts/src/core/modules/coreSeriesLifecycle.sol#125-129)\n",
+  "triage": "tooling limitation or deliberate strict check, see triage doc"
+ },
+ {
+  "id": "9282da10fe914c669b0b61aa18a209f7d7bcbf9f9f8785dc1bf5a422c7de2129",
+  "check": "incorrect-equality",
+  "impact": "Medium",
+  "confidence": "High",
+  "description": "seriesFunding._sweepRaw() (contracts/src/series/modules/seriesFunding.sol#145-150) uses a dangerous strict equality:\n\t- raw == 0 (contracts/src/series/modules/seriesFunding.sol#147)\n",
+  "triage": "tooling limitation or deliberate strict check, see triage doc"
+ },
+ {
+  "id": "9c6086885724e30419561559f720d94ae2cc8beb0323ec0ac7238b618228cb39",
+  "check": "incorrect-equality",
+  "impact": "Medium",
+  "confidence": "High",
+  "description": "coreVaultFlows.reserveFor(bool,uint256) (contracts/src/core/modules/coreVaultFlows.sol#30-45) uses a dangerous strict equality:\n\t- require(bool,error)(received == assets,revert ParkingShortPaid(uint256,uint256)(assets,received)) (contracts/src/core/modules/coreVaultFlows.sol#44)\n",
+  "triage": "tooling limitation or deliberate strict check, see triage doc"
+ },
+ {
+  "id": "b642d2f4e73e779bc2097ee32eb1f662411658f2ef9e88b48d45f0ed1c3a6072",
+  "check": "incorrect-equality",
+  "impact": "Medium",
+  "confidence": "High",
+  "description": "morphoParking._supply(uint256) (contracts/src/parking/morphoParking.sol#132-138) uses a dangerous strict equality:\n\t- amount == 0 (contracts/src/parking/morphoParking.sol#135)\n",
+  "triage": "tooling limitation or deliberate strict check, see triage doc"
+ },
+ {
+  "id": "5f880b40c531b1b5d910c892b86585a84cd282d6cba609ae79e66d030d725503",
+  "check": "reentrancy-no-eth",
+  "impact": "Medium",
+  "confidence": "Medium",
+  "description": "Reentrancy in coreSeriesLifecycle.openSeries(SeriesParams,uint256,uint256) (contracts/src/core/modules/coreSeriesLifecycle.sol#17-53):\n\tExternal calls:\n\t- seriesAddr = FACTORY.createSeries(p) (contracts/src/core/modules/coreSeriesLifecycle.sol#43)\n\t- PARKING.transferPosition(seriesAddr,kAlloc) (contracts/src/core/modules/coreSeriesLifecycle.sol#46)\n\t- creditSeries(seriesAddr).initialize(S,J) (contracts/src/core/modules/coreSeriesLifecycle.sol#47)\n\tState variables written after the call(s):\n\t- info[seriesAddr] = SeriesInfo({seniorAllocated:S,juniorAllocated:J,maturity:T,registered:true}) (contracts/src/core/modules/coreSeriesLifecycle.sol#50)\n\tcoreStorage.info (contracts/src/core/modules/coreStorage.sol#119) can be used in cross function reentrancies:\n\t- coreSeriesLifecycle._maturityWindowExposure(uint256) (contracts/src/core/modules/coreSeriesLifecycle.sol#143-150)\n\t- coreStorage.info (contracts/src/core/modules/coreStorage.sol#119)\n\t- coreStorage.onlyRegisteredSeries() (contracts/src/core/modules/coreStorage.sol#136-139)\n\t- coreSeriesLifecycle.openSeries(SeriesParams,uint256,uint256) (contracts/src/core/modules/coreSeriesLifecycle.sol#17-53)\n\t- liveSeries.push(seriesAddr) (contracts/src/core/modules/coreSeriesLifecycle.sol#49)\n\tcoreStorage.liveSeries (contracts/src/core/modules/coreStorage.sol#117) can be used in cross function reentrancies:\n\t- coreSeriesLifecycle._maturityWindowExposure(uint256) (contracts/src/core/modules/coreSeriesLifecycle.sol#143-150)\n\t- coreSeriesLifecycle._removeLive(address) (contracts/src/core/modules/coreSeriesLifecycle.sol#178-187)\n\t- coreValuation.juniorAssets() (contracts/src/core/modules/coreValuation.sol#33-40)\n\t- coreValuation.juniorAssetsSynced() (contracts/src/core/modules/coreValuation.sol#51-58)\n\t- coreStorage.liveSeries (contracts/src/core/modules/coreStorage.sol#117)\n\t- coreValuation.liveSeriesCount() (contracts/src/core/modules/coreValuation.sol#16-18)\n\t- coreSeriesLifecycle.openSeries(SeriesParams,uint256,uint256) (contracts/src/core/modules/coreSeriesLifecycle.sol#17-53)\n\t- coreSeriesLifecycle.pruneSeries() (contracts/src/core/modules/coreSeriesLifecycle.sol#92-119)\n\t- coreValuation.seniorAssets() (contracts/src/core/modules/coreValuation.sol#24-31)\n\t- coreValuation.seniorAssetsSynced() (contracts/src/core/modules/coreValuation.sol#42-49)\n\t- coreValuation.stressGateOpen() (contracts/src/core/modules/coreValuation.sol#83-100)\n\t- coreSeriesLifecycle.syncAll() (contracts/src/core/modules/coreSeriesLifecycle.sol#84-90)\n",
+  "triage": "confirmed property: nonReentrant, trusted callees, exploit tests"
+ },
+ {
+  "id": "8108444d858f17a7edd1328913f0c6cfee7b8b7c76ed4c5421d5ff49c40ccb44",
+  "check": "reentrancy-no-eth",
+  "impact": "Medium",
+  "confidence": "Medium",
+  "description": "Reentrancy in coreSeriesLifecycle.openSeries(SeriesParams,uint256,uint256) (contracts/src/core/modules/coreSeriesLifecycle.sol#17-53):\n\tExternal calls:\n\t- seriesAddr = FACTORY.createSeries(p) (contracts/src/core/modules/coreSeriesLifecycle.sol#43)\n\tState variables written after the call(s):\n\t- _removeFromBooks(S,J) (contracts/src/core/modules/coreSeriesLifecycle.sol#45)\n\t\t- junior.parkingClaims -= claimsJunior (contracts/src/core/modules/coreParkingBooks.sol#54)\n\tcoreStorage.junior (contracts/src/core/modules/coreStorage.sol#114) can be used in cross function reentrancies:\n\t- coreParkingBooks._addToBook(bool,uint256,uint256) (contracts/src/core/modules/coreParkingBooks.sol#34-39)\n\t- coreSeriesLifecycle._applyBackstop(address) (contracts/src/core/modules/coreSeriesLifecycle.sol#152-176)\n\t- coreParkingBooks._creditBooks(uint256,uint256) (contracts/src/core/modules/coreParkingBooks.sol#66-76)\n\t- coreParkingBooks._removeFromBooks(uint256,uint256) (contracts/src/core/modules/coreParkingBooks.sol#41-56)\n\t- coreVaultFlows.addPendingJunior(uint256) (contracts/src/core/modules/coreVaultFlows.sol#16-18)\n\t- coreParkingBooks.idle(bool) (contracts/src/core/modules/coreParkingBooks.sol#14-16)\n\t- coreVaultFlows.investPendingJunior(uint256) (contracts/src/core/modules/coreVaultFlows.sol#25-28)\n\t- coreStorage.junior (contracts/src/core/modules/coreStorage.sol#114)\n\t- coreVaultFlows.payFrom(bool,address,uint256) (contracts/src/core/modules/coreVaultFlows.sol#47-52)\n\t- coreVaultFlows.removePendingJunior(uint256,address) (contracts/src/core/modules/coreVaultFlows.sol#20-23)\n\t- coreVaultFlows.reserveFor(bool,uint256) (contracts/src/core/modules/coreVaultFlows.sol#30-45)\n\t- _removeFromBooks(S,J) (contracts/src/core/modules/coreSeriesLifecycle.sol#45)\n\t\t- senior.parkingClaims -= claimsSenior (contracts/src/core/modules/coreParkingBooks.sol#53)\n\tcoreStorage.senior (contracts/src/core/modules/coreStorage.sol#113) can be used in cross function reentrancies:\n\t- coreParkingBooks._addToBook(bool,uint256,uint256) (contracts/src/core/modules/coreParkingBooks.sol#34-39)\n\t- coreSeriesLifecycle._applyBackstop(address) (contracts/src/core/modules/coreSeriesLifecycle.sol#152-176)\n\t- coreParkingBooks._creditBooks(uint256,uint256) (contracts/src/core/modules/coreParkingBooks.sol#66-76)\n\t- coreParkingBooks._removeFromBooks(uint256,uint256) (contracts/src/core/modules/coreParkingBooks.sol#41-56)\n\t- coreParkingBooks.idle(bool) (contracts/src/core/modules/coreParkingBooks.sol#14-16)\n\t- coreVaultFlows.payFrom(bool,address,uint256) (contracts/src/core/modules/coreVaultFlows.sol#47-52)\n\t- coreVaultFlows.reserveFor(bool,uint256) (contracts/src/core/modules/coreVaultFlows.sol#30-45)\n\t- coreStorage.senior (contracts/src/core/modules/coreStorage.sol#113)\n\t- _removeFromBooks(S,J) (contracts/src/core/modules/coreSeriesLifecycle.sol#45)\n\t\t- totalParkingClaims -= claimsSenior + claimsJunior (contracts/src/core/modules/coreParkingBooks.sol#55)\n\tcoreStorage.totalParkingClaims (contracts/src/core/modules/coreStorage.sol#115) can be used in cross function reentrancies:\n\t- coreParkingBooks._addToBook(bool,uint256,uint256) (contracts/src/core/modules/coreParkingBooks.sol#34-39)\n\t- coreSeriesLifecycle._applyBackstop(address) (contracts/src/core/modules/coreSeriesLifecycle.sol#152-176)\n\t- coreParkingBooks._claimValue(uint256,uint256) (contracts/src/core/modules/coreParkingBooks.sol#30-32)\n\t- coreParkingBooks._claimsFor(uint256,uint256) (contracts/src/core/modules/coreParkingBooks.sol#26-28)\n\t- coreParkingBooks._creditBooks(uint256,uint256) (contracts/src/core/modules/coreParkingBooks.sol#66-76)\n\t- coreParkingBooks._removeFromBooks(uint256,uint256) (contracts/src/core/modules/coreParkingBooks.sol#41-56)\n\t- coreStorage.totalParkingClaims (contracts/src/core/modules/coreStorage.sol#115)\n",
+  "triage": "confirmed property: nonReentrant, trusted callees, exploit tests"
+ },
+ {
+  "id": "9f242176d1819e77cd3cccce1fe45edc030b8f37907a66e7693b7711f25e2a3a",
+  "check": "reentrancy-no-eth",
+  "impact": "Medium",
+  "confidence": "Medium",
+  "description": "Reentrancy in seriesDeployment.deployTake(uint256,Offer,bytes,uint256) (contracts/src/series/modules/seriesDeployment.sol#101-145):\n\tExternal calls:\n\t- PARKING.withdraw(maxAssets,address(this)) (contracts/src/series/modules/seriesDeployment.sol#120)\n\t- ERC20Lib.safeApprove(USDC,address(MIDNIGHT),maxAssets) (contracts/src/series/modules/seriesDeployment.sol#121)\n\t- (buyerAssets,None) = MIDNIGHT.take(offer,ratifierData,units,address(this),address(0),address(0),) (contracts/src/series/modules/seriesDeployment.sol#124)\n\t- ERC20Lib.safeApprove(USDC,address(PARKING),leftover) (contracts/src/series/modules/seriesDeployment.sol#134)\n\t- PARKING.deposit(leftover) (contracts/src/series/modules/seriesDeployment.sol#135)\n\t- ERC20Lib.safeApprove(USDC,address(MIDNIGHT),0) (contracts/src/series/modules/seriesDeployment.sol#137)\n\tState variables written after the call(s):\n\t- filled[i] += buyerAssets (contracts/src/series/modules/seriesDeployment.sol#139)\n\tseriesStorage.filled (contracts/src/series/modules/seriesStorage.sol#103) can be used in cross function reentrancies:\n\t- seriesDeployment.buyerAssetsBound(bytes32,Market,address,bytes) (contracts/src/series/modules/seriesDeployment.sol#147-157)\n\t- seriesStorage.filled (contracts/src/series/modules/seriesStorage.sol#103)\n\t- totalFilled += buyerAssets (contracts/src/series/modules/seriesDeployment.sol#142)\n\tseriesStorage.totalFilled (contracts/src/series/modules/seriesStorage.sol#106) can be used in cross function reentrancies:\n\t- seriesMarks._navs() (contracts/src/series/modules/seriesMarks.sol#61-102)\n\t- seriesDeployment.buyerAssetsBound(bytes32,Market,address,bytes) (contracts/src/series/modules/seriesDeployment.sol#147-157)\n\t- seriesStorage.totalFilled (contracts/src/series/modules/seriesStorage.sol#106)\n",
+  "triage": "confirmed property: nonReentrant, trusted callees, exploit tests"
+ },
+ {
+  "id": "c1134910d9126a9fd10885a3ac9418055a3a27d074bbc30f204731774582ace0",
+  "check": "reentrancy-no-eth",
+  "impact": "Medium",
+  "confidence": "Medium",
+  "description": "Reentrancy in seriesDeployment.onBuy(bytes32,Market,uint256,uint256,uint256,address,bytes) (contracts/src/series/modules/seriesDeployment.sol#60-99):\n\tExternal calls:\n\t- PARKING.withdraw(buyerAssets,address(this)) (contracts/src/series/modules/seriesDeployment.sol#89)\n\t- ERC20Lib.safeApprove(USDC,address(MIDNIGHT),buyerAssets) (contracts/src/series/modules/seriesDeployment.sol#90)\n\tState variables written after the call(s):\n\t- filled[i] += buyerAssets (contracts/src/series/modules/seriesDeployment.sol#92)\n\tseriesStorage.filled (contracts/src/series/modules/seriesStorage.sol#103) can be used in cross function reentrancies:\n\t- seriesDeployment.buyerAssetsBound(bytes32,Market,address,bytes) (contracts/src/series/modules/seriesDeployment.sol#147-157)\n\t- seriesStorage.filled (contracts/src/series/modules/seriesStorage.sol#103)\n\t- totalFilled += buyerAssets (contracts/src/series/modules/seriesDeployment.sol#95)\n\tseriesStorage.totalFilled (contracts/src/series/modules/seriesStorage.sol#106) can be used in cross function reentrancies:\n\t- seriesMarks._navs() (contracts/src/series/modules/seriesMarks.sol#61-102)\n\t- seriesDeployment.buyerAssetsBound(bytes32,Market,address,bytes) (contracts/src/series/modules/seriesDeployment.sol#147-157)\n\t- seriesStorage.totalFilled (contracts/src/series/modules/seriesStorage.sol#106)\n",
+  "triage": "confirmed property: nonReentrant, trusted callees, exploit tests"
+ },
+ {
+  "id": "f966f2d13a65da30e2cc75cd267e9d80726f70981f9cd6fb7abc4f2afcfcbf77",
+  "check": "reentrancy-no-eth",
+  "impact": "Medium",
+  "confidence": "Medium",
+  "description": "Reentrancy in usdcJuniorDepositQueue.requestDeposit(uint256,address,address) (contracts/src/vaults/junior/usdcJuniorDepositQueue.sol#65-80):\n\tExternal calls:\n\t- require(bool,string)(iErc20Like(USDC).transferFrom(owner,address(CORE),assets),transfer failed) (contracts/src/vaults/junior/usdcJuniorDepositQueue.sol#73)\n\t- CORE.addPendingJunior(assets) (contracts/src/vaults/junior/usdcJuniorDepositQueue.sol#74)\n\tState variables written after the call(s):\n\t- activeDepositRequestId[controller] = requestId (contracts/src/vaults/junior/usdcJuniorDepositQueue.sol#78)\n\tusdcJuniorDepositQueue.activeDepositRequestId (contracts/src/vaults/junior/usdcJuniorDepositQueue.sol#43) can be used in cross function reentrancies:\n\t- usdcJuniorDepositQueue.activeDepositRequestId (contracts/src/vaults/junior/usdcJuniorDepositQueue.sol#43)\n\t- usdcJuniorDepositQueue.requestDeposit(uint256,address,address) (contracts/src/vaults/junior/usdcJuniorDepositQueue.sol#65-80)\n",
+  "triage": "confirmed property: nonReentrant, trusted callees, exploit tests"
+ },
+ {
+  "id": "0efc2c6f1d79c11ab30b00a07efff372344e0ed43764f3ee406adac670a2175b",
+  "check": "uninitialized-local",
+  "impact": "Medium",
+  "confidence": "Medium",
+  "description": "seriesFunding.finalize().fGross (contracts/src/series/modules/seriesFunding.sol#59) is a local variable never initialized\n",
+  "triage": "tooling limitation: zero-initialised accumulators"
+ },
+ {
+  "id": "21600945c8e9cd91813ea2e9848b0bc2f413096e5ad1befdc68c76a5901fe208",
+  "check": "uninitialized-local",
+  "impact": "Medium",
+  "confidence": "Medium",
+  "description": "seriesFunding.finalize().extraJ (contracts/src/series/modules/seriesFunding.sol#91) is a local variable never initialized\n",
+  "triage": "tooling limitation: zero-initialised accumulators"
+ },
+ {
+  "id": "7132a5d728404ec3fd9d8786d5902d5cf90f411c06a82975f774d7e59896d3c7",
+  "check": "uninitialized-local",
+  "impact": "Medium",
+  "confidence": "Medium",
+  "description": "seriesFunding.finalize().fNet (contracts/src/series/modules/seriesFunding.sol#60) is a local variable never initialized\n",
+  "triage": "tooling limitation: zero-initialised accumulators"
+ },
+ {
+  "id": "971f616f20656bd19333c584ca4db5433b341dbc07e61875166503cd69c9a173",
+  "check": "uninitialized-local",
+  "impact": "Medium",
+  "confidence": "Medium",
+  "description": "seriesSettlement._rerunWaterfall().fee (contracts/src/series/modules/seriesSettlement.sol#97) is a local variable never initialized\n",
+  "triage": "tooling limitation: zero-initialised accumulators"
+ },
+ {
+  "id": "b12f64fbf2cbf791a3e6b1fa3474d3032842fbc98159af8c56e2faa330e16088",
+  "check": "uninitialized-local",
+  "impact": "Medium",
+  "confidence": "Medium",
+  "description": "seriesFunding.finalize().extraS (contracts/src/series/modules/seriesFunding.sol#90) is a local variable never initialized\n",
+  "triage": "tooling limitation: zero-initialised accumulators"
+ },
+ {
+  "id": "d9d3fc8268115351835ea3ff8343bf0b2d38337b5446c0ea37cef52c042dec34",
+  "check": "uninitialized-local",
+  "impact": "Medium",
+  "confidence": "Medium",
+  "description": "seriesFunding.initialize(uint256,uint256).sumCaps (contracts/src/series/modules/seriesFunding.sol#23) is a local variable never initialized\n",
+  "triage": "tooling limitation: zero-initialised accumulators"
+ },
+ {
+  "id": "034cd7d80071e3be414a1abf5abe7b3ab41931ffc2072b92f626e8ff66c1ab0c",
+  "check": "unused-return",
+  "impact": "Medium",
+  "confidence": "Medium",
+  "description": "midnightReader.projectedRedeemableSynced(iMidnightMinimal,Market,address) (contracts/src/libraries/midnightReader.sol#29-35) ignores return value by (credit,pendingFee,None) = midnight.updatePosition(market,series) (contracts/src/libraries/midnightReader.sol#33)\n",
+  "triage": "tooling limitation: deliberately dropped tuple fields and side-effect calls"
+ },
+ {
+  "id": "21c5a549e84b736ab9f9816f26bb4fd32c190c2edc8dd66dd185cae188748d7f",
+  "check": "unused-return",
+  "impact": "Medium",
+  "confidence": "Medium",
+  "description": "coreValuation.stressGateOpen() (contracts/src/core/modules/coreValuation.sol#83-100) ignores return value by (None,navJ,None) = s.navs() (contracts/src/core/modules/coreValuation.sol#90)\n",
+  "triage": "tooling limitation: deliberately dropped tuple fields and side-effect calls"
+ },
+ {
+  "id": "226db16f18c6a97f89558b5b4f29a09197d8120d561b93874a733586e81ba057",
+  "check": "unused-return",
+  "impact": "Medium",
+  "confidence": "Medium",
+  "description": "morphoParking._supply(uint256) (contracts/src/parking/morphoParking.sol#132-138) ignores return value by VAULT.deposit(amount,address(this)) (contracts/src/parking/morphoParking.sol#137)\n",
+  "triage": "tooling limitation: deliberately dropped tuple fields and side-effect calls"
+ },
+ {
+  "id": "29609183a330f9dfdc523c52296facda4224bf6d5e1bbd61bc667be2bf0cc1ff",
+  "check": "unused-return",
+  "impact": "Medium",
+  "confidence": "Medium",
+  "description": "seriesMarks._faceNetNow() (contracts/src/series/modules/seriesMarks.sol#47-54) ignores return value by (credit,pendingFee,None) = MIDNIGHT.updatePositionView(_markets[i],_marketIds[i],address(this)) (contracts/src/series/modules/seriesMarks.sol#50-51)\n",
+  "triage": "tooling limitation: deliberately dropped tuple fields and side-effect calls"
+ },
+ {
+  "id": "2afb1751c59409cc9141655de3e4deff7345a0b71253b1e510bcc8e3ad12ca3b",
+  "check": "unused-return",
+  "impact": "Medium",
+  "confidence": "Medium",
+  "description": "coreValuation.seniorAssets() (contracts/src/core/modules/coreValuation.sol#24-31) ignores return value by (navS,None,None) = creditSeries(liveSeries[i]).navs() (contracts/src/core/modules/coreValuation.sol#28)\n",
+  "triage": "tooling limitation: deliberately dropped tuple fields and side-effect calls"
+ },
+ {
+  "id": "33aed137a556b8e75f1f1eb461de89335b6f1a5d88f358171fcc9423a9523048",
+  "check": "unused-return",
+  "impact": "Medium",
+  "confidence": "Medium",
+  "description": "seriesMarks._navs() (contracts/src/series/modules/seriesMarks.sol#61-102) ignores return value by seriesMath.nav(elapsed,tau,totalFilled,faceNetAtFinalize,faceLoss,seniorDeployed,seniorClaim,juniorDeployed,THETA_WAD) (contracts/src/series/modules/seriesMarks.sol#91-101)\n",
+  "triage": "tooling limitation: deliberately dropped tuple fields and side-effect calls"
+ },
+ {
+  "id": "3de24570f268e4fe083638bea3a80033c12635d1c59136a1390dfad7cc744e65",
+  "check": "unused-return",
+  "impact": "Medium",
+  "confidence": "Medium",
+  "description": "coreValuation.juniorAssetsSynced() (contracts/src/core/modules/coreValuation.sol#51-58) ignores return value by (None,navJ,None) = creditSeries(liveSeries[i]).navsSynced() (contracts/src/core/modules/coreValuation.sol#55)\n",
+  "triage": "tooling limitation: deliberately dropped tuple fields and side-effect calls"
+ },
+ {
+  "id": "45349e3bf8fdabf114cb49a910b37b74dee7bfa73c9a8ddc4740c4c27e6c05e8",
+  "check": "unused-return",
+  "impact": "Medium",
+  "confidence": "Medium",
+  "description": "coreValuation.juniorAssets() (contracts/src/core/modules/coreValuation.sol#33-40) ignores return value by (None,navJ,None) = creditSeries(liveSeries[i]).navs() (contracts/src/core/modules/coreValuation.sol#37)\n",
+  "triage": "tooling limitation: deliberately dropped tuple fields and side-effect calls"
+ },
+ {
+  "id": "6a1a8e2c6bcae53c979ab9deca733c9366d1f45b7ac7f17076eb2f132da87a06",
+  "check": "unused-return",
+  "impact": "Medium",
+  "confidence": "Medium",
+  "description": "seriesDeployment._tickMax(uint256) (contracts/src/series/modules/seriesDeployment.sol#163-171) ignores return value by (None,None,None,None,None,None,None,None,None,None,None,None,tickSpacing) = MIDNIGHT.marketState(id) (contracts/src/series/modules/seriesDeployment.sol#165)\n",
+  "triage": "tooling limitation: deliberately dropped tuple fields and side-effect calls"
+ },
+ {
+  "id": "6eb2bf2052598603e00718cb342ba0feed43dde60d48cbb152cc211a4e4d0a42",
+  "check": "unused-return",
+  "impact": "Medium",
+  "confidence": "Medium",
+  "description": "seriesDeployment.deployTake(uint256,Offer,bytes,uint256) (contracts/src/series/modules/seriesDeployment.sol#101-145) ignores return value by (creditAfter,pendingFeeAfter,None) = MIDNIGHT.updatePositionView(offer.market,id,address(this)) (contracts/src/series/modules/seriesDeployment.sol#125)\n",
+  "triage": "tooling limitation: deliberately dropped tuple fields and side-effect calls"
+ },
+ {
+  "id": "6ebedfd3c65b9e2bcb1b0fb28816896968a2b37aab0fa6c4322feae4ca86b50f",
+  "check": "unused-return",
+  "impact": "Medium",
+  "confidence": "Medium",
+  "description": "seriesSettlement.collect(uint256) (contracts/src/series/modules/seriesSettlement.sol#22-52) ignores return value by MIDNIGHT.updatePosition(m,address(this)) (contracts/src/series/modules/seriesSettlement.sol#31)\n",
+  "triage": "tooling limitation: deliberately dropped tuple fields and side-effect calls"
+ },
+ {
+  "id": "8bc3b451ba426a59832279df4905bddcbfeda8def17ec5b5c72af8f4fadda5bf",
+  "check": "unused-return",
+  "impact": "Medium",
+  "confidence": "Medium",
+  "description": "seriesMarks.sync(uint256) (contracts/src/series/modules/seriesMarks.sol#16-25) ignores return value by MIDNIGHT.updatePosition(_markets[i],address(this)) (contracts/src/series/modules/seriesMarks.sol#17)\n",
+  "triage": "tooling limitation: deliberately dropped tuple fields and side-effect calls"
+ },
+ {
+  "id": "935749395a78e6e5ca73143a512248130d808aa94b2babcf510c61af665a317a",
+  "check": "unused-return",
+  "impact": "Medium",
+  "confidence": "Medium",
+  "description": "morphoParking._ensureBuffer(uint256) (contracts/src/parking/morphoParking.sol#147-154) ignores return value by VAULT.withdraw(need,address(this),address(this)) (contracts/src/parking/morphoParking.sol#153)\n",
+  "triage": "tooling limitation: deliberately dropped tuple fields and side-effect calls"
+ },
+ {
+  "id": "941eac54a7b660f631c29a2ed3e7a7084cf8c0c5bc41d7138f1dcd3337b284fa",
+  "check": "unused-return",
+  "impact": "Medium",
+  "confidence": "Medium",
+  "description": "usdcJuniorRedeemQueue.requestRedeem(uint256,address,address) (contracts/src/vaults/junior/usdcJuniorRedeemQueue.sol#48-69) ignores return value by (None,None,None,None,None,None,None,None,None,None,None,None,None,None,None,None,None,None,curatorMinShareWad) = CORE.policy() (contracts/src/vaults/junior/usdcJuniorRedeemQueue.sol#60)\n",
+  "triage": "tooling limitation: deliberately dropped tuple fields and side-effect calls"
+ },
+ {
+  "id": "b0c2ddf729d320bc1e36a09d35ab443f4d2960a7d408d007f6c93d3f79b27a82",
+  "check": "unused-return",
+  "impact": "Medium",
+  "confidence": "Medium",
+  "description": "seriesSettlement.collect(uint256) (contracts/src/series/modules/seriesSettlement.sol#22-52) ignores return value by (creditAfter,None,None) = MIDNIGHT.updatePositionView(m,id,address(this)) (contracts/src/series/modules/seriesSettlement.sol#46)\n",
+  "triage": "tooling limitation: deliberately dropped tuple fields and side-effect calls"
+ },
+ {
+  "id": "c4495ebeacef89f548611ed5360633cbb9b8271f50bcc71ab8c8966726aa6f78",
+  "check": "unused-return",
+  "impact": "Medium",
+  "confidence": "Medium",
+  "description": "seriesMarks.navsSynced() (contracts/src/series/modules/seriesMarks.sol#31-37) ignores return value by MIDNIGHT.updatePosition(_markets[i],address(this)) (contracts/src/series/modules/seriesMarks.sol#34)\n",
+  "triage": "tooling limitation: deliberately dropped tuple fields and side-effect calls"
+ },
+ {
+  "id": "c7df000d3d66abc091c0856deb8c2f182da30af3b69a6d7e3b5343d54ab3d112",
+  "check": "unused-return",
+  "impact": "Medium",
+  "confidence": "Medium",
+  "description": "morphoParking._pull(uint256) (contracts/src/parking/morphoParking.sol#140-145) ignores return value by VAULT.withdraw(amount,address(this),address(this)) (contracts/src/parking/morphoParking.sol#144)\n",
+  "triage": "tooling limitation: deliberately dropped tuple fields and side-effect calls"
+ },
+ {
+  "id": "cc37a009e2848bdb89d03b386c98667eef5d285b9be5fc1aaf785c8d39a78212",
+  "check": "unused-return",
+  "impact": "Medium",
+  "confidence": "Medium",
+  "description": "coreSeriesLifecycle.syncAll() (contracts/src/core/modules/coreSeriesLifecycle.sol#84-90) ignores return value by creditSeries(liveSeries[i]).navsSynced() (contracts/src/core/modules/coreSeriesLifecycle.sol#87)\n",
+  "triage": "tooling limitation: deliberately dropped tuple fields and side-effect calls"
+ },
+ {
+  "id": "d1e4daf8ed0463bb0b195a9187c3cf1cbb5a2ec4dd08d858aece610f8ce06c61",
+  "check": "unused-return",
+  "impact": "Medium",
+  "confidence": "Medium",
+  "description": "seriesDeployment.deployTake(uint256,Offer,bytes,uint256) (contracts/src/series/modules/seriesDeployment.sol#101-145) ignores return value by (buyerAssets,None) = MIDNIGHT.take(offer,ratifierData,units,address(this),address(0),address(0),) (contracts/src/series/modules/seriesDeployment.sol#124)\n",
+  "triage": "tooling limitation: deliberately dropped tuple fields and side-effect calls"
+ },
+ {
+  "id": "d882d35443d3ca489f05982e084682b5f7a057ed7b671e04dbbdf115ed05326c",
+  "check": "unused-return",
+  "impact": "Medium",
+  "confidence": "Medium",
+  "description": "seriesSettlement.collect(uint256) (contracts/src/series/modules/seriesSettlement.sol#22-52) ignores return value by (credit,None,None) = MIDNIGHT.updatePositionView(m,id,address(this)) (contracts/src/series/modules/seriesSettlement.sol#32)\n",
+  "triage": "tooling limitation: deliberately dropped tuple fields and side-effect calls"
+ },
+ {
+  "id": "e2f33e16410090c3c7347fc1e1943e9a712e69749350feadd1a3e882b4a9f598",
+  "check": "unused-return",
+  "impact": "Medium",
+  "confidence": "Medium",
+  "description": "midnightReader.projectedRedeemableView(iMidnightMinimal,Market,bytes32,address) (contracts/src/libraries/midnightReader.sol#20-27) ignores return value by (credit,pendingFee,None) = midnight.updatePositionView(market,id,series) (contracts/src/libraries/midnightReader.sol#25)\n",
+  "triage": "tooling limitation: deliberately dropped tuple fields and side-effect calls"
+ },
+ {
+  "id": "f32d4bec48005bdd4538f31afa8c950011ce08fc8f4deb609269c1ff456a86e7",
+  "check": "unused-return",
+  "impact": "Medium",
+  "confidence": "Medium",
+  "description": "seriesDeployment.deployTake(uint256,Offer,bytes,uint256) (contracts/src/series/modules/seriesDeployment.sol#101-145) ignores return value by (creditBefore,pendingFeeBefore,None) = MIDNIGHT.updatePositionView(offer.market,id,address(this)) (contracts/src/series/modules/seriesDeployment.sol#123)\n",
+  "triage": "tooling limitation: deliberately dropped tuple fields and side-effect calls"
+ },
+ {
+  "id": "fd36b98d27981b95f982a5a3b34f169bf8b6f5934df6164fadb2e026e0bc03ef",
+  "check": "unused-return",
+  "impact": "Medium",
+  "confidence": "Medium",
+  "description": "seriesMarks.sync(uint256) (contracts/src/series/modules/seriesMarks.sol#16-25) ignores return value by (creditI,None,None) = MIDNIGHT.updatePositionView(_markets[i],_marketIds[i],address(this)) (contracts/src/series/modules/seriesMarks.sol#22)\n",
+  "triage": "tooling limitation: deliberately dropped tuple fields and side-effect calls"
+ },
+ {
+  "id": "ff87a03f3df1844cd86e59b41f7aaff663eea62cef27ae9af2f0bf5f95c7d3ed",
+  "check": "unused-return",
+  "impact": "Medium",
+  "confidence": "Medium",
+  "description": "coreValuation.seniorAssetsSynced() (contracts/src/core/modules/coreValuation.sol#42-49) ignores return value by (navS,None,None) = creditSeries(liveSeries[i]).navsSynced() (contracts/src/core/modules/coreValuation.sol#46)\n",
+  "triage": "tooling limitation: deliberately dropped tuple fields and side-effect calls"
+ },
+ {
+  "id": "18619eb5ee67deb6450c0262df38d1d10b242a0bea45c4ec2b3549e1063efd72",
+  "check": "events-access",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "coreGovernance.setAllocator(address) (contracts/src/core/modules/coreGovernance.sol#22-24) should emit an event for: \n\t- allocator = newAllocator (contracts/src/core/modules/coreGovernance.sol#23) \n",
+  "triage": "accepted by owner instruction: governance setters kept as is (G3)"
+ },
+ {
+  "id": "7de383e6092f27186507e85dc296265b1fed04a94ad111193484958fe8e30680",
+  "check": "events-access",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "coreGovernance.transferGovernance(address) (contracts/src/core/modules/coreGovernance.sol#18-20) should emit an event for: \n\t- governance = newGovernance (contracts/src/core/modules/coreGovernance.sol#19) \n",
+  "triage": "accepted by owner instruction: governance setters kept as is (G3)"
+ },
+ {
+  "id": "90a42c7eba1dd7b254d147fab75446f0c1c2d4bb47154e8466ae73d5e514ae94",
+  "check": "events-access",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "coreGovernance.setSentinel(address) (contracts/src/core/modules/coreGovernance.sol#30-32) should emit an event for: \n\t- sentinel = newSentinel (contracts/src/core/modules/coreGovernance.sol#31) \n",
+  "triage": "accepted by owner instruction: governance setters kept as is (G3)"
+ },
+ {
+  "id": "9328de5045e01a4d1250b2c77c9bbb51a1428d5fc4f19d0ee4de6a3eaca90058",
+  "check": "events-access",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "coreGovernance.setCurator(address) (contracts/src/core/modules/coreGovernance.sol#26-28) should emit an event for: \n\t- curator = newCurator (contracts/src/core/modules/coreGovernance.sol#27) \n",
+  "triage": "accepted by owner instruction: governance setters kept as is (G3)"
+ },
+ {
+  "id": "097a5bcb2db265754210c3f997d7aaa185184bc88ba1c99f111ca903479db52b",
+  "check": "missing-zero-check",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "coreGovernance.setSentinel(address).newSentinel (contracts/src/core/modules/coreGovernance.sol#30) lacks a zero-check on :\n\t\t- sentinel = newSentinel (contracts/src/core/modules/coreGovernance.sol#31)\n",
+  "triage": "accepted by owner instruction: governance setters kept as is; deploy checklist"
+ },
+ {
+  "id": "0a2c42de6af063e962cb2ef3620a9ffa61d8ba0caed8c83777235c30396df7ce",
+  "check": "missing-zero-check",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "seriesFactory.transferGovernance(address).newGovernance (contracts/src/series/seriesFactory.sol#153) lacks a zero-check on :\n\t\t- governance = newGovernance (contracts/src/series/seriesFactory.sol#154)\n",
+  "triage": "accepted by owner instruction: governance setters kept as is; deploy checklist"
+ },
+ {
+  "id": "0daf539dc6637c612d67620dd40ef4a0d31f0d655919cde5490d461474e05d1e",
+  "check": "missing-zero-check",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "coreGovernance.setAllocator(address).newAllocator (contracts/src/core/modules/coreGovernance.sol#22) lacks a zero-check on :\n\t\t- allocator = newAllocator (contracts/src/core/modules/coreGovernance.sol#23)\n",
+  "triage": "accepted by owner instruction: governance setters kept as is; deploy checklist"
+ },
+ {
+  "id": "1998d5818c438949751c3120781bc49d5e5c61134c7536b573040f3a71d28775",
+  "check": "missing-zero-check",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "seriesFactory.setCore(address).core_ (contracts/src/series/seriesFactory.sol#85) lacks a zero-check on :\n\t\t- core = core_ (contracts/src/series/seriesFactory.sol#87)\n",
+  "triage": "accepted by owner instruction: governance setters kept as is; deploy checklist"
+ },
+ {
+  "id": "2e5dfca684d96a46910fccbf43f2da21eb991e18ac06395330e329ff59256dd3",
+  "check": "missing-zero-check",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "seriesFactory.constructor(iMidnightMinimal,address,address,address,uint256,uint256).governance_ (contracts/src/series/seriesFactory.sol#70) lacks a zero-check on :\n\t\t- governance = governance_ (contracts/src/series/seriesFactory.sol#78)\n",
+  "triage": "accepted by owner instruction: governance setters kept as is; deploy checklist"
+ },
+ {
+  "id": "4593e024059db2cd2e551b6b276dc1807a7b703d11429c40cdd4b4337f5751fa",
+  "check": "missing-zero-check",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "coreGovernance.setVaults(address,address).seniorVault_ (contracts/src/core/modules/coreGovernance.sol#10) lacks a zero-check on :\n\t\t- seniorVault = seniorVault_ (contracts/src/core/modules/coreGovernance.sol#12)\n",
+  "triage": "accepted by owner instruction: governance setters kept as is; deploy checklist"
+ },
+ {
+  "id": "a381d3e67a2b8bca969776f9650f43f420d2a95830942621329d766d6c0ec9b8",
+  "check": "missing-zero-check",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "coreGovernance.transferGovernance(address).newGovernance (contracts/src/core/modules/coreGovernance.sol#18) lacks a zero-check on :\n\t\t- governance = newGovernance (contracts/src/core/modules/coreGovernance.sol#19)\n",
+  "triage": "accepted by owner instruction: governance setters kept as is; deploy checklist"
+ },
+ {
+  "id": "a814d924f422cc343d7cb4c69b69552fb18a53a7d159dbfd180fd6579e711c7d",
+  "check": "missing-zero-check",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "coreGovernance.setVaults(address,address).juniorVault_ (contracts/src/core/modules/coreGovernance.sol#10) lacks a zero-check on :\n\t\t- juniorVault = juniorVault_ (contracts/src/core/modules/coreGovernance.sol#13)\n",
+  "triage": "accepted by owner instruction: governance setters kept as is; deploy checklist"
+ },
+ {
+  "id": "dbf37f5dcff1d19cc5ef78be03b113a5c3ea14498225b0609fb9b0a264105298",
+  "check": "missing-zero-check",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "coreGovernance.setCurator(address).newCurator (contracts/src/core/modules/coreGovernance.sol#26) lacks a zero-check on :\n\t\t- curator = newCurator (contracts/src/core/modules/coreGovernance.sol#27)\n",
+  "triage": "accepted by owner instruction: governance setters kept as is; deploy checklist"
+ },
+ {
+  "id": "e2991c0c5c3fa7f857b0554345f3fcf46d8198101112c7173b4c86715f69b857",
+  "check": "missing-zero-check",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "seriesFactory.constructor(iMidnightMinimal,address,address,address,uint256,uint256).setterRatifier (contracts/src/series/seriesFactory.sol#68) lacks a zero-check on :\n\t\t- SETTER_RATIFIER = setterRatifier (contracts/src/series/seriesFactory.sol#76)\n",
+  "triage": "accepted by owner instruction: governance setters kept as is; deploy checklist"
+ },
+ {
+  "id": "02a26c6537d1e3a5f7ee33b245d22e3c06971dcc2a642428a318352d0a943baf",
+  "check": "calls-loop",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "coreValuation._hasWrittenOffCredit(creditSeries) (contracts/src/core/modules/coreValuation.sol#114-120) has external calls inside a loop: ids = s.marketIds() (contracts/src/core/modules/coreValuation.sol#115)\n\tCalls stack containing the loop:\n\t\tcoreSeriesLifecycle.pruneSeries()\n",
+  "triage": "tooling limitation: bounded loops over factory-created series and Midnight views"
+ },
+ {
+  "id": "128837f03965e3bcef4f1bdb549fd24a97b4f2fff9900d8b3482d663cc3d2c28",
+  "check": "calls-loop",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "coreValuation.seniorAssets() (contracts/src/core/modules/coreValuation.sol#24-31) has external calls inside a loop: (navS,None,None) = creditSeries(liveSeries[i]).navs() (contracts/src/core/modules/coreValuation.sol#28)\n\tCalls stack containing the loop:\n\t\tcoreValuation.idleAvailable(bool)\n",
+  "triage": "tooling limitation: bounded loops over factory-created series and Midnight views"
+ },
+ {
+  "id": "24be1e3b5ddf0801b8fdbeb6262e864fc238d14a2ec44cc0a4d64238ab61dd89",
+  "check": "calls-loop",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "coreValuation.stressGateOpen() (contracts/src/core/modules/coreValuation.sol#83-100) has external calls inside a loop: (None,navJ,None) = s.navs() (contracts/src/core/modules/coreValuation.sol#90)\n",
+  "triage": "tooling limitation: bounded loops over factory-created series and Midnight views"
+ },
+ {
+  "id": "27a3493222e12c47f235df635fb578e76d3a80182ed613d496cdd7277e6f581b",
+  "check": "calls-loop",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "coreValuation.juniorAssets() (contracts/src/core/modules/coreValuation.sol#33-40) has external calls inside a loop: (None,navJ,None) = creditSeries(liveSeries[i]).navs() (contracts/src/core/modules/coreValuation.sol#37)\n\tCalls stack containing the loop:\n\t\tcoreSeriesLifecycle.syncAll()\n",
+  "triage": "tooling limitation: bounded loops over factory-created series and Midnight views"
+ },
+ {
+  "id": "482d985ba4fcc71704fe791959b34e74e67c2658a5e3ec8bafb14d88eed672f6",
+  "check": "calls-loop",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "coreValuation.stressGateOpen() (contracts/src/core/modules/coreValuation.sol#83-100) has external calls inside a loop: uint8(s.state()) == uint8(SeriesState.DEPLOYING) (contracts/src/core/modules/coreValuation.sol#87)\n",
+  "triage": "tooling limitation: bounded loops over factory-created series and Midnight views"
+ },
+ {
+  "id": "4e5fcca5850d4e61a9d452b6f90c0d25b185c0455d6efda782460b98a9d0a837",
+  "check": "calls-loop",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "coreValuation.seniorAssets() (contracts/src/core/modules/coreValuation.sol#24-31) has external calls inside a loop: (navS,None,None) = creditSeries(liveSeries[i]).navs() (contracts/src/core/modules/coreValuation.sol#28)\n\tCalls stack containing the loop:\n\t\tcoreSeriesLifecycle.openSeries(SeriesParams,uint256,uint256)\n\t\tcoreValuation.idleDeployable(bool)\n\t\tcoreValuation.idleAvailable(bool)\n",
+  "triage": "tooling limitation: bounded loops over factory-created series and Midnight views"
+ },
+ {
+  "id": "4fc3f701813a0dfd9a575ece34ac3d3c9f0b42920ed4b910588c7a6dbd80cea5",
+  "check": "calls-loop",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "coreValuation._hasWrittenOffCredit(creditSeries) (contracts/src/core/modules/coreValuation.sol#114-120) has external calls inside a loop: s.writtenOff(i) && ! s.resolved(i) (contracts/src/core/modules/coreValuation.sol#117)\n\tCalls stack containing the loop:\n\t\tcoreSeriesLifecycle.pruneSeries()\n",
+  "triage": "tooling limitation: bounded loops over factory-created series and Midnight views"
+ },
+ {
+  "id": "553696febebd0cac0036fbd5c0754b13049e414b5d03603ee03cba985500bc41",
+  "check": "calls-loop",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "coreValuation.seniorAssets() (contracts/src/core/modules/coreValuation.sol#24-31) has external calls inside a loop: (navS,None,None) = creditSeries(liveSeries[i]).navs() (contracts/src/core/modules/coreValuation.sol#28)\n\tCalls stack containing the loop:\n\t\tcoreValuation.juniorRedeemable()\n",
+  "triage": "tooling limitation: bounded loops over factory-created series and Midnight views"
+ },
+ {
+  "id": "59f133b4f5616a790f3b63b76496939fd4c9296deb89c8ba8b42b9ec832be0aa",
+  "check": "calls-loop",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "coreValuation.juniorAssets() (contracts/src/core/modules/coreValuation.sol#33-40) has external calls inside a loop: (None,navJ,None) = creditSeries(liveSeries[i]).navs() (contracts/src/core/modules/coreValuation.sol#37)\n\tCalls stack containing the loop:\n\t\tcoreValuation.idleDeployable(bool)\n\t\tcoreValuation.idleAvailable(bool)\n",
+  "triage": "tooling limitation: bounded loops over factory-created series and Midnight views"
+ },
+ {
+  "id": "65f7b5f9b395aa37500bd008135771c8a1d090cb95ede03c72c3edd33a954e9f",
+  "check": "calls-loop",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "coreValuation.juniorAssetsSynced() (contracts/src/core/modules/coreValuation.sol#51-58) has external calls inside a loop: (None,navJ,None) = creditSeries(liveSeries[i]).navsSynced() (contracts/src/core/modules/coreValuation.sol#55)\n",
+  "triage": "tooling limitation: bounded loops over factory-created series and Midnight views"
+ },
+ {
+  "id": "735419209750108a336cd884156c167d2e21c649921f90d807c260ca6c625de0",
+  "check": "calls-loop",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "coreValuation.juniorAssets() (contracts/src/core/modules/coreValuation.sol#33-40) has external calls inside a loop: (None,navJ,None) = creditSeries(liveSeries[i]).navs() (contracts/src/core/modules/coreValuation.sol#37)\n\tCalls stack containing the loop:\n\t\tcoreSeriesLifecycle.openSeries(SeriesParams,uint256,uint256)\n\t\tcoreValuation.idleDeployable(bool)\n\t\tcoreValuation.idleAvailable(bool)\n",
+  "triage": "tooling limitation: bounded loops over factory-created series and Midnight views"
+ },
+ {
+  "id": "8774650a5f7dd8d7fc1970e858c8ed52762ce4c146908cf3faa33a2593a987a8",
+  "check": "calls-loop",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "coreValuation.seniorAssets() (contracts/src/core/modules/coreValuation.sol#24-31) has external calls inside a loop: (navS,None,None) = creditSeries(liveSeries[i]).navs() (contracts/src/core/modules/coreValuation.sol#28)\n",
+  "triage": "tooling limitation: bounded loops over factory-created series and Midnight views"
+ },
+ {
+  "id": "883b68b75f9e82df0d8900e94e1fa4d752a3a598ec9389a2d8efc7d15e1234b0",
+  "check": "calls-loop",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "coreValuation.seniorAssets() (contracts/src/core/modules/coreValuation.sol#24-31) has external calls inside a loop: (navS,None,None) = creditSeries(liveSeries[i]).navs() (contracts/src/core/modules/coreValuation.sol#28)\n\tCalls stack containing the loop:\n\t\tcoreValuation.idleDeployable(bool)\n\t\tcoreValuation.idleAvailable(bool)\n",
+  "triage": "tooling limitation: bounded loops over factory-created series and Midnight views"
+ },
+ {
+  "id": "89a53dc5c9ed1a3ae82995bc3073eecf3d9cbab151124b6fafef35819d9e4355",
+  "check": "calls-loop",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "coreSeriesLifecycle.syncAll() (contracts/src/core/modules/coreSeriesLifecycle.sol#84-90) has external calls inside a loop: creditSeries(liveSeries[i]).navsSynced() (contracts/src/core/modules/coreSeriesLifecycle.sol#87)\n",
+  "triage": "tooling limitation: bounded loops over factory-created series and Midnight views"
+ },
+ {
+  "id": "8bc156e5278689b70b39e87b43550772b304ce8810c287185f9584ea6b221ab8",
+  "check": "calls-loop",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "coreSeriesLifecycle.pruneSeries() (contracts/src/core/modules/coreSeriesLifecycle.sol#92-119) has external calls inside a loop: st = uint8(s.state()) (contracts/src/core/modules/coreSeriesLifecycle.sol#96)\n",
+  "triage": "tooling limitation: bounded loops over factory-created series and Midnight views"
+ },
+ {
+  "id": "9540e57ab0be02f4cc4f9eec4008720abf572463068be6976b552893f0b6b840",
+  "check": "calls-loop",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "seriesMarks.navsSynced() (contracts/src/series/modules/seriesMarks.sol#31-37) has external calls inside a loop: MIDNIGHT.updatePosition(_markets[i],address(this)) (contracts/src/series/modules/seriesMarks.sol#34)\n",
+  "triage": "tooling limitation: bounded loops over factory-created series and Midnight views"
+ },
+ {
+  "id": "9b565927476fb5e7d279d46dfd1833943ec5255722604fd386d4aa619c3e2aae",
+  "check": "calls-loop",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "coreValuation.stressGateOpen() (contracts/src/core/modules/coreValuation.sol#83-100) has external calls inside a loop: jD = s.juniorDeployed() (contracts/src/core/modules/coreValuation.sol#88)\n",
+  "triage": "tooling limitation: bounded loops over factory-created series and Midnight views"
+ },
+ {
+  "id": "9df9ab3243f51cd858442a4db04bdbcd3a1c49437e5aa97983580fe5cad86d24",
+  "check": "calls-loop",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "coreValuation.juniorAssets() (contracts/src/core/modules/coreValuation.sol#33-40) has external calls inside a loop: (None,navJ,None) = creditSeries(liveSeries[i]).navs() (contracts/src/core/modules/coreValuation.sol#37)\n",
+  "triage": "tooling limitation: bounded loops over factory-created series and Midnight views"
+ },
+ {
+  "id": "a251ea8c09beb9ab4eede54d01e7cbde853ed7be8c35cd9898d4f0d805c46a88",
+  "check": "calls-loop",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "coreValuation.juniorAssets() (contracts/src/core/modules/coreValuation.sol#33-40) has external calls inside a loop: (None,navJ,None) = creditSeries(liveSeries[i]).navs() (contracts/src/core/modules/coreValuation.sol#37)\n\tCalls stack containing the loop:\n\t\tcoreValuation.seniorCapacity()\n",
+  "triage": "tooling limitation: bounded loops over factory-created series and Midnight views"
+ },
+ {
+  "id": "a382e91440c5477b73b792ae56aded20bf349d8a09aacc797c42ac58a581a7fb",
+  "check": "calls-loop",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "seriesMarks._faceNetNow() (contracts/src/series/modules/seriesMarks.sol#47-54) has external calls inside a loop: (credit,pendingFee,None) = MIDNIGHT.updatePositionView(_markets[i],_marketIds[i],address(this)) (contracts/src/series/modules/seriesMarks.sol#50-51)\n\tCalls stack containing the loop:\n\t\tseriesMarks.navs()\n\t\tseriesMarks._navs()\n\t\tseriesMarks._faceLossNow()\n",
+  "triage": "tooling limitation: bounded loops over factory-created series and Midnight views"
+ },
+ {
+  "id": "a47ec237dc9d13b285b63fe1eeda1f94353142a00e85314d5b70972b2898c686",
+  "check": "calls-loop",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "seriesMarks._faceNetNow() (contracts/src/series/modules/seriesMarks.sol#47-54) has external calls inside a loop: (credit,pendingFee,None) = MIDNIGHT.updatePositionView(_markets[i],_marketIds[i],address(this)) (contracts/src/series/modules/seriesMarks.sol#50-51)\n\tCalls stack containing the loop:\n\t\tseriesMarks.navsSynced()\n\t\tseriesMarks._navs()\n\t\tseriesMarks._faceLossNow()\n",
+  "triage": "tooling limitation: bounded loops over factory-created series and Midnight views"
+ },
+ {
+  "id": "aa7a55e65c5eb7e072869b27df22d9fd03270ffa45d1251cf477282c070dea28",
+  "check": "calls-loop",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "coreValuation._hasWrittenOffCredit(creditSeries) (contracts/src/core/modules/coreValuation.sol#114-120) has external calls inside a loop: ids = s.marketIds() (contracts/src/core/modules/coreValuation.sol#115)\n\tCalls stack containing the loop:\n\t\tcoreValuation.stressGateOpen()\n",
+  "triage": "tooling limitation: bounded loops over factory-created series and Midnight views"
+ },
+ {
+  "id": "b0e2014b7a42bcc580bef55fe350de5036eac3c1611ee511ff807eb912020ffa",
+  "check": "calls-loop",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "coreValuation.seniorAssets() (contracts/src/core/modules/coreValuation.sol#24-31) has external calls inside a loop: (navS,None,None) = creditSeries(liveSeries[i]).navs() (contracts/src/core/modules/coreValuation.sol#28)\n\tCalls stack containing the loop:\n\t\tcoreSeriesLifecycle.syncAll()\n",
+  "triage": "tooling limitation: bounded loops over factory-created series and Midnight views"
+ },
+ {
+  "id": "b5636386ec34c3398e1913adbff2635cb69aca0846932cff5045faaf8879bd8e",
+  "check": "calls-loop",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "coreValuation._hasWrittenOffCredit(creditSeries) (contracts/src/core/modules/coreValuation.sol#114-120) has external calls inside a loop: s.writtenOff(i) && ! s.resolved(i) (contracts/src/core/modules/coreValuation.sol#117)\n\tCalls stack containing the loop:\n\t\tcoreValuation.stressGateOpen()\n",
+  "triage": "tooling limitation: bounded loops over factory-created series and Midnight views"
+ },
+ {
+  "id": "bc8040df86229ff4654e6231d51609b6e795d8c13ce9b0515693d16be7f6bc1f",
+  "check": "calls-loop",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "coreValuation._hasWrittenOffCredit(creditSeries) (contracts/src/core/modules/coreValuation.sol#114-120) has external calls inside a loop: s.writtenOff(i) && ! s.resolved(i) (contracts/src/core/modules/coreValuation.sol#117)\n\tCalls stack containing the loop:\n\t\tcoreSeriesLifecycle.receivePayout(uint256,uint256)\n",
+  "triage": "tooling limitation: bounded loops over factory-created series and Midnight views"
+ },
+ {
+  "id": "bda34bac6c81c503b668ec8d9cdd9705475c5325cd3b3dbe6dc8fe05e38dbed4",
+  "check": "calls-loop",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "seriesMarks._faceNetNow() (contracts/src/series/modules/seriesMarks.sol#47-54) has external calls inside a loop: (credit,pendingFee,None) = MIDNIGHT.updatePositionView(_markets[i],_marketIds[i],address(this)) (contracts/src/series/modules/seriesMarks.sol#50-51)\n\tCalls stack containing the loop:\n\t\tseriesMarks.sync(uint256)\n",
+  "triage": "tooling limitation: bounded loops over factory-created series and Midnight views"
+ },
+ {
+  "id": "c9c5f7512211a704f3cda005208a37cded7fffd8801c000b6852714e6fd6ce08",
+  "check": "calls-loop",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "coreValuation.seniorAssetsSynced() (contracts/src/core/modules/coreValuation.sol#42-49) has external calls inside a loop: (navS,None,None) = creditSeries(liveSeries[i]).navsSynced() (contracts/src/core/modules/coreValuation.sol#46)\n",
+  "triage": "tooling limitation: bounded loops over factory-created series and Midnight views"
+ },
+ {
+  "id": "dce675e1b076c0c14a6420b3bd6c2b0adf9365aaba8df35b79ad81e80b4fe142",
+  "check": "calls-loop",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "coreValuation.juniorAssets() (contracts/src/core/modules/coreValuation.sol#33-40) has external calls inside a loop: (None,navJ,None) = creditSeries(liveSeries[i]).navs() (contracts/src/core/modules/coreValuation.sol#37)\n\tCalls stack containing the loop:\n\t\tcoreValuation.idleAvailable(bool)\n",
+  "triage": "tooling limitation: bounded loops over factory-created series and Midnight views"
+ },
+ {
+  "id": "e90f5743ba33461d7fb9e66dd495750dd36d8259bdbce1563ecf985cb1332d0b",
+  "check": "calls-loop",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "coreValuation.juniorAssets() (contracts/src/core/modules/coreValuation.sol#33-40) has external calls inside a loop: (None,navJ,None) = creditSeries(liveSeries[i]).navs() (contracts/src/core/modules/coreValuation.sol#37)\n\tCalls stack containing the loop:\n\t\tcoreValuation.juniorRedeemable()\n",
+  "triage": "tooling limitation: bounded loops over factory-created series and Midnight views"
+ },
+ {
+  "id": "ef775100c4573b60d21244d0eb76fe904e3aac0eb5eab56205a04fca467c9180",
+  "check": "calls-loop",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "seriesDeployment._tickMax(uint256) (contracts/src/series/modules/seriesDeployment.sol#163-171) has external calls inside a loop: (None,None,None,None,None,None,None,None,None,None,None,None,tickSpacing) = MIDNIGHT.marketState(id) (contracts/src/series/modules/seriesDeployment.sol#165)\n\tCalls stack containing the loop:\n\t\tseriesDeployment.registerOffers(bytes32,Offer[])\n\t\tseriesDeployment._validateSelfOffer(Offer,uint256)\n",
+  "triage": "tooling limitation: bounded loops over factory-created series and Midnight views"
+ },
+ {
+  "id": "05cfd167f973a28a35bb10ee00d30e67835b047a53f5b754199318d7c1118a99",
+  "check": "reentrancy-benign",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "Reentrancy in usdcJuniorDepositQueue.requestDeposit(uint256,address,address) (contracts/src/vaults/junior/usdcJuniorDepositQueue.sol#65-80):\n\tExternal calls:\n\t- require(bool,string)(iErc20Like(USDC).transferFrom(owner,address(CORE),assets),transfer failed) (contracts/src/vaults/junior/usdcJuniorDepositQueue.sol#73)\n\t- CORE.addPendingJunior(assets) (contracts/src/vaults/junior/usdcJuniorDepositQueue.sol#74)\n\tState variables written after the call(s):\n\t- depositEpochs[requestId].totalAssetsRequested += assets (contracts/src/vaults/junior/usdcJuniorDepositQueue.sol#76)\n\t- depositEpochs[requestId].remainingFillable += assets (contracts/src/vaults/junior/usdcJuniorDepositQueue.sol#77)\n\t- requestedAssets[requestId][controller] += assets (contracts/src/vaults/junior/usdcJuniorDepositQueue.sol#75)\n",
+  "triage": "tooling limitation: benign writes after trusted calls"
+ },
+ {
+  "id": "2dd53895ab557ee30b3ae0103b0ba0cefbc8573d4b874a13d2edd997d26b639a",
+  "check": "reentrancy-benign",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "Reentrancy in idleParking.deposit(uint256) (contracts/src/parking/idleParking.sol#21-24):\n\tExternal calls:\n\t- require(bool,error)(USDC.transferFrom(msg.sender,address(this),assets),revert InsufficientBalance()()) (contracts/src/parking/idleParking.sol#22)\n\tState variables written after the call(s):\n\t- balanceOf[msg.sender] += assets (contracts/src/parking/idleParking.sol#23)\n",
+  "triage": "tooling limitation: benign writes after trusted calls"
+ },
+ {
+  "id": "831f26de2d2977a46ddd53e0d104508037881db2bc897310bc88665bf1cff371",
+  "check": "reentrancy-benign",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "Reentrancy in seriesDeployment.deployTake(uint256,Offer,bytes,uint256) (contracts/src/series/modules/seriesDeployment.sol#101-145):\n\tExternal calls:\n\t- PARKING.withdraw(maxAssets,address(this)) (contracts/src/series/modules/seriesDeployment.sol#120)\n\t- ERC20Lib.safeApprove(USDC,address(MIDNIGHT),maxAssets) (contracts/src/series/modules/seriesDeployment.sol#121)\n\t- (buyerAssets,None) = MIDNIGHT.take(offer,ratifierData,units,address(this),address(0),address(0),) (contracts/src/series/modules/seriesDeployment.sol#124)\n\t- ERC20Lib.safeApprove(USDC,address(PARKING),leftover) (contracts/src/series/modules/seriesDeployment.sol#134)\n\t- PARKING.deposit(leftover) (contracts/src/series/modules/seriesDeployment.sol#135)\n\t- ERC20Lib.safeApprove(USDC,address(MIDNIGHT),0) (contracts/src/series/modules/seriesDeployment.sol#137)\n\tState variables written after the call(s):\n\t- feeCrystallized[i] += uint256(pendingFeeAfter) - uint256(pendingFeeBefore) (contracts/src/series/modules/seriesDeployment.sol#141)\n\t- unitsBought[i] += units (contracts/src/series/modules/seriesDeployment.sol#140)\n",
+  "triage": "tooling limitation: benign writes after trusted calls"
+ },
+ {
+  "id": "936336c7b307d547865482fc4ff0ecbe16b0aef27a76c5db07e0016106def13a",
+  "check": "reentrancy-benign",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "Reentrancy in seriesSettlement.collect(uint256) (contracts/src/series/modules/seriesSettlement.sol#22-52):\n\tExternal calls:\n\t- MIDNIGHT.updatePosition(m,address(this)) (contracts/src/series/modules/seriesSettlement.sol#31)\n\t- MIDNIGHT.withdraw(m,units,address(this),address(this)) (contracts/src/series/modules/seriesSettlement.sol#38)\n\tState variables written after the call(s):\n\t- collected[i] += received (contracts/src/series/modules/seriesSettlement.sol#42)\n",
+  "triage": "tooling limitation: benign writes after trusted calls"
+ },
+ {
+  "id": "94c9eb803db65fd3d057ce7fcdb4d1e9970d406ec5dadda6a55c7a33d65c26ff",
+  "check": "reentrancy-benign",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "Reentrancy in seriesSettlement.collect(uint256) (contracts/src/series/modules/seriesSettlement.sol#22-52):\n\tExternal calls:\n\t- MIDNIGHT.updatePosition(m,address(this)) (contracts/src/series/modules/seriesSettlement.sol#31)\n\t- MIDNIGHT.withdraw(m,units,address(this),address(this)) (contracts/src/series/modules/seriesSettlement.sol#38)\n\t- ERC20Lib.safeApprove(USDC,address(PARKING),received) (contracts/src/series/modules/seriesSettlement.sol#43)\n\t- PARKING.deposit(received) (contracts/src/series/modules/seriesSettlement.sol#44)\n\tState variables written after the call(s):\n\t- resolved[i] = true (contracts/src/series/modules/seriesSettlement.sol#47)\n",
+  "triage": "tooling limitation: benign writes after trusted calls"
+ },
+ {
+  "id": "c4d01119a7518d15f03c6b18b018f6f9681a723778863dea7fa038d4b250a5aa",
+  "check": "reentrancy-benign",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "Reentrancy in coreParkingBooks._depositToBook(bool,uint256) (contracts/src/core/modules/coreParkingBooks.sol#58-64):\n\tExternal calls:\n\t- require(bool,string)(iErc20Like(USDC).approve(address(PARKING),assets),approve failed) (contracts/src/core/modules/coreParkingBooks.sol#60)\n\t- PARKING.deposit(assets) (contracts/src/core/modules/coreParkingBooks.sol#61)\n\tState variables written after the call(s):\n\t- _addToBook(isSenior,afterDeposit - before,before) (contracts/src/core/modules/coreParkingBooks.sol#63)\n\t\t- junior.parkingClaims += claims (contracts/src/core/modules/coreParkingBooks.sol#37)\n\t- _addToBook(isSenior,0,before) (contracts/src/core/modules/coreParkingBooks.sol#63)\n\t\t- junior.parkingClaims += claims (contracts/src/core/modules/coreParkingBooks.sol#37)\n\t- _addToBook(isSenior,afterDeposit - before,before) (contracts/src/core/modules/coreParkingBooks.sol#63)\n\t\t- senior.parkingClaims += claims (contracts/src/core/modules/coreParkingBooks.sol#36)\n\t- _addToBook(isSenior,0,before) (contracts/src/core/modules/coreParkingBooks.sol#63)\n\t\t- senior.parkingClaims += claims (contracts/src/core/modules/coreParkingBooks.sol#36)\n\t- _addToBook(isSenior,afterDeposit - before,before) (contracts/src/core/modules/coreParkingBooks.sol#63)\n\t\t- totalParkingClaims += claims (contracts/src/core/modules/coreParkingBooks.sol#38)\n\t- _addToBook(isSenior,0,before) (contracts/src/core/modules/coreParkingBooks.sol#63)\n\t\t- totalParkingClaims += claims (contracts/src/core/modules/coreParkingBooks.sol#38)\n",
+  "triage": "tooling limitation: benign writes after trusted calls"
+ },
+ {
+  "id": "c4dbb5e0e74f1f44312ac7f6d39a4be6637a58300e07ffb32edb084259546842",
+  "check": "reentrancy-benign",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "Reentrancy in seriesDeployment.onBuy(bytes32,Market,uint256,uint256,uint256,address,bytes) (contracts/src/series/modules/seriesDeployment.sol#60-99):\n\tExternal calls:\n\t- PARKING.withdraw(buyerAssets,address(this)) (contracts/src/series/modules/seriesDeployment.sol#89)\n\t- ERC20Lib.safeApprove(USDC,address(MIDNIGHT),buyerAssets) (contracts/src/series/modules/seriesDeployment.sol#90)\n\tState variables written after the call(s):\n\t- feeCrystallized[i] += pendingFeeIncrease (contracts/src/series/modules/seriesDeployment.sol#94)\n\t- unitsBought[i] += units (contracts/src/series/modules/seriesDeployment.sol#93)\n",
+  "triage": "tooling limitation: benign writes after trusted calls"
+ },
+ {
+  "id": "06e6eb61899a8a648b34ee5cdce368aa0e672b2fefa9f16025935e0c02d24c8f",
+  "check": "reentrancy-events",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "Reentrancy in usdcJuniorRedeemClaims._redeemClaim(uint256,address,address) (contracts/src/vaults/junior/usdcJuniorRedeemClaims.sol#53-70):\n\tExternal calls:\n\t- CORE.payFrom(false,receiver,assets) (contracts/src/vaults/junior/usdcJuniorRedeemClaims.sol#68)\n\tEvent emitted after the call(s):\n\t- Withdraw(msg.sender,receiver,controller,assets,shares) (contracts/src/vaults/junior/usdcJuniorRedeemClaims.sol#69)\n",
+  "triage": "tooling limitation: events after trusted calls"
+ },
+ {
+  "id": "1c5ca56c7b0e9474d6dbc320435109bb39f30906fdc7cb7a1c7ca8b25188017c",
+  "check": "reentrancy-events",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "Reentrancy in coreSeriesLifecycle.openSeries(SeriesParams,uint256,uint256) (contracts/src/core/modules/coreSeriesLifecycle.sol#17-53):\n\tExternal calls:\n\t- seriesAddr = FACTORY.createSeries(p) (contracts/src/core/modules/coreSeriesLifecycle.sol#43)\n\t- PARKING.transferPosition(seriesAddr,kAlloc) (contracts/src/core/modules/coreSeriesLifecycle.sol#46)\n\t- creditSeries(seriesAddr).initialize(S,J) (contracts/src/core/modules/coreSeriesLifecycle.sol#47)\n\tEvent emitted after the call(s):\n\t- SeriesFunded(seriesAddr,S,J) (contracts/src/core/modules/coreSeriesLifecycle.sol#52)\n",
+  "triage": "tooling limitation: events after trusted calls"
+ },
+ {
+  "id": "1cb01624be5ddb5062d54072ed5babe84d43b56229751e92019c3c416d232fba",
+  "check": "reentrancy-events",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "Reentrancy in seriesDeployment.registerOffers(bytes32,Offer[]) (contracts/src/series/modules/seriesDeployment.sol#28-49):\n\tExternal calls:\n\t- SETTER_RATIFIER.setIsRootRatified(address(this),root,true) (contracts/src/series/modules/seriesDeployment.sol#46)\n\tEvent emitted after the call(s):\n\t- OffersRegistered(root,uint64(block.timestamp),length) (contracts/src/series/modules/seriesDeployment.sol#48)\n",
+  "triage": "tooling limitation: events after trusted calls"
+ },
+ {
+  "id": "29272982b550606cbc78615aabc8ea80abf61786a69622a7003a812b04aaa2c2",
+  "check": "reentrancy-events",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "Reentrancy in coreSeriesLifecycle.syncAll() (contracts/src/core/modules/coreSeriesLifecycle.sol#84-90):\n\tExternal calls:\n\t- creditSeries(liveSeries[i]).navsSynced() (contracts/src/core/modules/coreSeriesLifecycle.sol#87)\n\tEvent emitted after the call(s):\n\t- Synced(seniorAssets(),juniorAssets()) (contracts/src/core/modules/coreSeriesLifecycle.sol#89)\n",
+  "triage": "tooling limitation: events after trusted calls"
+ },
+ {
+  "id": "3e829b8059c381a0f93ce77839435a90d29e1ae584ec2ccfef9d7aef673b1858",
+  "check": "reentrancy-events",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "Reentrancy in usdcJuniorDepositCancels.claimCancelDepositRequest(uint256,address,address) (contracts/src/vaults/junior/usdcJuniorDepositCancels.sol#36-49):\n\tExternal calls:\n\t- CORE.removePendingJunior(assets,receiver) (contracts/src/vaults/junior/usdcJuniorDepositCancels.sol#47)\n\tEvent emitted after the call(s):\n\t- CancelDepositClaimed(controller,receiver,requestId,assets) (contracts/src/vaults/junior/usdcJuniorDepositCancels.sol#48)\n",
+  "triage": "tooling limitation: events after trusted calls"
+ },
+ {
+  "id": "5858846ed6bc231dcffcba5280b4a350f3f63433374ea60c333bbe13ffaa7213",
+  "check": "reentrancy-events",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "Reentrancy in usdcJuniorDepositQueue.requestDeposit(uint256,address,address) (contracts/src/vaults/junior/usdcJuniorDepositQueue.sol#65-80):\n\tExternal calls:\n\t- require(bool,string)(iErc20Like(USDC).transferFrom(owner,address(CORE),assets),transfer failed) (contracts/src/vaults/junior/usdcJuniorDepositQueue.sol#73)\n\t- CORE.addPendingJunior(assets) (contracts/src/vaults/junior/usdcJuniorDepositQueue.sol#74)\n\tEvent emitted after the call(s):\n\t- DepositRequest(controller,owner,requestId,msg.sender,assets) (contracts/src/vaults/junior/usdcJuniorDepositQueue.sol#79)\n",
+  "triage": "tooling limitation: events after trusted calls"
+ },
+ {
+  "id": "8d4f7b65c3b27ad55c4196069651bd98d833e705d5684f5b161bb5db41e0a8dd",
+  "check": "reentrancy-events",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "Reentrancy in seriesMarks.sync(uint256) (contracts/src/series/modules/seriesMarks.sol#16-25):\n\tExternal calls:\n\t- MIDNIGHT.updatePosition(_markets[i],address(this)) (contracts/src/series/modules/seriesMarks.sol#17)\n\tEvent emitted after the call(s):\n\t- BufferUpdated(i,creditI,fNetNow,bufferAtT,lossAtT) (contracts/src/series/modules/seriesMarks.sol#24)\n",
+  "triage": "tooling limitation: events after trusted calls"
+ },
+ {
+  "id": "b6e3597c23747e711b227c74eeabbe5058a563bdde0defdc8ebd6d48552386e2",
+  "check": "reentrancy-events",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "Reentrancy in usdcSeniorRedeemClaims._redeem(uint256,address,address) (contracts/src/vaults/senior/usdcSeniorRedeemClaims.sol#53-70):\n\tExternal calls:\n\t- CORE.payFrom(true,receiver,assets) (contracts/src/vaults/senior/usdcSeniorRedeemClaims.sol#68)\n\tEvent emitted after the call(s):\n\t- Withdraw(msg.sender,receiver,controller,assets,shares) (contracts/src/vaults/senior/usdcSeniorRedeemClaims.sol#69)\n",
+  "triage": "tooling limitation: events after trusted calls"
+ },
+ {
+  "id": "c0ebbd61bdd3d3aa9b04cd655ebe27ca114eb313a38c6894b0775f89862c3775",
+  "check": "reentrancy-events",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "Reentrancy in seriesDeployment.revokeOffers(bytes32) (contracts/src/series/modules/seriesDeployment.sol#51-54):\n\tExternal calls:\n\t- SETTER_RATIFIER.setIsRootRatified(address(this),root,false) (contracts/src/series/modules/seriesDeployment.sol#52)\n\tEvent emitted after the call(s):\n\t- OffersRevoked(root) (contracts/src/series/modules/seriesDeployment.sol#53)\n",
+  "triage": "tooling limitation: events after trusted calls"
+ },
+ {
+  "id": "e4bd3ffda155ad94ed84f72b24972008c83db889ab0cccb8fb641c5bd4bb8670",
+  "check": "reentrancy-events",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "Reentrancy in usdcSeniorRedeemClaims.withdraw(uint256,address,address) (contracts/src/vaults/senior/usdcSeniorRedeemClaims.sol#21-42):\n\tExternal calls:\n\t- CORE.payFrom(true,receiver,assets) (contracts/src/vaults/senior/usdcSeniorRedeemClaims.sol#40)\n\tEvent emitted after the call(s):\n\t- Withdraw(msg.sender,receiver,controller,assets,shares) (contracts/src/vaults/senior/usdcSeniorRedeemClaims.sol#41)\n",
+  "triage": "tooling limitation: events after trusted calls"
+ },
+ {
+  "id": "f7695bc21701b89c81efdb794f10ca004fe091de37a2a21894f7d84993d8609c",
+  "check": "reentrancy-events",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "Reentrancy in usdcJuniorRedeemClaims.withdraw(uint256,address,address) (contracts/src/vaults/junior/usdcJuniorRedeemClaims.sol#21-42):\n\tExternal calls:\n\t- CORE.payFrom(false,receiver,assets) (contracts/src/vaults/junior/usdcJuniorRedeemClaims.sol#40)\n\tEvent emitted after the call(s):\n\t- Withdraw(msg.sender,receiver,controller,assets,shares) (contracts/src/vaults/junior/usdcJuniorRedeemClaims.sol#41)\n",
+  "triage": "tooling limitation: events after trusted calls"
+ },
+ {
+  "id": "0051a1e469bcc324bf037cbb2bf1e6629d8f5972aa5c09278261dc8e5c2f02a0",
+  "check": "timestamp",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "seriesDeployment.onBuy(bytes32,Market,uint256,uint256,uint256,address,bytes) (contracts/src/series/modules/seriesDeployment.sol#60-99) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- require(bool,error)(state == SeriesState.DEPLOYING && block.timestamp <= T_DEPLOY_END,revert WrongState(SeriesState,SeriesState)(SeriesState.DEPLOYING,state)) (contracts/src/series/modules/seriesDeployment.sol#74-76)\n",
+  "triage": "tooling limitation: day-scale windows"
+ },
+ {
+  "id": "09efb69d9dc1c6b89a520ac842abd7f213a393dbb854aad707b20bd5b5cb1844",
+  "check": "timestamp",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "seriesFactory._consumeTimelock(bytes32) (contracts/src/series/seriesFactory.sol#158-162) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- require(bool,error)(change.active && block.timestamp >= change.executableAt,revert TimelockNotElapsed()()) (contracts/src/series/seriesFactory.sol#160)\n",
+  "triage": "tooling limitation: day-scale windows"
+ },
+ {
+  "id": "0f8e6afc3541ea27d5424a270b9f5cf512e66aa3bcf574b5715b24fd2ac68d1d",
+  "check": "timestamp",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "seriesDeployment.buyerAssetsBound(bytes32,Market,address,bytes) (contracts/src/series/modules/seriesDeployment.sol#147-157) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- state != SeriesState.DEPLOYING || block.timestamp > T_DEPLOY_END (contracts/src/series/modules/seriesDeployment.sol#148)\n",
+  "triage": "tooling limitation: day-scale windows"
+ },
+ {
+  "id": "2584926de8bddcb554e9914b668e9e314d6381ca07f8303d799a6c73bd143954",
+  "check": "timestamp",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "seriesFunding.finalize() (contracts/src/series/modules/seriesFunding.sol#46-128) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- require(bool,error)(msg.sender == ALLOCATOR || block.timestamp > T_DEPLOY_END,revert NotAllocator()()) (contracts/src/series/modules/seriesFunding.sol#47)\n",
+  "triage": "tooling limitation: day-scale windows"
+ },
+ {
+  "id": "2b9ece9df9841f1c22fa6e138f7c5b817517942f3d086e16e0e3fa528cb0dfff",
+  "check": "timestamp",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "coreGovernance.lowerMaxSeries(uint256) (contracts/src/core/modules/coreGovernance.sol#65-69) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- require(bool,error)(newMax <= policy.maxSeries,revert TimelockIsRiskDecreasing()()) (contracts/src/core/modules/coreGovernance.sol#66)\n",
+  "triage": "tooling limitation: day-scale windows"
+ },
+ {
+  "id": "45b1128bf03b1863a9ad63e701ee0c4c1aa9d6b5dac05cf88e0d4379b667745e",
+  "check": "timestamp",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "coreGovernance.executePolicyChange(bytes32) (contracts/src/core/modules/coreGovernance.sol#47-53) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- require(bool,error)(change.active && block.timestamp >= change.executableAt,revert TimelockNotElapsed()()) (contracts/src/core/modules/coreGovernance.sol#49)\n",
+  "triage": "tooling limitation: day-scale windows"
+ },
+ {
+  "id": "4e696decceff1a84dc758be86edfb7692cd44b7bcfab2d4d83d7675df3c4bf0f",
+  "check": "timestamp",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "coreGovernance.raiseCovVaultMinWad(uint256) (contracts/src/core/modules/coreGovernance.sol#101-105) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- require(bool,error)(newFloor >= policy.covVaultMinWad && newFloor < WAD,revert TimelockIsRiskDecreasing()()) (contracts/src/core/modules/coreGovernance.sol#102)\n",
+  "triage": "tooling limitation: day-scale windows"
+ },
+ {
+  "id": "517d9bcde4ba70acdc9dd13be9be8cca22849dfbc7cf4f34fba81f40e6407cd8",
+  "check": "timestamp",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "seriesStorage.constructor(iMidnightMinimal,address,address,address,Market[],SeriesParams) (contracts/src/series/modules/seriesStorage.sol#149-191) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- require(bool,error)(block.timestamp < p.tDeployEnd,revert InvalidTiming()()) (contracts/src/series/modules/seriesStorage.sol#187)\n",
+  "triage": "tooling limitation: day-scale windows"
+ },
+ {
+  "id": "6b5344da9492ebcc6e120ca7d65a0a6c05529ff686a57a080606306e9ac49c8c",
+  "check": "timestamp",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "coreGovernance.lowerAMaxWad(uint256) (contracts/src/core/modules/coreGovernance.sol#77-81) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- require(bool,error)(newAMax <= policy.aMaxWad && newAMax >= policy.covWad,revert TimelockIsRiskDecreasing()()) (contracts/src/core/modules/coreGovernance.sol#78)\n",
+  "triage": "tooling limitation: day-scale windows"
+ },
+ {
+  "id": "74f23b1e0eadd6772dcaa4ec9fd9bfa9682362aa0ce538a290eb140378aa7ebd",
+  "check": "timestamp",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "usdcJuniorDepositCancels.cancelDepositRequest(uint256,address) (contracts/src/vaults/junior/usdcJuniorDepositCancels.sol#16-26) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- require(bool,error)(! depositEpochs[requestId].closed || block.timestamp >= depositEpochClosedAt[requestId] + CANCEL_AFTER_CLOSE,revert EpochAlreadyClosed()()) (contracts/src/vaults/junior/usdcJuniorDepositCancels.sol#17-20)\n",
+  "triage": "tooling limitation: day-scale windows"
+ },
+ {
+  "id": "8e7318caf685efd1654d772e5fcb2c70a2a9b25bf431c5670d9bb6b7274a05da",
+  "check": "timestamp",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "usdcVaultBase._requireOperatorOrAfter(uint256) (contracts/src/vaults/shared/usdcVaultBase.sol#103-105) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- require(bool,error)(_isOperator() || block.timestamp >= deadline,revert NotOperator()()) (contracts/src/vaults/shared/usdcVaultBase.sol#104)\n",
+  "triage": "tooling limitation: day-scale windows"
+ },
+ {
+  "id": "9096b31e1535dff15353db077a48a937e0ab186a770b79650015a8573c3f4300",
+  "check": "timestamp",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "seriesSettlement.startSettlement() (contracts/src/series/modules/seriesSettlement.sol#16-20) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- require(bool,error)(block.timestamp >= T,revert TooEarly(uint256)(block.timestamp)) (contracts/src/series/modules/seriesSettlement.sol#17)\n",
+  "triage": "tooling limitation: day-scale windows"
+ },
+ {
+  "id": "921fb5d43dd52de5d0ea8a04e56478aaf76ec7ad0841cf4de6af3c6192d547db",
+  "check": "timestamp",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "coreGovernance.raiseMinIdleJuniorWad(uint256) (contracts/src/core/modules/coreGovernance.sol#89-93) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- require(bool,error)(newFloor >= policy.minIdleJuniorWad && newFloor <= WAD,revert TimelockIsRiskDecreasing()()) (contracts/src/core/modules/coreGovernance.sol#90)\n",
+  "triage": "tooling limitation: day-scale windows"
+ },
+ {
+  "id": "9c4356756ba8557c04c92fd80bcebf40bd2ddbc4c8c3d90194e2f59dcd9fe1d3",
+  "check": "timestamp",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "coreGovernance.raiseStressJuniorFloorWad(uint256) (contracts/src/core/modules/coreGovernance.sol#95-99) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- require(bool,error)(newFloor >= policy.stressJuniorFloorWad && newFloor <= WAD,revert TimelockIsRiskDecreasing()()) (contracts/src/core/modules/coreGovernance.sol#96)\n",
+  "triage": "tooling limitation: day-scale windows"
+ },
+ {
+  "id": "a586851875e2370c2d1603d2a994df6ed9b787c2ee595c3bfbe1a2e86251b15e",
+  "check": "timestamp",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "seriesDeployment.deployTake(uint256,Offer,bytes,uint256) (contracts/src/series/modules/seriesDeployment.sol#101-145) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- require(bool,error)(block.timestamp <= T_DEPLOY_END,revert TooLate(uint256)(block.timestamp)) (contracts/src/series/modules/seriesDeployment.sol#107)\n\t- require(bool,error)(filled[i] + maxAssets <= _marketCapAssets[i],revert CapExceeded(uint256)(i)) (contracts/src/series/modules/seriesDeployment.sol#117)\n\t- require(bool,error)(totalFilled + maxAssets <= kAlloc,revert CapExceeded(uint256)(i)) (contracts/src/series/modules/seriesDeployment.sol#118)\n\t- maxAssets > buyerAssets (contracts/src/series/modules/seriesDeployment.sol#132)\n\t- T > block.timestamp (contracts/src/series/modules/seriesDeployment.sol#111)\n",
+  "triage": "tooling limitation: day-scale windows"
+ },
+ {
+  "id": "ab0d4f3ad528dbf2d89f9398e94233a57ce85c90185d3d1ccbcd94df2aa90aff",
+  "check": "timestamp",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "coreGovernance.raiseMinIdleSeniorWad(uint256) (contracts/src/core/modules/coreGovernance.sol#83-87) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- require(bool,error)(newFloor >= policy.minIdleSeniorWad && newFloor <= WAD,revert TimelockIsRiskDecreasing()()) (contracts/src/core/modules/coreGovernance.sol#84)\n",
+  "triage": "tooling limitation: day-scale windows"
+ },
+ {
+  "id": "acf58cc1b5b373270aa3adeddfff9899bbcb05ffc3862c6d3e29d6d0749cd0f7",
+  "check": "timestamp",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "coreGovernance._writePolicy(bytes32,uint256) (contracts/src/core/modules/coreGovernance.sol#112-133) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- policy.backstopEnabled = value != 0 (contracts/src/core/modules/coreGovernance.sol#129)\n",
+  "triage": "tooling limitation: day-scale windows"
+ },
+ {
+  "id": "b0b6b1659e6591387515a55c8a254563ca8ebad10d01597630801f074fc74246",
+  "check": "timestamp",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "coreSeriesLifecycle._requireParamsBound(SeriesParams) (contracts/src/core/modules/coreSeriesLifecycle.sol#121-136) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- require(bool,error)(p.covWad == policy.covWad && p.pi0Wad == policy.pi0Wad && p.piTWad == policy.piTWad && p.pi1Wad == policy.pi1Wad && p.thetaWad == policy.thetaWad,revert PolicyMismatch()()) (contracts/src/core/modules/coreSeriesLifecycle.sol#125-129)\n\t- require(bool,error)(p.rateFloorWad[i] >= policy.minRateFloorWad,revert RateFloorBelowMin(uint256)(i)) (contracts/src/core/modules/coreSeriesLifecycle.sol#132)\n\t- require(bool,error)(p.kMinAssets <= maxKMinAssets,revert KMinAboveCap()()) (contracts/src/core/modules/coreSeriesLifecycle.sol#134)\n",
+  "triage": "tooling limitation: day-scale windows"
+ },
+ {
+  "id": "b1b5fcdc4cbb82ec872ddf8f5f5891c0c82db952810a647bbcd4633b31dab2d3",
+  "check": "timestamp",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "usdcSeniorRedeemCancels.cancelRedeemRequest(uint256,address) (contracts/src/vaults/senior/usdcSeniorRedeemCancels.sol#11-21) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- require(bool,error)(! closed || block.timestamp >= epochClosedAt[requestId] + CANCEL_AFTER_CLOSE,revert EpochAlreadyClosed()()) (contracts/src/vaults/senior/usdcSeniorRedeemCancels.sol#13)\n",
+  "triage": "tooling limitation: day-scale windows"
+ },
+ {
+  "id": "b9717d8e7672bdfb60ea683f49f36e374519e0e9b6f3c6d654ecfbeaf5ee0e2a",
+  "check": "timestamp",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "coreGovernance.lowerMaxPerSeriesAssets(uint256) (contracts/src/core/modules/coreGovernance.sol#71-75) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- require(bool,error)(newMax <= policy.maxPerSeriesAssets,revert TimelockIsRiskDecreasing()()) (contracts/src/core/modules/coreGovernance.sol#72)\n",
+  "triage": "tooling limitation: day-scale windows"
+ },
+ {
+  "id": "cd32cfffdbbcb7ffce07c784a8a3066017589f59f1170438c96ac50cc7ae285b",
+  "check": "timestamp",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "seriesMarks._navs() (contracts/src/series/modules/seriesMarks.sol#61-102) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- elapsed > tau (contracts/src/series/modules/seriesMarks.sol#81)\n\t- grossV > faceLoss (contracts/src/series/modules/seriesMarks.sol#86)\n",
+  "triage": "tooling limitation: day-scale windows"
+ },
+ {
+  "id": "db264c701226728d1b06fc4f661112a0ee810acc3f7ddc43e0d9ee9d46731b73",
+  "check": "timestamp",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "seriesDeployment.registerOffers(bytes32,Offer[]) (contracts/src/series/modules/seriesDeployment.sol#28-49) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- require(bool,error)(block.timestamp <= T_DEPLOY_END,revert TooLate(uint256)(block.timestamp)) (contracts/src/series/modules/seriesDeployment.sol#33)\n",
+  "triage": "tooling limitation: day-scale windows"
+ },
+ {
+  "id": "e136efa492f098fa60e309bf6017f5500c071d9dda227fded47c7a9520c78055",
+  "check": "timestamp",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "coreSeriesLifecycle.openSeries(SeriesParams,uint256,uint256) (contracts/src/core/modules/coreSeriesLifecycle.sol#17-53) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- require(bool,error)(liveSeries.length < policy.maxSeries,revert MaxSeriesExceeded()()) (contracts/src/core/modules/coreSeriesLifecycle.sol#23)\n\t- require(bool,error)(kAlloc > 0 && kAlloc <= policy.maxPerSeriesAssets,revert PerSeriesCapExceeded()()) (contracts/src/core/modules/coreSeriesLifecycle.sol#26)\n\t- require(bool,error)(policy.covWad <= aWad && aWad <= policy.aMaxWad,revert CoverageBand(uint256)(aWad)) (contracts/src/core/modules/coreSeriesLifecycle.sol#31)\n\t- require(bool,error)(windowExposure <= totalAum.mulDivDown(policy.maxPerMaturityWindowWad,WAD),revert MaturityWindowExceeded()()) (contracts/src/core/modules/coreSeriesLifecycle.sol#41)\n",
+  "triage": "tooling limitation: day-scale windows"
+ },
+ {
+  "id": "e5f0e277342653acc662b00cc2705c634fafdfcf4d44816eba04fb1b6ae0270a",
+  "check": "timestamp",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "seriesSettlement.writeOff() (contracts/src/series/modules/seriesSettlement.sol#65-75) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- require(bool,error)(block.timestamp >= T + D_WRITE_OFF,revert TooEarly(uint256)(block.timestamp)) (contracts/src/series/modules/seriesSettlement.sol#66)\n",
+  "triage": "tooling limitation: day-scale windows"
+ },
+ {
+  "id": "edc76e1986fba9b1f58e80ecc2cb233d92442ef945c8b9bfe99209169fe2e960",
+  "check": "timestamp",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "usdcJuniorRedeemCancels.cancelRedeemRequest(uint256,address) (contracts/src/vaults/junior/usdcJuniorRedeemCancels.sol#11-20) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- require(bool,error)(! closed || block.timestamp >= redeemEpochClosedAt[requestId] + CANCEL_AFTER_CLOSE,revert EpochAlreadyClosed()()) (contracts/src/vaults/junior/usdcJuniorRedeemCancels.sol#13)\n",
+  "triage": "tooling limitation: day-scale windows"
+ },
+ {
+  "id": "f96a17e82d51d0a60c82ee82e75079ba8ab28d4e2d6193cce2642ec79199269e",
+  "check": "timestamp",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "seriesSettlement.collect(uint256) (contracts/src/series/modules/seriesSettlement.sol#22-52) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- block.timestamp > T && creditAfter == 0 (contracts/src/series/modules/seriesSettlement.sol#47)\n",
+  "triage": "tooling limitation: day-scale windows"
+ },
+ {
+  "id": "a14b72c847b52bb202e18f8235d2a34f1fcc26973817956d6277ab73a51cbf59",
+  "check": "assembly",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "wadMath.mulDivDown(uint256,uint256,uint256) (contracts/src/libraries/wadMath.sol#13-58) uses assembly\n\t- INLINE ASM (contracts/src/libraries/wadMath.sol#18-22)\n\t- INLINE ASM (contracts/src/libraries/wadMath.sol#34-38)\n\t- INLINE ASM (contracts/src/libraries/wadMath.sol#41-45)\n",
+  "triage": "tooling limitation: informational, see triage doc"
+ },
+ {
+  "id": "4c7679345f481c9003f356035ce5e246aa43300d2a1699f31d4d1e2f8c9cc321",
+  "check": "costly-loop",
+  "impact": "Informational",
+  "confidence": "Medium",
+  "description": "coreSeriesLifecycle.pruneSeries() (contracts/src/core/modules/coreSeriesLifecycle.sol#92-119) has costly operations inside a loop:\n\t- recoveringSeries.pop() (contracts/src/core/modules/coreSeriesLifecycle.sol#114)\n",
+  "triage": "tooling limitation: informational, see triage doc"
+ },
+ {
+  "id": "b75488f3a18fed0baa394c5fe94a8cf6be4f083d6014d508b675e56ef93c1c9d",
+  "check": "costly-loop",
+  "impact": "Informational",
+  "confidence": "Medium",
+  "description": "coreSeriesLifecycle.pruneSeries() (contracts/src/core/modules/coreSeriesLifecycle.sol#92-119) has costly operations inside a loop:\n\t- liveSeries.pop() (contracts/src/core/modules/coreSeriesLifecycle.sol#101)\n",
+  "triage": "tooling limitation: informational, see triage doc"
+ },
+ {
+  "id": "91adfef8fdbcec5200f166e9b42334abdb86395a17fdee7c41153c3c858795a6",
+  "check": "cyclomatic-complexity",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "coreGovernance._writePolicy(bytes32,uint256) (contracts/src/core/modules/coreGovernance.sol#112-133) has a high cyclomatic complexity (21).\n",
+  "triage": "tooling limitation: informational, see triage doc"
+ },
+ {
+  "id": "7c749717d0b805acd66ebf69fa34a2cfe2ebd26c07b0056942b74d22125af284",
+  "check": "low-level-calls",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Low level call in seriesFactory._decimalsOf(address) (contracts/src/series/seriesFactory.sol#233-237):\n\t- (ok,data) = token.staticcall(abi.encodeWithSignature(decimals())) (contracts/src/series/seriesFactory.sol#234)\n",
+  "triage": "tooling limitation: informational, see triage doc"
+ },
+ {
+  "id": "046d8239bf27e65a9c1ea3c2e416043ffe9a9b779fe07d0665d9b6df176d02c0",
+  "check": "naming-convention",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Contract usdcSeniorVault (contracts/src/vaults/senior/usdcSeniorVault.sol#11-22) is not in CapWords\n",
+  "triage": "tooling limitation: informational, see triage doc"
+ },
+ {
+  "id": "07774c08729e0034059d0d5088b43eacf72095cd6413b5512cf5c06e9c1521b1",
+  "check": "naming-convention",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Contract seriesSettlement (contracts/src/series/modules/seriesSettlement.sol#15-119) is not in CapWords\n",
+  "triage": "tooling limitation: informational, see triage doc"
+ },
+ {
+  "id": "0858b0ea07d58bec665aec05e5b77dec7dbadf44060dd3d19d1f759971e14d49",
+  "check": "naming-convention",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Contract coreVaultFlows (contracts/src/core/modules/coreVaultFlows.sol#10-61) is not in CapWords\n",
+  "triage": "tooling limitation: informational, see triage doc"
+ },
+ {
+  "id": "0b32e59e7f75162daf316ea7580de0c3f8dfb32e2b1089eaaa9187aa49e604b9",
+  "check": "naming-convention",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Contract coreStorage (contracts/src/core/modules/coreStorage.sol#11-192) is not in CapWords\n",
+  "triage": "tooling limitation: informational, see triage doc"
+ },
+ {
+  "id": "0fae04aa7037477b88649d0b9cab6ca210826c831073937c2afed31c2bbb7050",
+  "check": "naming-convention",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Variable seriesStorage.T (contracts/src/series/modules/seriesStorage.sol#87) is not in mixedCase\n",
+  "triage": "tooling limitation: informational, see triage doc"
+ },
+ {
+  "id": "13eecf91c17e346551365523b863f2c77facd1731c337886b73a3b01f0fcc8c8",
+  "check": "naming-convention",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Variable coreStorage.FACTORY (contracts/src/core/modules/coreStorage.sol#100) is not in mixedCase\n",
+  "triage": "tooling limitation: informational, see triage doc"
+ },
+ {
+  "id": "1831a7112cfe4d67adda963e98fb4a96b01e1e10df8e5c6d4fc0ac065138039f",
+  "check": "naming-convention",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Contract premiumCurve (contracts/src/libraries/premiumCurve.sol#9-29) is not in CapWords\n",
+  "triage": "tooling limitation: informational, see triage doc"
+ },
+ {
+  "id": "19e431f33d2c0082979dbc8ca6afae85adf81c81d1a796cf7774382850ef68b8",
+  "check": "naming-convention",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Contract iSeriesCoreMinimal (contracts/src/interfaces/iSeriesCoreMinimal.sol#7-13) is not in CapWords\n",
+  "triage": "tooling limitation: informational, see triage doc"
+ },
+ {
+  "id": "20ab8f6dacaad86ed0d5a2f07c434bcd7fe117047818701b6ef1d5acf78d078c",
+  "check": "naming-convention",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Contract usdcSeniorRedeemClaims (contracts/src/vaults/senior/usdcSeniorRedeemClaims.sol#10-71) is not in CapWords\n",
+  "triage": "tooling limitation: informational, see triage doc"
+ },
+ {
+  "id": "23dbb22b9a621b70242e4ba01e343b428522da54621d19734efca6f51a8e84a8",
+  "check": "naming-convention",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Contract idleParking (contracts/src/parking/idleParking.sol#10-44) is not in CapWords\n",
+  "triage": "tooling limitation: informational, see triage doc"
+ },
+ {
+  "id": "26b6092e782482093193aba1cb5031220709c38cefa5caf80e0cab7efa113f83",
+  "check": "naming-convention",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Contract iErc4626Like (contracts/src/interfaces/iErc4626Like.sol#7-15) is not in CapWords\n",
+  "triage": "tooling limitation: informational, see triage doc"
+ },
+ {
+  "id": "26d4872444c90976f86cda63a9df84453ede1e2a6b4fd8aa654069204b1d411b",
+  "check": "naming-convention",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Contract usdcSeniorRedeemQueue (contracts/src/vaults/senior/usdcSeniorRedeemQueue.sol#11-199) is not in CapWords\n",
+  "triage": "tooling limitation: informational, see triage doc"
+ },
+ {
+  "id": "2c05f2568e1e0dcc08eec03aa4b284583333abc51f116e189d4f29c7740f81c6",
+  "check": "naming-convention",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Contract seriesCore (contracts/src/core/seriesCore.sol#12-22) is not in CapWords\n",
+  "triage": "tooling limitation: informational, see triage doc"
+ },
+ {
+  "id": "3515779c6dcfe9080ea752df206fc4900cf09c44b7fe0e01a3fe6fde857932cf",
+  "check": "naming-convention",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Variable seriesStorage.FEE_RECIPIENT (contracts/src/series/modules/seriesStorage.sol#76) is not in mixedCase\n",
+  "triage": "tooling limitation: informational, see triage doc"
+ },
+ {
+  "id": "3b09090d056302804a3e6bf9c553fae89e37b44891551498bd191553cbe5dddc",
+  "check": "naming-convention",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Variable usdcVaultBase.USDC (contracts/src/vaults/shared/usdcVaultBase.sol#50) is not in mixedCase\n",
+  "triage": "tooling limitation: informational, see triage doc"
+ },
+ {
+  "id": "41bf6f84dfb951b237d2b1994a26eaac6b374c9814b9d17c3cd5bef0e3e70fc3",
+  "check": "naming-convention",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Contract seriesDeployment (contracts/src/series/modules/seriesDeployment.sol#17-210) is not in CapWords\n",
+  "triage": "tooling limitation: informational, see triage doc"
+ },
+ {
+  "id": "47c0b296e0250515c3498f307897beeecd0ac09d39128edfc7ead258a9e24f46",
+  "check": "naming-convention",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Variable seriesStorage.T_OPEN (contracts/src/series/modules/seriesStorage.sol#88) is not in mixedCase\n",
+  "triage": "tooling limitation: informational, see triage doc"
+ },
+ {
+  "id": "50eb68d090297db430a5cbd56523fbcf8f46e17d8bacba5f75fabd333df4315c",
+  "check": "naming-convention",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Variable coreStorage.PARKING (contracts/src/core/modules/coreStorage.sol#101) is not in mixedCase\n",
+  "triage": "tooling limitation: informational, see triage doc"
+ },
+ {
+  "id": "52681b4d77c4d837d59a5f1c133a04b0b55b15953b0d6bae8f631ce3cc32a0ac",
+  "check": "naming-convention",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Variable seriesFactory.MIDNIGHT (contracts/src/series/seriesFactory.sol#32) is not in mixedCase\n",
+  "triage": "tooling limitation: informational, see triage doc"
+ },
+ {
+  "id": "5510e2188846b8bf3e47c7a476acaa951031afeefd44c50868bff43e29f91015",
+  "check": "naming-convention",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Contract usdcJuniorRedeemCancels (contracts/src/vaults/junior/usdcJuniorRedeemCancels.sol#10-44) is not in CapWords\n",
+  "triage": "tooling limitation: informational, see triage doc"
+ },
+ {
+  "id": "567ebb689c9221309adc1cf372277d27bac08dfe86721a1246181f729b4c8ead",
+  "check": "naming-convention",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Contract wadMath (contracts/src/libraries/wadMath.sol#7-85) is not in CapWords\n",
+  "triage": "tooling limitation: informational, see triage doc"
+ },
+ {
+  "id": "59930772b2850781026bb21635401fb8c9e147d06c5017b7269e91147a986c3b",
+  "check": "naming-convention",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Variable seriesStorage.K_MIN_ASSETS (contracts/src/series/modules/seriesStorage.sol#84) is not in mixedCase\n",
+  "triage": "tooling limitation: informational, see triage doc"
+ },
+ {
+  "id": "5ac937d814e7e42b0ce5a38544b9c2bf06ffc9dea1f5d19a03023c403562b360",
+  "check": "naming-convention",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Contract seriesMath (contracts/src/libraries/seriesMath.sol#9-129) is not in CapWords\n",
+  "triage": "tooling limitation: informational, see triage doc"
+ },
+ {
+  "id": "62a4eb00c4c1070d01d2df9d1796e3d45b7627763a3ceda41f3ba8455de6d30d",
+  "check": "naming-convention",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Contract iSeries (contracts/src/interfaces/iSeries.sol#35-41) is not in CapWords\n",
+  "triage": "tooling limitation: informational, see triage doc"
+ },
+ {
+  "id": "62fbe18159339747f77d372a9b52c7c22927db1f511e35d3aa9ef778bdf496ce",
+  "check": "naming-convention",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Contract seriesFactory (contracts/src/series/seriesFactory.sol#13-238) is not in CapWords\n",
+  "triage": "tooling limitation: informational, see triage doc"
+ },
+ {
+  "id": "688cbb1f30a8aafec865dcec0267dabc25467a411f2aa639c416b729a693eae8",
+  "check": "naming-convention",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Variable seriesFactory.USDC (contracts/src/series/seriesFactory.sol#34) is not in mixedCase\n",
+  "triage": "tooling limitation: informational, see triage doc"
+ },
+ {
+  "id": "6a4fb3ad2169ada1d01e15c5e25bc8673dae150188405dbe8f6c6593147d28ab",
+  "check": "naming-convention",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Variable idleParking.USDC (contracts/src/parking/idleParking.sol#14) is not in mixedCase\n",
+  "triage": "tooling limitation: informational, see triage doc"
+ },
+ {
+  "id": "71d6630812b1b9ffd797e15fc4c67a7d75fa9c1318ff82405e83ad9050ff7cbf",
+  "check": "naming-convention",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Variable seriesStorage.THETA_WAD (contracts/src/series/modules/seriesStorage.sol#85) is not in mixedCase\n",
+  "triage": "tooling limitation: informational, see triage doc"
+ },
+ {
+  "id": "7375d705c9eb452c8314235c07671fe3a1d46d7ef57147d6d508639b42d2f896",
+  "check": "naming-convention",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Variable seriesStorage.COV_WAD (contracts/src/series/modules/seriesStorage.sol#78) is not in mixedCase\n",
+  "triage": "tooling limitation: informational, see triage doc"
+ },
+ {
+  "id": "7387399867698bb8ed3525d64240f7cb2af1fe6628d690e5cde109ba95bd0949",
+  "check": "naming-convention",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Variable seriesStorage.T_DEPLOY_END (contracts/src/series/modules/seriesStorage.sol#82) is not in mixedCase\n",
+  "triage": "tooling limitation: informational, see triage doc"
+ },
+ {
+  "id": "7399f473a3abdeb40e580aecdd7fa6b4eaf59e2bc0579b3432b0e813f953143c",
+  "check": "naming-convention",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Variable seriesStorage.CORE (contracts/src/series/modules/seriesStorage.sol#73) is not in mixedCase\n",
+  "triage": "tooling limitation: informational, see triage doc"
+ },
+ {
+  "id": "7bfeded551e6e4ebf733f5257797e21821380666511b937b2bdbc4c235555909",
+  "check": "naming-convention",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Variable seriesStorage.USDC (contracts/src/series/modules/seriesStorage.sol#72) is not in mixedCase\n",
+  "triage": "tooling limitation: informational, see triage doc"
+ },
+ {
+  "id": "86090ef00c000431a78065b1cfd74eee202f58d51cf82c4e927ddd73093304f8",
+  "check": "naming-convention",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Variable seriesStorage.SETTER_RATIFIER (contracts/src/series/modules/seriesStorage.sol#71) is not in mixedCase\n",
+  "triage": "tooling limitation: informational, see triage doc"
+ },
+ {
+  "id": "861fdba795981cd8b4dfbb8848f4c3e6ceed169ff25568b3277cae3afd4f1985",
+  "check": "naming-convention",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Parameter coreSeriesLifecycle.openSeries(SeriesParams,uint256,uint256).J (contracts/src/core/modules/coreSeriesLifecycle.sol#17) is not in mixedCase\n",
+  "triage": "tooling limitation: informational, see triage doc"
+ },
+ {
+  "id": "899e8f01a19fea9341d0d5a7bca5894e53f9d7dcf0cb3b4cbedcc9731c3fcf30",
+  "check": "naming-convention",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Contract coreParkingBooks (contracts/src/core/modules/coreParkingBooks.sol#11-77) is not in CapWords\n",
+  "triage": "tooling limitation: informational, see triage doc"
+ },
+ {
+  "id": "8de8f21bca5a18f589f78a05a36d2305e73b627de0cdab4e2ec29e9060ad8b8f",
+  "check": "naming-convention",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Variable usdcVaultBase.CORE (contracts/src/vaults/shared/usdcVaultBase.sol#49) is not in mixedCase\n",
+  "triage": "tooling limitation: informational, see triage doc"
+ },
+ {
+  "id": "8e015a5ea88b0143278e1d9b47e6ca75e3017f3abe16dbed250a03310e618b5c",
+  "check": "naming-convention",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Contract seriesMarks (contracts/src/series/modules/seriesMarks.sol#13-103) is not in CapWords\n",
+  "triage": "tooling limitation: informational, see triage doc"
+ },
+ {
+  "id": "913328c893eec64567da3b5a411e3fe35fc2534c346b654c6d12bfb5249bd8a7",
+  "check": "naming-convention",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Contract creditSeries (contracts/src/series/creditSeries.sol#13-22) is not in CapWords\n",
+  "triage": "tooling limitation: informational, see triage doc"
+ },
+ {
+  "id": "93a6d372175169d001960dea7610498c541a84de060956c28ebc5914e0bb0d92",
+  "check": "naming-convention",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Contract usdcSeniorDeposits (contracts/src/vaults/senior/usdcSeniorDeposits.sol#10-68) is not in CapWords\n",
+  "triage": "tooling limitation: informational, see triage doc"
+ },
+ {
+  "id": "9ec4df4332a90e4d84f561e6628cbc1fc7134df6540978a428a5f2ab99a90023",
+  "check": "naming-convention",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Parameter coreSeriesLifecycle.openSeries(SeriesParams,uint256,uint256).S (contracts/src/core/modules/coreSeriesLifecycle.sol#17) is not in mixedCase\n",
+  "triage": "tooling limitation: informational, see triage doc"
+ },
+ {
+  "id": "9f3dd3f7c47b53edec71e372ead8ad754cc539997a2d350efd50b9c461eb2e55",
+  "check": "naming-convention",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Contract iExitQueue (contracts/src/interfaces/iExitQueue.sol#7-9) is not in CapWords\n",
+  "triage": "tooling limitation: informational, see triage doc"
+ },
+ {
+  "id": "ae47e94737b41f5f8eb1382653355409ed83ed528370dcd6ef87953a465a5b5a",
+  "check": "naming-convention",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Contract iRatifier (contracts/src/interfaces/iRatifier.sol#9-11) is not in CapWords\n",
+  "triage": "tooling limitation: informational, see triage doc"
+ },
+ {
+  "id": "b2186e3bc57970a9c06c27de35cd04e5702d9ef60dbdf3614fb3a9779743fba5",
+  "check": "naming-convention",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Variable seriesStorage.PARKING (contracts/src/series/modules/seriesStorage.sol#74) is not in mixedCase\n",
+  "triage": "tooling limitation: informational, see triage doc"
+ },
+ {
+  "id": "b683fc21f150b0add5f354b47d55f82e0fcaccbe34d1c71a35c04562b9dec0fb",
+  "check": "naming-convention",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Contract usdcJuniorRedeemQueue (contracts/src/vaults/junior/usdcJuniorRedeemQueue.sol#12-206) is not in CapWords\n",
+  "triage": "tooling limitation: informational, see triage doc"
+ },
+ {
+  "id": "b96e6d5fa1ba9cb71f9cbb1c79a6a2abd23ae3355fd4fd4bfe06bfd712221432",
+  "check": "naming-convention",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Variable seriesStorage.ATTESTATION_HASH (contracts/src/series/modules/seriesStorage.sol#86) is not in mixedCase\n",
+  "triage": "tooling limitation: informational, see triage doc"
+ },
+ {
+  "id": "badb459436675e0c65401ac85a7230d2e7b23d56c3df26b9bca61943523e6a73",
+  "check": "naming-convention",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Variable morphoParking.USDC (contracts/src/parking/morphoParking.sol#34) is not in mixedCase\n",
+  "triage": "tooling limitation: informational, see triage doc"
+ },
+ {
+  "id": "c00b3342c53deec8ca255b09bbae0cc10fdf292e6dbd4d07a5a68eb75f620dee",
+  "check": "naming-convention",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Contract morphoParking (contracts/src/parking/morphoParking.sol#12-168) is not in CapWords\n",
+  "triage": "tooling limitation: informational, see triage doc"
+ },
+ {
+  "id": "c14e55bf590bed7a25cdb5a089c9b277b9baa93ae39f5df0d5965066f3126fbd",
+  "check": "naming-convention",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Contract usdcJuniorDepositClaims (contracts/src/vaults/junior/usdcJuniorDepositClaims.sol#10-71) is not in CapWords\n",
+  "triage": "tooling limitation: informational, see triage doc"
+ },
+ {
+  "id": "c2783d2827af380531832a9cc772240984a61859412e12a583ee9e5c80eb6675",
+  "check": "naming-convention",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Contract coreSeriesLifecycle (contracts/src/core/modules/coreSeriesLifecycle.sol#14-188) is not in CapWords\n",
+  "triage": "tooling limitation: informational, see triage doc"
+ },
+ {
+  "id": "c3b5a4615bc98123c772dc88ad584e994725b8ff3210c46ad3309edddd431c77",
+  "check": "naming-convention",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Variable seriesStorage.PI0_WAD (contracts/src/series/modules/seriesStorage.sol#79) is not in mixedCase\n",
+  "triage": "tooling limitation: informational, see triage doc"
+ },
+ {
+  "id": "c79930c39a7357db526860bcb4d9724d0255f24a2128d56b7d4e162ddf07c578",
+  "check": "naming-convention",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Contract usdcVaultBase (contracts/src/vaults/shared/usdcVaultBase.sol#12-108) is not in CapWords\n",
+  "triage": "tooling limitation: informational, see triage doc"
+ },
+ {
+  "id": "c9e8c71e1daa7bc12b817e722ec273b741b2b048b64f1e11464156cc4464e7bd",
+  "check": "naming-convention",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Contract iBuyCallback (contracts/src/interfaces/iBuyCallback.sol#9-19) is not in CapWords\n",
+  "triage": "tooling limitation: informational, see triage doc"
+ },
+ {
+  "id": "ca1eb2ac8f7e34284c6489e2600a78352dd907b5d6ebdb748d7137354a53ebf9",
+  "check": "naming-convention",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Contract midnightReader (contracts/src/libraries/midnightReader.sol#11-40) is not in CapWords\n",
+  "triage": "tooling limitation: informational, see triage doc"
+ },
+ {
+  "id": "ca7b6e9d525daf6813e8902d3922c928245c3de51cc6bfa12cbd9d8aa17b5985",
+  "check": "naming-convention",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Contract epochMath (contracts/src/libraries/epochMath.sol#9-60) is not in CapWords\n",
+  "triage": "tooling limitation: informational, see triage doc"
+ },
+ {
+  "id": "cb50c7524e7e776214df3b74dbe0a125fdcbc298938b79b5545258b1db54f1aa",
+  "check": "naming-convention",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Contract usdcJuniorDepositQueue (contracts/src/vaults/junior/usdcJuniorDepositQueue.sol#12-189) is not in CapWords\n",
+  "triage": "tooling limitation: informational, see triage doc"
+ },
+ {
+  "id": "cbc04569d69bf72a6a52b6fc64193d7f2cfae566f9c0bd63ef9362dfff3783a5",
+  "check": "naming-convention",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Variable coreStorage.USDC (contracts/src/core/modules/coreStorage.sol#99) is not in mixedCase\n",
+  "triage": "tooling limitation: informational, see triage doc"
+ },
+ {
+  "id": "d49d0a359ca9758f330fb2efc44758567ffabe1cd6f237e080f5bb7e28c92050",
+  "check": "naming-convention",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Variable seriesFactory.SETTER_RATIFIER (contracts/src/series/seriesFactory.sol#33) is not in mixedCase\n",
+  "triage": "tooling limitation: informational, see triage doc"
+ },
+ {
+  "id": "d829e6c990c2c8e2c8ff9370d7141db1649fb07ed6e55b035f7e13ee1fe6201c",
+  "check": "naming-convention",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Contract iMidnightMinimal (contracts/src/interfaces/iMidnightMinimal.sol#9-63) is not in CapWords\n",
+  "triage": "tooling limitation: informational, see triage doc"
+ },
+ {
+  "id": "d8f6cc045088368fb3b95e9fd3c905ad7f8b1de824cc408281ced355903b727e",
+  "check": "naming-convention",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Contract iErc20Like (contracts/src/interfaces/iErc20Like.sol#7-12) is not in CapWords\n",
+  "triage": "tooling limitation: informational, see triage doc"
+ },
+ {
+  "id": "da4ca1274b4e34597376ed27adeeee53d8541a7a10d39c3163a7a2523009f374",
+  "check": "naming-convention",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Contract usdcJuniorRedeemClaims (contracts/src/vaults/junior/usdcJuniorRedeemClaims.sol#10-71) is not in CapWords\n",
+  "triage": "tooling limitation: informational, see triage doc"
+ },
+ {
+  "id": "dc26d79542854437e0c18e1bf14ed1e6476ca7981b0a973c09726a8bc1b24303",
+  "check": "naming-convention",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Contract usdcJuniorVault (contracts/src/vaults/junior/usdcJuniorVault.sol#11-23) is not in CapWords\n",
+  "triage": "tooling limitation: informational, see triage doc"
+ },
+ {
+  "id": "dd196019347254a4d00b87b609fe0c78d14f2f8a39ce5102e9611c1dba977ff2",
+  "check": "naming-convention",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Variable seriesStorage.PI1_WAD (contracts/src/series/modules/seriesStorage.sol#81) is not in mixedCase\n",
+  "triage": "tooling limitation: informational, see triage doc"
+ },
+ {
+  "id": "dd7dcb3f4ef36424deb889284718c4e702677b706b103f551f2aadec2eb4cd63",
+  "check": "naming-convention",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Contract usdcJuniorDepositCancels (contracts/src/vaults/junior/usdcJuniorDepositCancels.sol#10-50) is not in CapWords\n",
+  "triage": "tooling limitation: informational, see triage doc"
+ },
+ {
+  "id": "e5e8cafa9dc5c807c3ae1f72426342b80ec37a4e10c0f7247dd7a9a1abefce3a",
+  "check": "naming-convention",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Contract usdcSeniorRedeemCancels (contracts/src/vaults/senior/usdcSeniorRedeemCancels.sol#10-49) is not in CapWords\n",
+  "triage": "tooling limitation: informational, see triage doc"
+ },
+ {
+  "id": "e8f3161978e5f56dedd5b50a4a2dd3d29cbc122195f010f34b7e60b8c61734ff",
+  "check": "naming-convention",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Contract seriesFunding (contracts/src/series/modules/seriesFunding.sol#16-151) is not in CapWords\n",
+  "triage": "tooling limitation: informational, see triage doc"
+ },
+ {
+  "id": "eac490bf8d0028bcd96fe07489fa448cf9f7dedd4e921353b0fd6b8d741b0d29",
+  "check": "naming-convention",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Variable seriesStorage.MIDNIGHT (contracts/src/series/modules/seriesStorage.sol#70) is not in mixedCase\n",
+  "triage": "tooling limitation: informational, see triage doc"
+ },
+ {
+  "id": "eafb0e335feb5224e119d66953b703e95d79910f5654c7a02a446a93bc3f2f6a",
+  "check": "naming-convention",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Contract coreValuation (contracts/src/core/modules/coreValuation.sol#13-121) is not in CapWords\n",
+  "triage": "tooling limitation: informational, see triage doc"
+ },
+ {
+  "id": "ec6be05918caa0e72de86d92a4dae3a91c28bdb9ec6e53ebe4375aa5154377ee",
+  "check": "naming-convention",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Variable seriesStorage.D_WRITE_OFF (contracts/src/series/modules/seriesStorage.sol#83) is not in mixedCase\n",
+  "triage": "tooling limitation: informational, see triage doc"
+ },
+ {
+  "id": "ee3494adf8e05661f707d7e5c9dd71bdd0ffe880351219e06a72adf41f5aff4b",
+  "check": "naming-convention",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Variable morphoParking.BUFFER_WAD (contracts/src/parking/morphoParking.sol#36) is not in mixedCase\n",
+  "triage": "tooling limitation: informational, see triage doc"
+ },
+ {
+  "id": "eecbafa0c79ce4a0fb1165b9e64e6f074e1d1c036c3c65f40dbdfa8e9b16ca8a",
+  "check": "naming-convention",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Contract seriesStorage (contracts/src/series/modules/seriesStorage.sol#13-192) is not in CapWords\n",
+  "triage": "tooling limitation: informational, see triage doc"
+ },
+ {
+  "id": "f5644f4902f2d6879230bd55f972d1070ef5d8673813c737202f786bb2e0ae92",
+  "check": "naming-convention",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Contract coreGovernance (contracts/src/core/modules/coreGovernance.sol#9-134) is not in CapWords\n",
+  "triage": "tooling limitation: informational, see triage doc"
+ },
+ {
+  "id": "f5ed79e5649cb9fba650566919eab11a38c497628ebefa01cd229cb6a9ffca2b",
+  "check": "naming-convention",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Variable seriesStorage.PIT_WAD (contracts/src/series/modules/seriesStorage.sol#80) is not in mixedCase\n",
+  "triage": "tooling limitation: informational, see triage doc"
+ },
+ {
+  "id": "fab23ecec4fbc47bff9c7b0eb9ba749b046244e0bfdba38e3efb95ccdf310255",
+  "check": "naming-convention",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Contract iParking (contracts/src/parking/iParking.sol#7-17) is not in CapWords\n",
+  "triage": "tooling limitation: informational, see triage doc"
+ },
+ {
+  "id": "fb8e5217460783e55fdc8fe9d88e14fcc3caf9be2ce900670446d5c6e8e57aa6",
+  "check": "naming-convention",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Variable morphoParking.VAULT (contracts/src/parking/morphoParking.sol#35) is not in mixedCase\n",
+  "triage": "tooling limitation: informational, see triage doc"
+ },
+ {
+  "id": "fc10351bf61c33c36d698491d8a9bd99ec23f432259fa5612cd94ceae14976c7",
+  "check": "naming-convention",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Variable seriesStorage.ALLOCATOR (contracts/src/series/modules/seriesStorage.sol#75) is not in mixedCase\n",
+  "triage": "tooling limitation: informational, see triage doc"
+ },
+ {
+  "id": "224a7893a47e5f944419aac4319bfc3e935983816575548e986f138e4c32beb0",
+  "check": "redundant-statements",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Redundant expression \"epochId (contracts/src/vaults/junior/usdcJuniorDepositClaims.sol#45)\" inusdcJuniorDepositClaims (contracts/src/vaults/junior/usdcJuniorDepositClaims.sol#10-71)\n",
+  "triage": "tooling limitation: informational, see triage doc"
+ },
+ {
+  "id": "4e78715148a74505c6912619b2f83fda658d7550cdd49e687eec24bb16775af4",
+  "check": "redundant-statements",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Redundant expression \"epochId (contracts/src/vaults/junior/usdcJuniorRedeemClaims.sol#45)\" inusdcJuniorRedeemClaims (contracts/src/vaults/junior/usdcJuniorRedeemClaims.sol#10-71)\n",
+  "triage": "tooling limitation: informational, see triage doc"
+ },
+ {
+  "id": "9bed2738a10b546702de6d84c457698932becbfc9fff8b72acf940e91d5ab1a6",
+  "check": "redundant-statements",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Redundant expression \"epochId (contracts/src/vaults/senior/usdcSeniorRedeemClaims.sol#45)\" inusdcSeniorRedeemClaims (contracts/src/vaults/senior/usdcSeniorRedeemClaims.sol#10-71)\n",
+  "triage": "tooling limitation: informational, see triage doc"
+ },
+ {
+  "id": "49568272bb7924bcdbcdbc5c721c0b845e617b8baebe01fb91a1f85a91309c68",
+  "check": "unindexed-event-address",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Event coreStorage.VaultsSet(address,address) (contracts/src/core/modules/coreStorage.sol#52) has address parameters but no indexed parameters\n",
+  "triage": "tooling limitation: informational, see triage doc"
+ },
+ {
+  "id": "7f142f3d8fbacf844971b52ff1a0d18a19c3d85cc48847f6d8f05b4a600a990e",
+  "check": "unindexed-event-address",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Event coreStorage.FeeRecipientSet(address) (contracts/src/core/modules/coreStorage.sol#56) has address parameters but no indexed parameters\n",
+  "triage": "tooling limitation: informational, see triage doc"
+ }
+]
