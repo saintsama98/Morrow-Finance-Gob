@@ -67,6 +67,7 @@ abstract contract usdcJuniorDepositQueue is usdcVaultBase {
         require(!CORE.paused(), DepositsPaused());
         require(activeDepositRequestId[controller] == 0, RequestAlreadyActive());
         require(msg.sender == owner || isOperator[owner][msg.sender], NotControllerOrOperator());
+        require(msg.sender == controller || isOperator[controller][msg.sender], NotControllerOrOperator());
 
         requestId = openDepositEpochId;
         require(iErc20Like(USDC).transferFrom(owner, address(CORE), assets), "transfer failed");
