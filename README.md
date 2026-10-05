@@ -1,8 +1,10 @@
-# Morrow Finance (Gob)
+# Morrow-Finance-Gob  
 
 Dated senior and junior credit tranches on Morpho Midnight, behind two vault tokens.
 
-Gob is the first, pre-audit release. The name refers to the early form of glass: the base material before it is shaped.
+(** Gob - symbolizes early beta and testing cascade for the protocol, similar to early form of glass as a base material, also known as "Gob" **)
+
+morrow runs a series engine and two vault tokens. the allocator opens series against staggered maturities on Midnight, each series lends into a basket of 1–4 ungated USDC markets maturing at the same date, and splits every outcome through a strict waterfall. senior vault holders (`srUSDC`) are paid first at maturity up to a fixed senior claim. junior vault holders (`jrUSDC`) take the first loss of every series and receive the residual.
 
 ## What Morrow does
 
