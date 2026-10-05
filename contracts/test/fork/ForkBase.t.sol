@@ -18,6 +18,8 @@ import {seriesCore} from "../../src/core/seriesCore.sol";
 import {usdcSeniorVault} from "../../src/vaults/senior/usdcSeniorVault.sol";
 import {usdcJuniorVault} from "../../src/vaults/junior/usdcJuniorVault.sol";
 import {idleParking} from "../../src/parking/idleParking.sol";
+import {blueParking} from "../../src/parking/blueParking.sol";
+import {IMorpho, MarketParams, Id} from "@morpho-org/morpho-blue/src/interfaces/IMorpho.sol";
 import {iParking} from "../../src/parking/iParking.sol";
 import {iMidnightMinimal} from "../../src/interfaces/iMidnightMinimal.sol";
 import {iErc20Like} from "../../src/interfaces/iErc20Like.sol";
@@ -81,6 +83,13 @@ abstract contract ForkBase is Test {
         return 0.915e18;
     }
 
+    function _useBlueParking() internal pure virtual returns (bool) {
+        return false;
+    }
+
+    address internal constant MORPHO_BLUE = 0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb;
+    bytes32 internal constant BLUE_CBBTC_USDC_86 = 0x9103c3b4e834476c9a62ea009ba2c884ee42e94e6e314a26f04d312434191836;
+
     function setUp() public virtual {
         string memory url = vm.envOr("BASE_RPC_URL", string(""));
         if (bytes(url).length == 0) {
@@ -91,7 +100,13 @@ abstract contract ForkBase is Test {
         forkStartTs = block.timestamp;
 
         factory = new seriesFactory(iMidnightMinimal(MIDNIGHT), SETTER_RATIFIER, USDC, address(this), _maxLltv(), 4);
-        parking = new idleParking(USDC);
+        if (_useBlueParking()) {
+            _allowlist();
+            MarketParams memory params = IMorpho(MORPHO_BLUE).idToMarketParams(Id.wrap(BLUE_CBBTC_USDC_86));
+            parking = new blueParking(USDC, MORPHO_BLUE, address(factory), params, 0.05e18);
+        } else {
+            parking = new idleParking(USDC);
+        }
         core = new seriesCore(USDC, factory, parking, GOVERNANCE, ALLOCATOR, CURATOR, SENTINEL);
         factory.setCore(address(core));
         seniorVault = new usdcSeniorVault(core, USDC);
@@ -101,6 +116,11 @@ abstract contract ForkBase is Test {
         core.setFeeRecipient(FEE_RECIPIENT);
         vm.stopPrank();
 
+        if (!_useBlueParking()) _allowlist();
+        _afterAllowlist();
+    }
+
+    function _allowlist() internal {
         factory.proposeCollateralAllowed(CBBTC, true);
         factory.proposeOracleAllowed(CBBTC, CBBTC_ORACLE, true);
         factory.proposeCollateralAllowed(WETH, true);
@@ -110,7 +130,6 @@ abstract contract ForkBase is Test {
         factory.executeOracleAllowed(CBBTC, CBBTC_ORACLE, true);
         factory.executeCollateralAllowed(WETH, true);
         factory.executeOracleAllowed(WETH, WETH_ORACLE, true);
-        _afterAllowlist();
     }
 
     function _afterAllowlist() internal virtual {}
@@ -151,7 +170,11 @@ abstract contract ForkBase is Test {
         return _market(p, maturity, 3_000_000_000);
     }
 
-    function _fund(address token, address to, uint256 amount) internal {
+    function _fund(address token, address to, uint256 amount) internal virtual {
+        if (_useBlueParking()) {
+            deal(token, to, iErc20Like(token).balanceOf(to) + amount);
+            return;
+        }
         vm.prank(FUNDER);
         require(iErc20Like(token).transfer(to, amount), "fund failed");
     }

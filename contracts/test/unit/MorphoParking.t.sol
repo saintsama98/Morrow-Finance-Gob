@@ -239,6 +239,17 @@ contract MorphoParkingTest is Test {
         assertLt(parking.totalAssets(address(attackerUser)), 1_000_000e6, "the attacker loses on the donation");
     }
 
+    function test_accountWithNoShares_cannotWithdrawDust() public {
+        alice.deposit(1_000_000e6);
+        ParkingUser stranger = new ParkingUser(usdc, parking);
+        assertEq(parking.sharesOf(address(stranger)), 0);
+        uint256 before = usdc.balanceOf(address(stranger));
+        uint256 dust = parking.DUST_ASSETS();
+        vm.expectRevert(morphoParking.InsufficientBalance.selector);
+        stranger.withdraw(dust, address(stranger));
+        assertEq(usdc.balanceOf(address(stranger)), before, "an account with no shares must receive nothing");
+    }
+
     function testFuzz_ledgerSolvency(uint96 a, uint96 b, uint16 yieldBps, uint16 lossBps, uint96 moved) public {
         uint256 da = bound(a, 1e6, 50_000_000e6);
         uint256 db = bound(b, 1e6, 50_000_000e6);

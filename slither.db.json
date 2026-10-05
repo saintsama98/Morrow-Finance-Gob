@@ -1806,5 +1806,413 @@
   "confidence": "High",
   "description": "Event coreStorage.FeeRecipientSet(address) (contracts/src/core/modules/coreStorage.sol#56) has address parameters but no indexed parameters\n",
   "triage": "tooling limitation: informational, see triage doc"
+ },
+ {
+  "id": "63936456a9802e6adfc1f2a91529a5600e367c4cc82d30a1126a20bbac141c66",
+  "check": "incorrect-equality",
+  "impact": "Medium",
+  "confidence": "High",
+  "description": "blueParking._supply(uint256) (contracts/src/parking/blueParking.sol#227-232) uses a dangerous strict equality:\n\t- exited || amount == 0 (contracts/src/parking/blueParking.sol#228)\n",
+  "triage": "tooling limitation: zero-amount early-return guards"
+ },
+ {
+  "id": "9afd0c26053a80176272e81990e25c94075b80bceb273f472cfa76bbc439cd92",
+  "check": "incorrect-equality",
+  "impact": "Medium",
+  "confidence": "High",
+  "description": "blueParking.blueAssets() (contracts/src/parking/blueParking.sol#191-196) uses a dangerous strict equality:\n\t- shares == 0 (contracts/src/parking/blueParking.sol#193)\n",
+  "triage": "tooling limitation: zero-amount early-return guards"
+ },
+ {
+  "id": "af5b8dd4934c4500e9a3649c501d65ec27dfc2bb17770d92964ea06c5504e68f",
+  "check": "incorrect-equality",
+  "impact": "Medium",
+  "confidence": "High",
+  "description": "blueParking._pull(uint256) (contracts/src/parking/blueParking.sol#234-246) uses a dangerous strict equality:\n\t- amount == 0 (contracts/src/parking/blueParking.sol#238)\n",
+  "triage": "tooling limitation: zero-amount early-return guards"
+ },
+ {
+  "id": "d463ce6112e60edecd75ccd682305a5d4cf88edf8e264208d38c4ea67f1feab2",
+  "check": "incorrect-equality",
+  "impact": "Medium",
+  "confidence": "High",
+  "description": "blueParking.blueLiquidity() (contracts/src/parking/blueParking.sol#198-206) uses a dangerous strict equality:\n\t- shares == 0 (contracts/src/parking/blueParking.sol#200)\n",
+  "triage": "tooling limitation: zero-amount early-return guards"
+ },
+ {
+  "id": "12e5a60753931fb6500db2ed2e32490461eb3cd2deb6f78f2dedfbebf3e018ec",
+  "check": "reentrancy-no-eth",
+  "impact": "Medium",
+  "confidence": "Medium",
+  "description": "Reentrancy in blueParking._pull(uint256) (contracts/src/parking/blueParking.sol#234-246):\n\tExternal calls:\n\t- (None,burned_scope_0) = MORPHO.withdraw(marketParams(),amount,0,address(this),address(this)) (contracts/src/parking/blueParking.sol#243)\n\tState variables written after the call(s):\n\t- blueShares -= burned_scope_0 (contracts/src/parking/blueParking.sol#244)\n\tblueParking.blueShares (contracts/src/parking/blueParking.sol#70) can be used in cross function reentrancies:\n\t- blueParking.blueAssets() (contracts/src/parking/blueParking.sol#191-196)\n\t- blueParking.blueLiquidity() (contracts/src/parking/blueParking.sol#198-206)\n\t- blueParking.blueShares (contracts/src/parking/blueParking.sol#70)\n",
+  "triage": "confirmed property: callees are the immutable parking adapter or immutable Morpho Blue (USDC has no hooks); all entry points nonReentrant"
+ },
+ {
+  "id": "1808dee6868de2971f7789188bf4f5f3ad7442ecc63f08a066911a02e170693a",
+  "check": "reentrancy-no-eth",
+  "impact": "Medium",
+  "confidence": "Medium",
+  "description": "Reentrancy in blueParking._pull(uint256) (contracts/src/parking/blueParking.sol#234-246):\n\tExternal calls:\n\t- (None,burned) = MORPHO.withdraw(marketParams(),0,blueShares,address(this),address(this)) (contracts/src/parking/blueParking.sol#240)\n\tState variables written after the call(s):\n\t- blueShares -= burned (contracts/src/parking/blueParking.sol#241)\n\tblueParking.blueShares (contracts/src/parking/blueParking.sol#70) can be used in cross function reentrancies:\n\t- blueParking.blueAssets() (contracts/src/parking/blueParking.sol#191-196)\n\t- blueParking.blueLiquidity() (contracts/src/parking/blueParking.sol#198-206)\n\t- blueParking.blueShares (contracts/src/parking/blueParking.sol#70)\n",
+  "triage": "confirmed property: callees are the immutable parking adapter or immutable Morpho Blue (USDC has no hooks); all entry points nonReentrant"
+ },
+ {
+  "id": "2433cf36daee5ee72c782a5ec4ef5434f38f4e9be1df258e82cc39319d98ed82",
+  "check": "reentrancy-no-eth",
+  "impact": "Medium",
+  "confidence": "Medium",
+  "description": "Reentrancy in blueParking.deposit(uint256) (contracts/src/parking/blueParking.sol#111-123):\n\tExternal calls:\n\t- require(bool,error)(USDC.transferFrom(msg.sender,address(this),assets),revert TransferFailed()()) (contracts/src/parking/blueParking.sol#119)\n\t- _investExcess() (contracts/src/parking/blueParking.sol#122)\n\t\t- require(bool,error)(USDC.approve(address(MORPHO),amount),revert TransferFailed()()) (contracts/src/parking/blueParking.sol#229)\n\t\t- (None,minted) = MORPHO.supply(marketParams(),amount,0,address(this),) (contracts/src/parking/blueParking.sol#230)\n\tState variables written after the call(s):\n\t- _investExcess() (contracts/src/parking/blueParking.sol#122)\n\t\t- blueShares += minted (contracts/src/parking/blueParking.sol#231)\n\tblueParking.blueShares (contracts/src/parking/blueParking.sol#70) can be used in cross function reentrancies:\n\t- blueParking.blueAssets() (contracts/src/parking/blueParking.sol#191-196)\n\t- blueParking.blueLiquidity() (contracts/src/parking/blueParking.sol#198-206)\n\t- blueParking.blueShares (contracts/src/parking/blueParking.sol#70)\n",
+  "triage": "confirmed property: callees are the immutable parking adapter or immutable Morpho Blue (USDC has no hooks); all entry points nonReentrant"
+ },
+ {
+  "id": "aacc24b245ce9326684f6103d38dddacfd325891b12804ddc26dc787bb8f5af6",
+  "check": "reentrancy-no-eth",
+  "impact": "Medium",
+  "confidence": "Medium",
+  "description": "Reentrancy in coreParkingBooks._depositToBook(bool,uint256) (contracts/src/core/modules/coreParkingBooks.sol#94-101):\n\tExternal calls:\n\t- require(bool,string)(iErc20Like(USDC).approve(address(PARKING),assets),approve failed) (contracts/src/core/modules/coreParkingBooks.sol#97)\n\t- PARKING.deposit(assets) (contracts/src/core/modules/coreParkingBooks.sol#98)\n\tState variables written after the call(s):\n\t- _addToBook(isSenior,afterDeposit - before,before) (contracts/src/core/modules/coreParkingBooks.sol#100)\n\t\t- junior.parkingClaims += claims (contracts/src/core/modules/coreParkingBooks.sol#72)\n\tcoreStorage.junior (contracts/src/core/modules/coreStorage.sol#115) can be used in cross function reentrancies:\n\t- coreParkingBooks._effectiveClaims(uint256) (contracts/src/core/modules/coreParkingBooks.sol#32-48)\n\t- coreStorage.junior (contracts/src/core/modules/coreStorage.sol#115)\n\t- _addToBook(isSenior,0,before) (contracts/src/core/modules/coreParkingBooks.sol#100)\n\t\t- junior.parkingClaims += claims (contracts/src/core/modules/coreParkingBooks.sol#72)\n\tcoreStorage.junior (contracts/src/core/modules/coreStorage.sol#115) can be used in cross function reentrancies:\n\t- coreParkingBooks._effectiveClaims(uint256) (contracts/src/core/modules/coreParkingBooks.sol#32-48)\n\t- coreStorage.junior (contracts/src/core/modules/coreStorage.sol#115)\n\t- _addToBook(isSenior,afterDeposit - before,before) (contracts/src/core/modules/coreParkingBooks.sol#100)\n\t\t- senior.parkingClaims += claims (contracts/src/core/modules/coreParkingBooks.sol#71)\n\tcoreStorage.senior (contracts/src/core/modules/coreStorage.sol#114) can be used in cross function reentrancies:\n\t- coreParkingBooks._effectiveClaims(uint256) (contracts/src/core/modules/coreParkingBooks.sol#32-48)\n\t- coreStorage.senior (contracts/src/core/modules/coreStorage.sol#114)\n\t- _addToBook(isSenior,0,before) (contracts/src/core/modules/coreParkingBooks.sol#100)\n\t\t- senior.parkingClaims += claims (contracts/src/core/modules/coreParkingBooks.sol#71)\n\tcoreStorage.senior (contracts/src/core/modules/coreStorage.sol#114) can be used in cross function reentrancies:\n\t- coreParkingBooks._effectiveClaims(uint256) (contracts/src/core/modules/coreParkingBooks.sol#32-48)\n\t- coreStorage.senior (contracts/src/core/modules/coreStorage.sol#114)\n\t- _addToBook(isSenior,afterDeposit - before,before) (contracts/src/core/modules/coreParkingBooks.sol#100)\n\t\t- totalParkingClaims += claims (contracts/src/core/modules/coreParkingBooks.sol#73)\n\tcoreStorage.totalParkingClaims (contracts/src/core/modules/coreStorage.sol#116) can be used in cross function reentrancies:\n\t- coreParkingBooks._claimPriceWad(uint256) (contracts/src/core/modules/coreParkingBooks.sol#28-30)\n\t- coreParkingBooks._claimValue(uint256,uint256) (contracts/src/core/modules/coreParkingBooks.sol#65-67)\n\t- coreParkingBooks._effectiveClaims(uint256) (contracts/src/core/modules/coreParkingBooks.sol#32-48)\n\t- coreStorage.totalParkingClaims (contracts/src/core/modules/coreStorage.sol#116)\n\t- _addToBook(isSenior,0,before) (contracts/src/core/modules/coreParkingBooks.sol#100)\n\t\t- totalParkingClaims += claims (contracts/src/core/modules/coreParkingBooks.sol#73)\n\tcoreStorage.totalParkingClaims (contracts/src/core/modules/coreStorage.sol#116) can be used in cross function reentrancies:\n\t- coreParkingBooks._claimPriceWad(uint256) (contracts/src/core/modules/coreParkingBooks.sol#28-30)\n\t- coreParkingBooks._claimValue(uint256,uint256) (contracts/src/core/modules/coreParkingBooks.sol#65-67)\n\t- coreParkingBooks._effectiveClaims(uint256) (contracts/src/core/modules/coreParkingBooks.sol#32-48)\n\t- coreStorage.totalParkingClaims (contracts/src/core/modules/coreStorage.sol#116)\n",
+  "triage": "confirmed property: callees are the immutable parking adapter or immutable Morpho Blue (USDC has no hooks); all entry points nonReentrant"
+ },
+ {
+  "id": "b0af81722ee58054c279a4323dcc8a44cb625b799bc22104e8a8bfea59310d32",
+  "check": "reentrancy-no-eth",
+  "impact": "Medium",
+  "confidence": "Medium",
+  "description": "Reentrancy in coreSeriesLifecycle.openSeries(SeriesParams,uint256,uint256) (contracts/src/core/modules/coreSeriesLifecycle.sol#17-53):\n\tExternal calls:\n\t- seriesAddr = FACTORY.createSeries(p) (contracts/src/core/modules/coreSeriesLifecycle.sol#43)\n\tState variables written after the call(s):\n\t- _removeFromBooks(S,J) (contracts/src/core/modules/coreSeriesLifecycle.sol#45)\n\t\t- claimPriceMarkWad = _claimPriceWad(parked) (contracts/src/core/modules/coreParkingBooks.sol#58)\n\tcoreStorage.claimPriceMarkWad (contracts/src/core/modules/coreStorage.sol#117) can be used in cross function reentrancies:\n\t- coreParkingBooks._effectiveClaims(uint256) (contracts/src/core/modules/coreParkingBooks.sol#32-48)\n\t- coreParkingBooks._settleIdleLoss(uint256) (contracts/src/core/modules/coreParkingBooks.sol#50-59)\n\t- coreStorage.claimPriceMarkWad (contracts/src/core/modules/coreStorage.sol#117)\n\t- _removeFromBooks(S,J) (contracts/src/core/modules/coreSeriesLifecycle.sol#45)\n\t\t- junior.parkingClaims -= claimsJunior (contracts/src/core/modules/coreParkingBooks.sol#90)\n\t\t- junior.parkingClaims = juniorClaims (contracts/src/core/modules/coreParkingBooks.sol#55)\n\tcoreStorage.junior (contracts/src/core/modules/coreStorage.sol#115) can be used in cross function reentrancies:\n\t- coreParkingBooks._addToBook(bool,uint256,uint256) (contracts/src/core/modules/coreParkingBooks.sol#69-74)\n\t- coreSeriesLifecycle._applyBackstop(address) (contracts/src/core/modules/coreSeriesLifecycle.sol#152-177)\n\t- coreParkingBooks._creditBooks(uint256,uint256) (contracts/src/core/modules/coreParkingBooks.sol#103-114)\n\t- coreParkingBooks._effectiveClaims(uint256) (contracts/src/core/modules/coreParkingBooks.sol#32-48)\n\t- coreParkingBooks._removeFromBooks(uint256,uint256) (contracts/src/core/modules/coreParkingBooks.sol#76-92)\n\t- coreParkingBooks._settleIdleLoss(uint256) (contracts/src/core/modules/coreParkingBooks.sol#50-59)\n\t- coreVaultFlows.addPendingJunior(uint256) (contracts/src/core/modules/coreVaultFlows.sol#16-18)\n\t- coreVaultFlows.investPendingJunior(uint256) (contracts/src/core/modules/coreVaultFlows.sol#25-28)\n\t- coreStorage.junior (contracts/src/core/modules/coreStorage.sol#115)\n\t- coreVaultFlows.payFrom(bool,address,uint256) (contracts/src/core/modules/coreVaultFlows.sol#47-52)\n\t- coreVaultFlows.removePendingJunior(uint256,address) (contracts/src/core/modules/coreVaultFlows.sol#20-23)\n\t- coreVaultFlows.reserveFor(bool,uint256) (contracts/src/core/modules/coreVaultFlows.sol#30-45)\n\t- _removeFromBooks(S,J) (contracts/src/core/modules/coreSeriesLifecycle.sol#45)\n\t\t- senior.parkingClaims = seniorClaims (contracts/src/core/modules/coreParkingBooks.sol#54)\n\t\t- senior.parkingClaims -= claimsSenior (contracts/src/core/modules/coreParkingBooks.sol#89)\n\tcoreStorage.senior (contracts/src/core/modules/coreStorage.sol#114) can be used in cross function reentrancies:\n\t- coreParkingBooks._addToBook(bool,uint256,uint256) (contracts/src/core/modules/coreParkingBooks.sol#69-74)\n\t- coreSeriesLifecycle._applyBackstop(address) (contracts/src/core/modules/coreSeriesLifecycle.sol#152-177)\n\t- coreParkingBooks._creditBooks(uint256,uint256) (contracts/src/core/modules/coreParkingBooks.sol#103-114)\n\t- coreParkingBooks._effectiveClaims(uint256) (contracts/src/core/modules/coreParkingBooks.sol#32-48)\n\t- coreParkingBooks._removeFromBooks(uint256,uint256) (contracts/src/core/modules/coreParkingBooks.sol#76-92)\n\t- coreParkingBooks._settleIdleLoss(uint256) (contracts/src/core/modules/coreParkingBooks.sol#50-59)\n\t- coreVaultFlows.payFrom(bool,address,uint256) (contracts/src/core/modules/coreVaultFlows.sol#47-52)\n\t- coreVaultFlows.reserveFor(bool,uint256) (contracts/src/core/modules/coreVaultFlows.sol#30-45)\n\t- coreStorage.senior (contracts/src/core/modules/coreStorage.sol#114)\n\t- _removeFromBooks(S,J) (contracts/src/core/modules/coreSeriesLifecycle.sol#45)\n\t\t- totalParkingClaims -= claimsSenior + claimsJunior (contracts/src/core/modules/coreParkingBooks.sol#91)\n\tcoreStorage.totalParkingClaims (contracts/src/core/modules/coreStorage.sol#116) can be used in cross function reentrancies:\n\t- coreParkingBooks._addToBook(bool,uint256,uint256) (contracts/src/core/modules/coreParkingBooks.sol#69-74)\n\t- coreSeriesLifecycle._applyBackstop(address) (contracts/src/core/modules/coreSeriesLifecycle.sol#152-177)\n\t- coreParkingBooks._claimPriceWad(uint256) (contracts/src/core/modules/coreParkingBooks.sol#28-30)\n\t- coreParkingBooks._claimValue(uint256,uint256) (contracts/src/core/modules/coreParkingBooks.sol#65-67)\n\t- coreParkingBooks._claimsFor(uint256,uint256) (contracts/src/core/modules/coreParkingBooks.sol#61-63)\n\t- coreParkingBooks._creditBooks(uint256,uint256) (contracts/src/core/modules/coreParkingBooks.sol#103-114)\n\t- coreParkingBooks._effectiveClaims(uint256) (contracts/src/core/modules/coreParkingBooks.sol#32-48)\n\t- coreParkingBooks._removeFromBooks(uint256,uint256) (contracts/src/core/modules/coreParkingBooks.sol#76-92)\n\t- coreStorage.totalParkingClaims (contracts/src/core/modules/coreStorage.sol#116)\n",
+  "triage": "confirmed property: callees are the immutable parking adapter or immutable Morpho Blue (USDC has no hooks); all entry points nonReentrant"
+ },
+ {
+  "id": "c5127a7f6c967ac0ad2953f023b01c6444442f4bb76ee660605112cb4181a987",
+  "check": "reentrancy-no-eth",
+  "impact": "Medium",
+  "confidence": "Medium",
+  "description": "Reentrancy in blueParking.withdraw(uint256,address) (contracts/src/parking/blueParking.sol#125-135):\n\tExternal calls:\n\t- _ensureBuffer(assets) (contracts/src/parking/blueParking.sol#130)\n\t\t- (None,burned) = MORPHO.withdraw(marketParams(),0,blueShares,address(this),address(this)) (contracts/src/parking/blueParking.sol#240)\n\t\t- (None,burned_scope_0) = MORPHO.withdraw(marketParams(),amount,0,address(this),address(this)) (contracts/src/parking/blueParking.sol#243)\n\t- require(bool,error)(USDC.transfer(to,assets),revert TransferFailed()()) (contracts/src/parking/blueParking.sol#131)\n\t- _refillIfLow() (contracts/src/parking/blueParking.sol#134)\n\t\t- (None,burned) = MORPHO.withdraw(marketParams(),0,blueShares,address(this),address(this)) (contracts/src/parking/blueParking.sol#240)\n\t\t- (None,burned_scope_0) = MORPHO.withdraw(marketParams(),amount,0,address(this),address(this)) (contracts/src/parking/blueParking.sol#243)\n\tState variables written after the call(s):\n\t- _refillIfLow() (contracts/src/parking/blueParking.sol#134)\n\t\t- blueShares -= burned (contracts/src/parking/blueParking.sol#241)\n\t\t- blueShares -= burned_scope_0 (contracts/src/parking/blueParking.sol#244)\n\tblueParking.blueShares (contracts/src/parking/blueParking.sol#70) can be used in cross function reentrancies:\n\t- blueParking.blueAssets() (contracts/src/parking/blueParking.sol#191-196)\n\t- blueParking.blueLiquidity() (contracts/src/parking/blueParking.sol#198-206)\n\t- blueParking.blueShares (contracts/src/parking/blueParking.sol#70)\n",
+  "triage": "confirmed property: callees are the immutable parking adapter or immutable Morpho Blue (USDC has no hooks); all entry points nonReentrant"
+ },
+ {
+  "id": "0941a818b93c6f82bd0bb8f82de3073683f1df9476225ed0fc2f06fcef2a058a",
+  "check": "unused-return",
+  "impact": "Medium",
+  "confidence": "Medium",
+  "description": "blueParking.blueLiquidity() (contracts/src/parking/blueParking.sol#198-206) ignores return value by (supplyAssets,supplyShares,borrowAssets,None) = MORPHO.expectedMarketBalances(marketParams()) (contracts/src/parking/blueParking.sol#201-202)\n",
+  "triage": "tooling limitation: deliberately dropped tuple fields"
+ },
+ {
+  "id": "166ef47c8339649606c68735b690a83246332ce9c5bb9bd8857cf5acdad74e58",
+  "check": "unused-return",
+  "impact": "Medium",
+  "confidence": "Medium",
+  "description": "blueParking._pull(uint256) (contracts/src/parking/blueParking.sol#234-246) ignores return value by (None,burned_scope_0) = MORPHO.withdraw(marketParams(),amount,0,address(this),address(this)) (contracts/src/parking/blueParking.sol#243)\n",
+  "triage": "tooling limitation: deliberately dropped tuple fields"
+ },
+ {
+  "id": "2fcc20c6b89e762f6d62e9434868bfc86055d644012556a9a8eeb16fdd31bbf2",
+  "check": "unused-return",
+  "impact": "Medium",
+  "confidence": "Medium",
+  "description": "blueParking._pull(uint256) (contracts/src/parking/blueParking.sol#234-246) ignores return value by (None,burned) = MORPHO.withdraw(marketParams(),0,blueShares,address(this),address(this)) (contracts/src/parking/blueParking.sol#240)\n",
+  "triage": "tooling limitation: deliberately dropped tuple fields"
+ },
+ {
+  "id": "498d7978c3ea5fd7ddb5c5fc6061ccfe17b292eb3d43ac4d5e5adaf346a60c96",
+  "check": "unused-return",
+  "impact": "Medium",
+  "confidence": "Medium",
+  "description": "blueParking.blueAssets() (contracts/src/parking/blueParking.sol#191-196) ignores return value by (supplyAssets,supplyShares,None,None) = MORPHO.expectedMarketBalances(marketParams()) (contracts/src/parking/blueParking.sol#194)\n",
+  "triage": "tooling limitation: deliberately dropped tuple fields"
+ },
+ {
+  "id": "6489f2c0c561810b72da887ca473f4f17c7926a653830a6dca8cbbc209fe6fb8",
+  "check": "unused-return",
+  "impact": "Medium",
+  "confidence": "Medium",
+  "description": "blueParking._supply(uint256) (contracts/src/parking/blueParking.sol#227-232) ignores return value by (None,minted) = MORPHO.supply(marketParams(),amount,0,address(this),) (contracts/src/parking/blueParking.sol#230)\n",
+  "triage": "tooling limitation: deliberately dropped tuple fields"
+ },
+ {
+  "id": "9dd156385861fcaa2f6295722c834525a1341848e21a2ad3aeb3c77e182509a0",
+  "check": "unused-return",
+  "impact": "Medium",
+  "confidence": "Medium",
+  "description": "blueParking._requireMorrow(address) (contracts/src/parking/blueParking.sol#208-213) ignores return value by (None,None,None,registered) = iParkingCoreLike(core).info(caller) (contracts/src/parking/blueParking.sol#211)\n",
+  "triage": "tooling limitation: deliberately dropped tuple fields"
+ },
+ {
+  "id": "06dec880a4bd6889a1d200471c66bd92f78cc7fc761446fb887197b66c3a8ff2",
+  "check": "reentrancy-benign",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "Reentrancy in blueParking._supply(uint256) (contracts/src/parking/blueParking.sol#227-232):\n\tExternal calls:\n\t- require(bool,error)(USDC.approve(address(MORPHO),amount),revert TransferFailed()()) (contracts/src/parking/blueParking.sol#229)\n\t- (None,minted) = MORPHO.supply(marketParams(),amount,0,address(this),) (contracts/src/parking/blueParking.sol#230)\n\tState variables written after the call(s):\n\t- blueShares += minted (contracts/src/parking/blueParking.sol#231)\n",
+  "triage": "tooling limitation: benign write after a trusted call"
+ },
+ {
+  "id": "6ad4f2ffa55d743ecaeced4c22dde466c453ccf7fe22b0a84a1a533431277aca",
+  "check": "reentrancy-events",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "Reentrancy in coreSeriesLifecycle.openSeries(SeriesParams,uint256,uint256) (contracts/src/core/modules/coreSeriesLifecycle.sol#17-53):\n\tExternal calls:\n\t- seriesAddr = FACTORY.createSeries(p) (contracts/src/core/modules/coreSeriesLifecycle.sol#43)\n\tEvent emitted after the call(s):\n\t- IdleLossAbsorbed(seniorLoss,moved) (contracts/src/core/modules/coreParkingBooks.sol#56)\n\t\t- _removeFromBooks(S,J) (contracts/src/core/modules/coreSeriesLifecycle.sol#45)\n",
+  "triage": "tooling limitation: event after a trusted call"
+ },
+ {
+  "id": "1fae9b294a53a025034a225c75e6f37fc38f36dc99907e76a02faa601c614192",
+  "check": "naming-convention",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Contract blueParking (contracts/src/parking/blueParking.sol#29-269) is not in CapWords\n",
+  "triage": "house style: lowercase contract names, upper-case immutables"
+ },
+ {
+  "id": "242f34346e015e80665854ee30dbeae810492274b9d5a4e5dae6ece5bc50eadb",
+  "check": "naming-convention",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Variable blueParking.FACTORY (contracts/src/parking/blueParking.sol#60) is not in mixedCase\n",
+  "triage": "house style: lowercase contract names, upper-case immutables"
+ },
+ {
+  "id": "49fb883170669da05ead9809afadf0a25f02ff6ed20581c5d4e308bcce2f6713",
+  "check": "naming-convention",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Variable blueParking.IRM (contracts/src/parking/blueParking.sol#64) is not in mixedCase\n",
+  "triage": "house style: lowercase contract names, upper-case immutables"
+ },
+ {
+  "id": "718b8bf325354eae8d67743fff00bed80eeee017a908d8f52fd3ebb857e5389a",
+  "check": "naming-convention",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Function iParkingFactoryLike.USDC() (contracts/src/parking/blueParking.sol#17) is not in mixedCase\n",
+  "triage": "house style: lowercase contract names, upper-case immutables"
+ },
+ {
+  "id": "8a4535070c2d168dc9998a5077cdb225bf8117adb9be64a9cdd57a961a92428a",
+  "check": "naming-convention",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Variable blueParking.LLTV (contracts/src/parking/blueParking.sol#65) is not in mixedCase\n",
+  "triage": "house style: lowercase contract names, upper-case immutables"
+ },
+ {
+  "id": "92c3d44751ca94116bac2673f89a5481cd65bcf1b4050787de9aa07d5723a5bd",
+  "check": "naming-convention",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Variable blueParking.COLLATERAL (contracts/src/parking/blueParking.sol#62) is not in mixedCase\n",
+  "triage": "house style: lowercase contract names, upper-case immutables"
+ },
+ {
+  "id": "96d1bc31483ec66ab507aa3ab95d104d468e1a299488496c272c3728e0a66678",
+  "check": "naming-convention",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Contract iParkingFactoryLike (contracts/src/parking/blueParking.sol#15-21) is not in CapWords\n",
+  "triage": "house style: lowercase contract names, upper-case immutables"
+ },
+ {
+  "id": "99da620fa15f3aef9a9227c1cd6ffcf5dfae63f80b0bdf2a354e83ab58b52994",
+  "check": "naming-convention",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Variable blueParking.ORACLE (contracts/src/parking/blueParking.sol#63) is not in mixedCase\n",
+  "triage": "house style: lowercase contract names, upper-case immutables"
+ },
+ {
+  "id": "a4cad10589850f3c197ca0455dcb9a8818bd4d6e8e1a6b4e850055174e179dc2",
+  "check": "naming-convention",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Variable blueParking.BUFFER_WAD (contracts/src/parking/blueParking.sol#66) is not in mixedCase\n",
+  "triage": "house style: lowercase contract names, upper-case immutables"
+ },
+ {
+  "id": "b2e2ff73efe5999db0947ffd2a3e711fffc00d9c0f2f207e69df07b8d281a4a7",
+  "check": "naming-convention",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Variable blueParking.MORPHO (contracts/src/parking/blueParking.sol#59) is not in mixedCase\n",
+  "triage": "house style: lowercase contract names, upper-case immutables"
+ },
+ {
+  "id": "e4d19f3dc6e8fd177b47faac458e01ee9a1e5d4537f00c13ba5ab6fabe41fcdc",
+  "check": "naming-convention",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Contract iParkingCoreLike (contracts/src/parking/blueParking.sol#23-27) is not in CapWords\n",
+  "triage": "house style: lowercase contract names, upper-case immutables"
+ },
+ {
+  "id": "eab27ce3972b19a74a6e863e98f6d46dc906afc42a47606e4f7ecefd32892004",
+  "check": "naming-convention",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Variable blueParking.MARKET_ID (contracts/src/parking/blueParking.sol#61) is not in mixedCase\n",
+  "triage": "house style: lowercase contract names, upper-case immutables"
+ },
+ {
+  "id": "f82bb142ae4f00de4c8e40cb8089633bbd0ca71b37cd4ea3621372114bd23d06",
+  "check": "naming-convention",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Variable blueParking.USDC (contracts/src/parking/blueParking.sol#58) is not in mixedCase\n",
+  "triage": "house style: lowercase contract names, upper-case immutables"
+ },
+ {
+  "id": "22ddf092c79320eb8553b52249992f58e6fba129afd9469d2731709b1dca66e7",
+  "check": "incorrect-equality",
+  "impact": "Medium",
+  "confidence": "High",
+  "description": "coreSeriesLifecycle._requireParamsBound(SeriesParams) (contracts/src/core/modules/coreSeriesLifecycle.sol#122-137) uses a dangerous strict equality:\n\t- require(bool,error)(p.covWad == policy.covWad && p.pi0Wad == policy.pi0Wad && p.piTWad == policy.piTWad && p.pi1Wad == policy.pi1Wad && p.thetaWad == policy.thetaWad,revert PolicyMismatch()()) (contracts/src/core/modules/coreSeriesLifecycle.sol#126-130)\n",
+  "triage": "tooling limitation: exact binding of series parameters to current policy is intended"
+ },
+ {
+  "id": "0821c92ba6a2502d94869b2e979b267fab56f6568396ac9d06db0641f6d4368d",
+  "check": "reentrancy-no-eth",
+  "impact": "Medium",
+  "confidence": "Medium",
+  "description": "Reentrancy in coreSeriesLifecycle.openSeries(SeriesParams,uint256,uint256) (contracts/src/core/modules/coreSeriesLifecycle.sol#17-53):\n\tExternal calls:\n\t- seriesAddr = FACTORY.createSeries(p) (contracts/src/core/modules/coreSeriesLifecycle.sol#43)\n\tState variables written after the call(s):\n\t- _removeFromBooks(S,J) (contracts/src/core/modules/coreSeriesLifecycle.sol#45)\n\t\t- claimPriceMark = _claimPrice(parked) (contracts/src/core/modules/coreParkingBooks.sol#51)\n\tcoreStorage.claimPriceMark (contracts/src/core/modules/coreStorage.sol#117) can be used in cross function reentrancies:\n\t- coreParkingBooks._effectiveClaims(uint256) (contracts/src/core/modules/coreParkingBooks.sol#33-41)\n\t- coreParkingBooks._settleIdleLoss(uint256) (contracts/src/core/modules/coreParkingBooks.sol#43-52)\n\t- coreStorage.claimPriceMark (contracts/src/core/modules/coreStorage.sol#117)\n\t- _removeFromBooks(S,J) (contracts/src/core/modules/coreSeriesLifecycle.sol#45)\n\t\t- junior.parkingClaims -= claimsJunior (contracts/src/core/modules/coreParkingBooks.sol#83)\n\t\t- junior.parkingClaims = juniorClaims (contracts/src/core/modules/coreParkingBooks.sol#48)\n\tcoreStorage.junior (contracts/src/core/modules/coreStorage.sol#115) can be used in cross function reentrancies:\n\t- coreParkingBooks._addToBook(bool,uint256,uint256) (contracts/src/core/modules/coreParkingBooks.sol#62-67)\n\t- coreSeriesLifecycle._applyBackstop(address) (contracts/src/core/modules/coreSeriesLifecycle.sol#153-178)\n\t- coreParkingBooks._creditBooks(uint256,uint256) (contracts/src/core/modules/coreParkingBooks.sol#96-107)\n\t- coreParkingBooks._effectiveClaims(uint256) (contracts/src/core/modules/coreParkingBooks.sol#33-41)\n\t- coreParkingBooks._removeFromBooks(uint256,uint256) (contracts/src/core/modules/coreParkingBooks.sol#69-85)\n\t- coreParkingBooks._settleIdleLoss(uint256) (contracts/src/core/modules/coreParkingBooks.sol#43-52)\n\t- coreVaultFlows.addPendingJunior(uint256) (contracts/src/core/modules/coreVaultFlows.sol#16-18)\n\t- coreVaultFlows.investPendingJunior(uint256) (contracts/src/core/modules/coreVaultFlows.sol#25-28)\n\t- coreStorage.junior (contracts/src/core/modules/coreStorage.sol#115)\n\t- coreVaultFlows.payFrom(bool,address,uint256) (contracts/src/core/modules/coreVaultFlows.sol#47-52)\n\t- coreVaultFlows.removePendingJunior(uint256,address) (contracts/src/core/modules/coreVaultFlows.sol#20-23)\n\t- coreVaultFlows.reserveFor(bool,uint256) (contracts/src/core/modules/coreVaultFlows.sol#30-45)\n\t- _removeFromBooks(S,J) (contracts/src/core/modules/coreSeriesLifecycle.sol#45)\n\t\t- senior.parkingClaims = seniorClaims (contracts/src/core/modules/coreParkingBooks.sol#47)\n\t\t- senior.parkingClaims -= claimsSenior (contracts/src/core/modules/coreParkingBooks.sol#82)\n\tcoreStorage.senior (contracts/src/core/modules/coreStorage.sol#114) can be used in cross function reentrancies:\n\t- coreParkingBooks._addToBook(bool,uint256,uint256) (contracts/src/core/modules/coreParkingBooks.sol#62-67)\n\t- coreSeriesLifecycle._applyBackstop(address) (contracts/src/core/modules/coreSeriesLifecycle.sol#153-178)\n\t- coreParkingBooks._creditBooks(uint256,uint256) (contracts/src/core/modules/coreParkingBooks.sol#96-107)\n\t- coreParkingBooks._effectiveClaims(uint256) (contracts/src/core/modules/coreParkingBooks.sol#33-41)\n\t- coreParkingBooks._removeFromBooks(uint256,uint256) (contracts/src/core/modules/coreParkingBooks.sol#69-85)\n\t- coreParkingBooks._settleIdleLoss(uint256) (contracts/src/core/modules/coreParkingBooks.sol#43-52)\n\t- coreVaultFlows.payFrom(bool,address,uint256) (contracts/src/core/modules/coreVaultFlows.sol#47-52)\n\t- coreVaultFlows.reserveFor(bool,uint256) (contracts/src/core/modules/coreVaultFlows.sol#30-45)\n\t- coreStorage.senior (contracts/src/core/modules/coreStorage.sol#114)\n\t- _removeFromBooks(S,J) (contracts/src/core/modules/coreSeriesLifecycle.sol#45)\n\t\t- totalParkingClaims -= claimsSenior + claimsJunior (contracts/src/core/modules/coreParkingBooks.sol#84)\n\tcoreStorage.totalParkingClaims (contracts/src/core/modules/coreStorage.sol#116) can be used in cross function reentrancies:\n\t- coreParkingBooks._addToBook(bool,uint256,uint256) (contracts/src/core/modules/coreParkingBooks.sol#62-67)\n\t- coreSeriesLifecycle._applyBackstop(address) (contracts/src/core/modules/coreSeriesLifecycle.sol#153-178)\n\t- coreParkingBooks._claimPrice(uint256) (contracts/src/core/modules/coreParkingBooks.sol#29-31)\n\t- coreParkingBooks._claimValue(uint256,uint256) (contracts/src/core/modules/coreParkingBooks.sol#58-60)\n\t- coreParkingBooks._claimsFor(uint256,uint256) (contracts/src/core/modules/coreParkingBooks.sol#54-56)\n\t- coreParkingBooks._creditBooks(uint256,uint256) (contracts/src/core/modules/coreParkingBooks.sol#96-107)\n\t- coreParkingBooks._effectiveClaims(uint256) (contracts/src/core/modules/coreParkingBooks.sol#33-41)\n\t- coreParkingBooks._removeFromBooks(uint256,uint256) (contracts/src/core/modules/coreParkingBooks.sol#69-85)\n\t- coreStorage.totalParkingClaims (contracts/src/core/modules/coreStorage.sol#116)\n",
+  "triage": "tooling limitation: callees are the immutable factory, immutable parking adapter and the new series; onlyAllocator / internal book path"
+ },
+ {
+  "id": "debd6679a8c91936410e654baced9bc71b22eb3d333f36b6b5844ffef3f5a0f2",
+  "check": "reentrancy-no-eth",
+  "impact": "Medium",
+  "confidence": "Medium",
+  "description": "Reentrancy in coreParkingBooks._depositToBook(bool,uint256) (contracts/src/core/modules/coreParkingBooks.sol#87-94):\n\tExternal calls:\n\t- require(bool,string)(iErc20Like(USDC).approve(address(PARKING),assets),approve failed) (contracts/src/core/modules/coreParkingBooks.sol#90)\n\t- PARKING.deposit(assets) (contracts/src/core/modules/coreParkingBooks.sol#91)\n\tState variables written after the call(s):\n\t- _addToBook(isSenior,afterDeposit - before,before) (contracts/src/core/modules/coreParkingBooks.sol#93)\n\t\t- junior.parkingClaims += claims (contracts/src/core/modules/coreParkingBooks.sol#65)\n\tcoreStorage.junior (contracts/src/core/modules/coreStorage.sol#115) can be used in cross function reentrancies:\n\t- coreParkingBooks._effectiveClaims(uint256) (contracts/src/core/modules/coreParkingBooks.sol#33-41)\n\t- coreStorage.junior (contracts/src/core/modules/coreStorage.sol#115)\n\t- _addToBook(isSenior,0,before) (contracts/src/core/modules/coreParkingBooks.sol#93)\n\t\t- junior.parkingClaims += claims (contracts/src/core/modules/coreParkingBooks.sol#65)\n\tcoreStorage.junior (contracts/src/core/modules/coreStorage.sol#115) can be used in cross function reentrancies:\n\t- coreParkingBooks._effectiveClaims(uint256) (contracts/src/core/modules/coreParkingBooks.sol#33-41)\n\t- coreStorage.junior (contracts/src/core/modules/coreStorage.sol#115)\n\t- _addToBook(isSenior,afterDeposit - before,before) (contracts/src/core/modules/coreParkingBooks.sol#93)\n\t\t- senior.parkingClaims += claims (contracts/src/core/modules/coreParkingBooks.sol#64)\n\tcoreStorage.senior (contracts/src/core/modules/coreStorage.sol#114) can be used in cross function reentrancies:\n\t- coreParkingBooks._effectiveClaims(uint256) (contracts/src/core/modules/coreParkingBooks.sol#33-41)\n\t- coreStorage.senior (contracts/src/core/modules/coreStorage.sol#114)\n\t- _addToBook(isSenior,0,before) (contracts/src/core/modules/coreParkingBooks.sol#93)\n\t\t- senior.parkingClaims += claims (contracts/src/core/modules/coreParkingBooks.sol#64)\n\tcoreStorage.senior (contracts/src/core/modules/coreStorage.sol#114) can be used in cross function reentrancies:\n\t- coreParkingBooks._effectiveClaims(uint256) (contracts/src/core/modules/coreParkingBooks.sol#33-41)\n\t- coreStorage.senior (contracts/src/core/modules/coreStorage.sol#114)\n\t- _addToBook(isSenior,afterDeposit - before,before) (contracts/src/core/modules/coreParkingBooks.sol#93)\n\t\t- totalParkingClaims += claims (contracts/src/core/modules/coreParkingBooks.sol#66)\n\tcoreStorage.totalParkingClaims (contracts/src/core/modules/coreStorage.sol#116) can be used in cross function reentrancies:\n\t- coreParkingBooks._claimValue(uint256,uint256) (contracts/src/core/modules/coreParkingBooks.sol#58-60)\n\t- coreParkingBooks._effectiveClaims(uint256) (contracts/src/core/modules/coreParkingBooks.sol#33-41)\n\t- coreStorage.totalParkingClaims (contracts/src/core/modules/coreStorage.sol#116)\n\t- _addToBook(isSenior,0,before) (contracts/src/core/modules/coreParkingBooks.sol#93)\n\t\t- totalParkingClaims += claims (contracts/src/core/modules/coreParkingBooks.sol#66)\n\tcoreStorage.totalParkingClaims (contracts/src/core/modules/coreStorage.sol#116) can be used in cross function reentrancies:\n\t- coreParkingBooks._claimValue(uint256,uint256) (contracts/src/core/modules/coreParkingBooks.sol#58-60)\n\t- coreParkingBooks._effectiveClaims(uint256) (contracts/src/core/modules/coreParkingBooks.sol#33-41)\n\t- coreStorage.totalParkingClaims (contracts/src/core/modules/coreStorage.sol#116)\n",
+  "triage": "tooling limitation: callees are the immutable factory, immutable parking adapter and the new series; onlyAllocator / internal book path"
+ },
+ {
+  "id": "724c40e4af795e1b715f6066a34c7a8fe1ab06cafa9f79d50879445601c99b2e",
+  "check": "unused-return",
+  "impact": "Medium",
+  "confidence": "Medium",
+  "description": "coreSeriesLifecycle.syncAll() (contracts/src/core/modules/coreSeriesLifecycle.sol#84-91) ignores return value by creditSeries(liveSeries[i]).navsSynced() (contracts/src/core/modules/coreSeriesLifecycle.sol#88)\n",
+  "triage": "tooling limitation: deliberate tuple destructuring; navsSynced called for its side effect"
+ },
+ {
+  "id": "fc27af2f274c1dd3bf5e01fd80ff02ff912d70b6880f33f94eb26296213c1b52",
+  "check": "unused-return",
+  "impact": "Medium",
+  "confidence": "Medium",
+  "description": "coreParkingBooks._effectiveClaims(uint256) (contracts/src/core/modules/coreParkingBooks.sol#33-41) ignores return value by idleLossMath.effectiveClaims(senior.parkingClaims,junior.parkingClaims,totalParkingClaims + VIRTUAL_CLAIMS,parked,claimPriceMark) (contracts/src/core/modules/coreParkingBooks.sol#38-40)\n",
+  "triage": "tooling limitation: deliberate tuple destructuring; navsSynced called for its side effect"
+ },
+ {
+  "id": "460c21cbcda6f1176b0b371ec7ed789b6937ed7a7c256367af61f6aa91cc92c5",
+  "check": "missing-zero-check",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "seriesFactory.setCore(address).core_ (contracts/src/series/seriesFactory.sol#89) lacks a zero-check on :\n\t\t- core = core_ (contracts/src/series/seriesFactory.sol#91)\n",
+  "triage": "accepted, owner instruction: governance and wiring setters kept as is; verify deploy arguments"
+ },
+ {
+  "id": "4bd435253ce22bdfe87d51630ff00cf57048db7c1af745156cf0186bbf4a8e01",
+  "check": "missing-zero-check",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "seriesFactory.constructor(iMidnightMinimal,address,address,address,uint256,uint256).governance_ (contracts/src/series/seriesFactory.sol#74) lacks a zero-check on :\n\t\t- governance = governance_ (contracts/src/series/seriesFactory.sol#82)\n",
+  "triage": "accepted, owner instruction: governance and wiring setters kept as is; verify deploy arguments"
+ },
+ {
+  "id": "76c40f4d264c648a080a61d748a521f350d22f312580d0eef88d084540575073",
+  "check": "missing-zero-check",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "seriesFactory.constructor(iMidnightMinimal,address,address,address,uint256,uint256).setterRatifier (contracts/src/series/seriesFactory.sol#72) lacks a zero-check on :\n\t\t- SETTER_RATIFIER = setterRatifier (contracts/src/series/seriesFactory.sol#80)\n",
+  "triage": "accepted, owner instruction: governance and wiring setters kept as is; verify deploy arguments"
+ },
+ {
+  "id": "854bae7a3e0eb75440b7612067df262d5e5537fb2f260bacb97b0157311c618d",
+  "check": "missing-zero-check",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "seriesFactory.transferGovernance(address).newGovernance (contracts/src/series/seriesFactory.sol#157) lacks a zero-check on :\n\t\t- governance = newGovernance (contracts/src/series/seriesFactory.sol#158)\n",
+  "triage": "accepted, owner instruction: governance and wiring setters kept as is; verify deploy arguments"
+ },
+ {
+  "id": "4989ad6fc9618a6a836a10836a66eaf92a694f8f085bfb97f26c27f6c665c165",
+  "check": "calls-loop",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "coreSeriesLifecycle.syncAll() (contracts/src/core/modules/coreSeriesLifecycle.sol#84-91) has external calls inside a loop: creditSeries(liveSeries[i]).navsSynced() (contracts/src/core/modules/coreSeriesLifecycle.sol#88)\n",
+  "triage": "tooling limitation: bounded loops over live series (maxSeries) to factory-created series"
+ },
+ {
+  "id": "f9ebe43bc68363c57f228ed33a5e7f7d378603b7a98e04d9bc48223b1e2402ec",
+  "check": "calls-loop",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "coreSeriesLifecycle.pruneSeries() (contracts/src/core/modules/coreSeriesLifecycle.sol#93-120) has external calls inside a loop: st = uint8(s.state()) (contracts/src/core/modules/coreSeriesLifecycle.sol#97)\n",
+  "triage": "tooling limitation: bounded loops over live series (maxSeries) to factory-created series"
+ },
+ {
+  "id": "318b5bb31e0f083e6b53e6a32e454fd7ec94c8b2f96e5e7259ca637d4ac61870",
+  "check": "reentrancy-events",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "Reentrancy in coreSeriesLifecycle.openSeries(SeriesParams,uint256,uint256) (contracts/src/core/modules/coreSeriesLifecycle.sol#17-53):\n\tExternal calls:\n\t- seriesAddr = FACTORY.createSeries(p) (contracts/src/core/modules/coreSeriesLifecycle.sol#43)\n\tEvent emitted after the call(s):\n\t- IdleLossAbsorbed(seniorLoss,moved) (contracts/src/core/modules/coreParkingBooks.sol#49)\n\t\t- _removeFromBooks(S,J) (contracts/src/core/modules/coreSeriesLifecycle.sol#45)\n",
+  "triage": "tooling limitation: events after calls to trusted callees (factory-created series, parking)"
+ },
+ {
+  "id": "ebff47a04d7a00203fb3aba1f139c246009a60f06a9f2e7adc8435aa0b735e77",
+  "check": "reentrancy-events",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "Reentrancy in coreSeriesLifecycle.syncAll() (contracts/src/core/modules/coreSeriesLifecycle.sol#84-91):\n\tExternal calls:\n\t- creditSeries(liveSeries[i]).navsSynced() (contracts/src/core/modules/coreSeriesLifecycle.sol#88)\n\tEvent emitted after the call(s):\n\t- Synced(seniorAssets(),juniorAssets()) (contracts/src/core/modules/coreSeriesLifecycle.sol#90)\n",
+  "triage": "tooling limitation: events after calls to trusted callees (factory-created series, parking)"
+ },
+ {
+  "id": "37c72e00ca2b9576a889e7b5cf2da70b27370e01f37c41bdc2788ebef03da955",
+  "check": "timestamp",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "coreSeriesLifecycle._requireParamsBound(SeriesParams) (contracts/src/core/modules/coreSeriesLifecycle.sol#122-137) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- require(bool,error)(p.covWad == policy.covWad && p.pi0Wad == policy.pi0Wad && p.piTWad == policy.piTWad && p.pi1Wad == policy.pi1Wad && p.thetaWad == policy.thetaWad,revert PolicyMismatch()()) (contracts/src/core/modules/coreSeriesLifecycle.sol#126-130)\n\t- require(bool,error)(p.rateFloorWad[i] >= policy.minRateFloorWad,revert RateFloorBelowMin(uint256)(i)) (contracts/src/core/modules/coreSeriesLifecycle.sol#133)\n\t- require(bool,error)(p.kMinAssets <= maxKMinAssets,revert KMinAboveCap()()) (contracts/src/core/modules/coreSeriesLifecycle.sol#135)\n",
+  "triage": "tooling limitation: day-scale maturities, timelocks and the 91-day tenor tier"
+ },
+ {
+  "id": "469eab46d773f9ab369c7aade74ce142831fd7a06622db7ef090371616f2bc5a",
+  "check": "timestamp",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "seriesFactory.checkEligibility(bytes32[]) (contracts/src/series/seriesFactory.sol#196-243) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- require(bool,error)(market.maturity <= block.timestamp + TENOR_TIER_DURATION || lltv <= TENOR_TIER_MAX_LLTV_WAD,revert IneligibleMarket(bytes32,uint8)(id,8)) (contracts/src/series/seriesFactory.sol#231-234)\n",
+  "triage": "tooling limitation: day-scale maturities, timelocks and the 91-day tenor tier"
+ },
+ {
+  "id": "55bce45bdd3e568feefd00f64657f194d7b93b40a34ebb6a1476379ae18edce7",
+  "check": "timestamp",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "seriesFactory._consumeTimelock(bytes32) (contracts/src/series/seriesFactory.sol#162-166) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- require(bool,error)(change.active && block.timestamp >= change.executableAt,revert TimelockNotElapsed()()) (contracts/src/series/seriesFactory.sol#164)\n",
+  "triage": "tooling limitation: day-scale maturities, timelocks and the 91-day tenor tier"
+ },
+ {
+  "id": "2e9713c95beefcd8108914a98aed4a6d05d210dcffcc2f64fdac4dacc2cd5313",
+  "check": "costly-loop",
+  "impact": "Informational",
+  "confidence": "Medium",
+  "description": "coreSeriesLifecycle.pruneSeries() (contracts/src/core/modules/coreSeriesLifecycle.sol#93-120) has costly operations inside a loop:\n\t- recoveringSeries.pop() (contracts/src/core/modules/coreSeriesLifecycle.sol#115)\n",
+  "triage": "tooling limitation: swap-and-pop over bounded arrays"
+ },
+ {
+  "id": "836d1fca2f023d71b8d53c7697b575a6090c973699df38d13fa3c623bc1670e2",
+  "check": "costly-loop",
+  "impact": "Informational",
+  "confidence": "Medium",
+  "description": "coreSeriesLifecycle.pruneSeries() (contracts/src/core/modules/coreSeriesLifecycle.sol#93-120) has costly operations inside a loop:\n\t- liveSeries.pop() (contracts/src/core/modules/coreSeriesLifecycle.sol#102)\n",
+  "triage": "tooling limitation: swap-and-pop over bounded arrays"
+ },
+ {
+  "id": "8934a76bf47b22dacc341c549298f2cb7cd4181c3ed0c88821346326da366e7c",
+  "check": "low-level-calls",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Low level call in seriesFactory._decimalsOf(address) (contracts/src/series/seriesFactory.sol#245-249):\n\t- (ok,data) = token.staticcall(abi.encodeWithSignature(decimals())) (contracts/src/series/seriesFactory.sol#246)\n",
+  "triage": "tooling limitation: staticcall probe of decimals() with success check"
+ },
+ {
+  "id": "190b705935a91ca73988eca71f8a5ba468d034a035a678f9f8de56e85d092b9f",
+  "check": "naming-convention",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Contract idleLossMath (contracts/src/libraries/idleLossMath.sol#9-36) is not in CapWords\n",
+  "triage": "house style: camelCase contract names by owner rule"
  }
 ]

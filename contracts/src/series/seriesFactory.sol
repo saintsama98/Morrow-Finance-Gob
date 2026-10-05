@@ -25,6 +25,10 @@ contract seriesFactory {
     uint8 internal constant USDC_DECIMALS = 6;
 
     uint256 internal constant HARD_MAX_LLTV_WAD = 0.915e18;
+    uint256 public constant CURSOR_RULE_LLTV_WAD = 0.915e18;
+    uint256 public constant CURSOR_RULE_MIN_WAD = 0.5e18;
+    uint256 public constant TENOR_TIER_DURATION = 91 days;
+    uint256 public constant TENOR_TIER_MAX_LLTV_WAD = 0.86e18;
     uint256 internal constant HARD_MAX_MARKETS_PER_SERIES = 8;
     uint256 internal constant MAX_COLLATERALS_CHECKED = 8;
     uint256 internal constant TIMELOCK = 48 hours;
@@ -220,6 +224,14 @@ contract seriesFactory {
                 require(collateralAllowed[token], IneligibleMarket(id, 4));
                 require(oracleAllowed[token][oracle], IneligibleMarket(id, 4));
                 require(lltv <= maxLltvWad && lltv < 1e18, IneligibleMarket(id, 4));
+                require(
+                    lltv < CURSOR_RULE_LLTV_WAD || market.collateralParams[c].liquidationCursor >= CURSOR_RULE_MIN_WAD,
+                    IneligibleMarket(id, 7)
+                );
+                require(
+                    market.maturity <= block.timestamp + TENOR_TIER_DURATION || lltv <= TENOR_TIER_MAX_LLTV_WAD,
+                    IneligibleMarket(id, 8)
+                );
             }
 
             for (uint256 j = 0; j < i; j++) {

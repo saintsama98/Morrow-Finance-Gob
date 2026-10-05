@@ -17,7 +17,7 @@ contract S17_ParkingVenueLossTest is MorphoScenarioBase {
     address seniorDepositor = makeAddr("seniorDepositor");
     address juniorDepositor = makeAddr("juniorDepositor");
 
-    function test_S17_lossOnIdle_isSharedByBothBooksProRata() public {
+    function test_S17_lossOnIdle_fallsOnJuniorFirst() public {
         _juniorDeposit(juniorDepositor, 1_000_000e6);
         _seniorDeposit(seniorDepositor, 2_000_000e6);
 
@@ -26,8 +26,8 @@ contract S17_ParkingVenueLossTest is MorphoScenarioBase {
 
         vault.loseBps(1_000);
 
-        assertApproxEqAbs(core.idle(true), seniorIdleBefore * 9_100 / 10_000, 2, "senior idle -9%");
-        assertApproxEqAbs(core.idle(false), juniorIdleBefore * 9_100 / 10_000, 2, "junior idle -9%");
+        assertApproxEqAbs(core.idle(true), seniorIdleBefore, 2, "senior idle untouched");
+        assertApproxEqAbs(core.idle(false), juniorIdleBefore - 270_000e6, 2, "junior idle absorbs the whole 270k loss");
         _assertBooksReconcile();
     }
 

@@ -5,6 +5,7 @@ out = "contracts/out"
 libs = ["contracts/lib"]
 remappings = [
     "@morpho-org/midnight/=contracts/lib/midnight/",
+    "@morpho-org/morpho-blue/=contracts/lib/midnight/lib/morpho-blue/",
     "forge-std/=contracts/lib/forge-std/src/",
     "@openzeppelin/contracts/=contracts/lib/openzeppelin-contracts/contracts/",
 ]
@@ -16,6 +17,9 @@ optimizer_runs = 200
 # Midnight's own source (lib/midnight) requires via_ir (its own foundry.toml sets this); dependencies compile
 # under our profile, not their own, so it must be set here too, not just "when our contracts exceed 24kb".
 via_ir = true
+
+# The round-level crash replays step through every Chainlink round of a month and outgrow the 128 MiB default.
+memory_limit = 268435456
 
 fuzz = { runs = 10000 }
 invariant = { runs = 512, depth = 128, fail_on_revert = false }

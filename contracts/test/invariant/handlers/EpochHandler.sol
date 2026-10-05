@@ -123,9 +123,12 @@ contract EpochHandler is Test {
         uint256 assets = _fillSize(assetsSeed);
 
         seriesCore core = registry.realCore();
+        (, uint256 before,,,,) = jv.redeemEpochs(epochId);
         vm.prank(registry.CURATOR());
         try jv.fulfillRedeem(epochId, assets) {
             registry.recordCall(this.fulfillJuniorRedeem.selector, false);
+            (, uint256 afterFill,,,,) = jv.redeemEpochs(epochId);
+            if (afterFill == before) return;
             uint256 sA = core.seniorAssets();
             uint256 jA = core.juniorAssets();
             if (sA + jA > 0) {
