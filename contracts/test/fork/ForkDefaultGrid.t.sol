@@ -278,7 +278,7 @@ contract ForkDefaultGridTest is StressBase {
         _fundBooks(2_000_000e6, 600_000e6);
         mkts.push(_cbMarket(0.77e18, OCT_30, 2_000_000_000));
         mkts.push(_cbMarket(0.86e18, OCT_30, 3_000_000_000));
-        mkts.push(_cbMarket(0.915e18, OCT_30, 5_000_000_000));
+        mkts.push(_wecbMarket(OCT_30));
         mkts.push(_weMarket(0.77e18, OCT_30, 2_000_000_000));
         uint256[] memory healths = new uint256[](2);
         healths[0] = 80;

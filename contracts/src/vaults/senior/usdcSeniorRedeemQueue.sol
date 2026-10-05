@@ -111,7 +111,7 @@ abstract contract usdcSeniorRedeemQueue is usdcSeniorDeposits {
         if (epochId < oldest) return;
         require(epochId == oldest, NotOldestBatch(oldest));
 
-        uint256 available = CORE.idleAvailable(true);
+        uint256 available = CORE.idle(true);
         uint256 liquid = CORE.parkingLiquidity();
         if (liquid < available) available = liquid;
         uint256 cappedAssets = assetsToUse < available ? assetsToUse : available;

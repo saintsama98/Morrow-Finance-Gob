@@ -19,8 +19,13 @@ contract S11_RedemptionDemandExceedsIdleTest is ScenarioBase {
         uint256 sharesB = _seniorDeposit(seniorB, 100_000e6);
         assertEq(sharesA, sharesB, "sanity: equal deposits at the same price must mint equal shares");
 
-        uint256 idleBeforeRequest = core.idleAvailable(true);
-        assertLt(idleBeforeRequest, sharesA + sharesB, "sanity: idle must be less than the combined redemption demand");
+        _openSeries(60_000e6, 20_000e6, block.timestamp + 90 days);
+        uint256 idleBeforeRequest = core.idle(true);
+        assertLt(
+            idleBeforeRequest,
+            seniorVault.convertToAssets(sharesA + sharesB),
+            "sanity: idle must be less than the combined redemption demand"
+        );
 
         vm.prank(seniorA);
         uint256 requestId = seniorVault.requestRedeem(sharesA, seniorA, seniorA);

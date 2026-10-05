@@ -8,8 +8,10 @@ broadcast/*/dry-run/
 __pycache__/
 *.pyc
 
-docs/morrow-finance-gob-arithmatic.md
-docs/morrow-finance-gob-reference_model.py
-docs/morrow-finance-gob-stress_model.py
-
-
+# docs: only the files listed below are published
+docs/*
+!docs/VERIFICATION.md
+!docs/morrow-finance-gob-arithmatic.md
+!docs/morrow-finance-gob-reference_model.py
+!docs/morrow-finance-gob-stress_model.py
+crytic-export/

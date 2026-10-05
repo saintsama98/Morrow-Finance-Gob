@@ -1,0 +1,36 @@
+{
+  "fuzzing": {
+    "workers": 2,
+    "workerResetLimit": 50,
+    "timeout": 1800,
+    "testLimit": 0,
+    "callSequenceLength": 100,
+    "corpusDirectory": "../../../cache/medusa-corpus",
+    "coverageEnabled": true,
+    "targetContracts": ["MorrowCrytic"],
+    "targetContractsBalances": [],
+    "constructorArgs": {},
+    "deployerAddress": "0x30000",
+    "senderAddresses": ["0x10000", "0x20000", "0x30000"],
+    "blockNumberDelayMax": 60480,
+    "blockTimestampDelayMax": 604800,
+    "blockGasLimit": 4000000000,
+    "transactionGasLimit": 2000000000,
+    "testing": {
+      "stopOnFailedTest": false,
+      "stopOnFailedContractMatching": false,
+      "stopOnNoTests": true,
+      "testAllContracts": false,
+      "traceAll": false,
+      "assertionTesting": {"enabled": false},
+      "propertyTesting": {"enabled": true, "testPrefixes": ["echidna_"]},
+      "optimizationTesting": {"enabled": false}
+    },
+    "chainConfig": {"codeSizeCheckDisabled": true, "cheatCodes": {"cheatCodesEnabled": true, "enableFFI": false}}
+  },
+  "compilation": {
+    "platform": "crytic-compile",
+    "platformConfig": {"target": ".", "solcVersion": "", "exportDirectory": "../../../cache/crytic-export", "args": ["--foundry-ignore-compile", "--foundry-out-directory", "contracts/out"]}
+  },
+  "logging": {"level": "info", "logDirectory": "", "noColor": true}
+}
