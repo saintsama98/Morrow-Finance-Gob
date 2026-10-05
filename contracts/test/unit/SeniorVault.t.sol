@@ -129,7 +129,7 @@ contract SeniorVaultTest is Test {
         seniorVault.closeEpoch();
     }
 
-    function test_fulfill_boundedByIdleAvailable() public {
+    function test_fulfill_mayUseTheWholeIdle_floorIncluded() public {
         _fundJunior(bob, 1_000_000e6);
         uint256 shares = _depositSenior(alice, 400_000e6);
 
@@ -138,16 +138,16 @@ contract SeniorVaultTest is Test {
         vm.prank(curator);
         seniorVault.closeEpoch();
 
-        uint256 available = core.idleAvailable(true);
-        assertLt(available, 400_000e6, "idle floor must bound what's fulfillable");
+        assertLt(core.idleAvailable(true), 400_000e6, "the idle floor would have withheld part of this exit");
+        assertGe(core.idle(true), 400_000e6, "but exits may use the whole idle, floor included");
 
         vm.prank(curator);
         seniorVault.fulfill(epochId, type(uint256).max);
 
         (uint256 totalRequested,, uint256 sharesFulfilled, uint256 assetsFulfilled,,) = seniorVault.epochs(epochId);
         assertEq(totalRequested, shares);
-        assertLt(sharesFulfilled, shares, "fulfillment must be partial, bounded by the idle floor");
-        assertEq(assetsFulfilled, available);
+        assertEq(sharesFulfilled, shares, "a full exit fills in one batch when idle covers it");
+        assertEq(assetsFulfilled, 400_000e6);
     }
 
     function test_fulfill_multiRound_claimIsMonotonicAndBounded() public {
@@ -159,14 +159,14 @@ contract SeniorVaultTest is Test {
         vm.prank(curator);
         seniorVault.closeEpoch();
 
-        uint256 available1 = core.idleAvailable(true);
+        uint256 available1 = core.idle(true);
         vm.prank(curator);
         seniorVault.fulfill(epochId, 300_000e6);
         vm.prank(alice);
         uint256 claim1 = seniorVault.claim(epochId);
         assertEq(claim1, 300_000e6 < available1 ? 300_000e6 : available1);
 
-        uint256 available2 = core.idleAvailable(true);
+        uint256 available2 = core.idle(true);
         vm.prank(curator);
         seniorVault.fulfill(epochId, 700_000e6);
         vm.prank(alice);

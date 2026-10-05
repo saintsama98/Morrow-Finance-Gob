@@ -8,21 +8,11 @@ broadcast/*/dry-run/
 __pycache__/
 *.pyc
 
-docs/SERIES_BUILD_SPEC.md
-docs/VERIFY_LOG.md
-docs/morrow-finance-gob-arithmatic.md
-docs/morrow-finance-gob-reference_model.py
-docs/morrow-finance-gob-stress_model.py
-
-
-docs/LENDER_GATING_SURFACE.md
-docs/LENDER_GATING_SURFACE.pdf
-docs/DEFERRED_VERIFICATION.md
-docs/PENDING_ARCHITECTURE_DECISIONS.md
-docs/SPEC_DIVERGENCES.md
-docs/FORK_STRESS_TEST_PLAN.md
-docs/FORK_STRESS_TEST_PLAN.pdf
-docs/HALMOS_RUN_PROMPT.md
-docs/HALMOS_REPORT.md
+# planning, decision and working documents stay local; only the public docs below are tracked
+docs/*
+!docs/VERIFICATION.md
+!docs/morrow-finance-gob-arithmatic.md
+!docs/morrow-finance-gob-reference_model.py
+!docs/morrow-finance-gob-stress_model.py
 halmos-handoff/
-docs/STATIC_ANALYSIS_TRIAGE.md
+crytic-export/

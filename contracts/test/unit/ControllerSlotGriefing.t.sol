@@ -161,4 +161,39 @@ contract ControllerSlotGriefingTest is Test {
         juniorVault.requestDeposit(1_000e6, mallory, victim);
         assertEq(usdc.balanceOf(victim), 10_000_000e6);
     }
+
+    function test_juniorDeposit_claimWhileCancelPending_keepsSlotUntilRefundClaimed() public {
+        vm.startPrank(victim);
+        usdc.approve(address(juniorVault), 1_000e6);
+        uint256 epochId = juniorVault.requestDeposit(1_000e6, victim, victim);
+        vm.stopPrank();
+        vm.prank(curator);
+        juniorVault.closeDepositEpoch();
+        vm.prank(curator);
+        juniorVault.fulfillDeposit(epochId, 400e6);
+
+        vm.warp(block.timestamp + juniorVault.CANCEL_AFTER_CLOSE());
+        vm.prank(victim);
+        juniorVault.cancelDepositRequest(epochId, victim);
+        assertEq(juniorVault.claimableCancelDepositRequest(epochId, victim), 600e6);
+
+        vm.prank(victim);
+        juniorVault.claimDeposit(epochId);
+        assertGt(juniorVault.balanceOf(victim), 0);
+        assertEq(
+            juniorVault.activeDepositRequestId(victim), epochId, "the slot must hold while a cancel refund is pending"
+        );
+
+        uint256 before = usdc.balanceOf(victim);
+        vm.prank(victim);
+        juniorVault.claimCancelDepositRequest(epochId, victim, victim);
+        assertEq(usdc.balanceOf(victim) - before, 600e6);
+        assertEq(juniorVault.activeDepositRequestId(victim), 0, "the slot clears once the refund is claimed");
+
+        vm.startPrank(victim);
+        usdc.approve(address(juniorVault), 1_000e6);
+        uint256 next = juniorVault.requestDeposit(1_000e6, victim, victim);
+        vm.stopPrank();
+        assertEq(juniorVault.activeDepositRequestId(victim), next);
+    }
 }

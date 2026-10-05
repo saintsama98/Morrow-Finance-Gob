@@ -325,4 +325,30 @@ contract SeriesCallbackReentrancyTest is Test, MidnightHarness {
         assertEq(series.unitsBought(0), units);
         _assertSeriesConsistent(series, 1_100_000e6, 1_100_000e6);
     }
+
+    function test_parkedBalanceAboveAllocation_cannotBeFilledPastAllocation() public {
+        creditSeries series = _open(150_000e6, 30_000e6, 1_000_000e6);
+        address donor = makeAddr("donor");
+        usdc.mint(donor, 300_000e6);
+        vm.startPrank(donor);
+        usdc.approve(address(parking), 300_000e6);
+        parking.deposit(300_000e6);
+        parking.transferPosition(address(series), 300_000e6);
+        vm.stopPrank();
+        assertGt(parking.totalAssets(address(series)), 180_000e6, "series now parks more than its allocation");
+
+        (Offer memory offer, bytes memory rd) = _bid(series, 400_000e6);
+        HostileSeller h = _hostile(series, 250_000e6);
+        h.arm(offer, rd, 0);
+        vm.prank(address(h));
+        vm.expectRevert();
+        h.go(250_000e6);
+        assertEq(series.totalFilled(), 0, "no fill may take the series past its allocation");
+
+        vm.prank(address(h));
+        h.go(150_000e6);
+        assertLe(series.totalFilled(), 180_000e6);
+        vm.prank(allocator);
+        series.finalize();
+    }
 }

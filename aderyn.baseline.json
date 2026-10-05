@@ -1,7 +1,7 @@
 {
  "tool": "aderyn 0.6.8",
  "scope": "contracts/src",
- "triage": "docs/STATIC_ANALYSIS_TRIAGE.md section 5",
+ "triage": "docs/VERIFICATION.md, section \"Static analysis\"",
  "accepted": [
   [
    "Address State Variable Set Without Checks",
@@ -36,16 +36,6 @@
   [
    "Address State Variable Set Without Checks",
    "contracts/src/core/modules/coreStorage.sol",
-   163
-  ],
-  [
-   "Address State Variable Set Without Checks",
-   "contracts/src/core/modules/coreStorage.sol",
-   164
-  ],
-  [
-   "Address State Variable Set Without Checks",
-   "contracts/src/core/modules/coreStorage.sol",
    165
   ],
   [
@@ -60,33 +50,43 @@
   ],
   [
    "Address State Variable Set Without Checks",
-   "contracts/src/series/seriesFactory.sol",
-   78
+   "contracts/src/core/modules/coreStorage.sol",
+   168
+  ],
+  [
+   "Address State Variable Set Without Checks",
+   "contracts/src/core/modules/coreStorage.sol",
+   169
   ],
   [
    "Address State Variable Set Without Checks",
    "contracts/src/series/seriesFactory.sol",
-   87
+   82
   ],
   [
    "Address State Variable Set Without Checks",
    "contracts/src/series/seriesFactory.sol",
-   154
+   91
+  ],
+  [
+   "Address State Variable Set Without Checks",
+   "contracts/src/series/seriesFactory.sol",
+   158
   ],
   [
    "Costly operations inside loop",
    "contracts/src/core/modules/coreSeriesLifecycle.sol",
-   94
+   95
   ],
   [
    "Costly operations inside loop",
    "contracts/src/core/modules/coreSeriesLifecycle.sol",
-   111
+   112
   ],
   [
    "Costly operations inside loop",
    "contracts/src/core/modules/coreSeriesLifecycle.sol",
-   180
+   182
   ],
   [
    "Costly operations inside loop",
@@ -100,23 +100,18 @@
   ],
   [
    "Internal Function Used Only Once",
+   "contracts/src/libraries/idleLossMath.sol",
+   14
+  ],
+  [
+   "Internal Function Used Only Once",
    "contracts/src/libraries/seriesMath.sol",
    25
   ],
   [
    "Literal Instead of Constant",
    "contracts/src/core/modules/coreStorage.sol",
-   171
-  ],
-  [
-   "Literal Instead of Constant",
-   "contracts/src/core/modules/coreStorage.sol",
    173
-  ],
-  [
-   "Literal Instead of Constant",
-   "contracts/src/core/modules/coreStorage.sol",
-   174
   ],
   [
    "Literal Instead of Constant",
@@ -131,17 +126,17 @@
   [
    "Literal Instead of Constant",
    "contracts/src/core/modules/coreStorage.sol",
+   177
+  ],
+  [
+   "Literal Instead of Constant",
+   "contracts/src/core/modules/coreStorage.sol",
    178
   ],
   [
    "Literal Instead of Constant",
    "contracts/src/core/modules/coreStorage.sol",
-   183
-  ],
-  [
-   "Literal Instead of Constant",
-   "contracts/src/core/modules/coreStorage.sol",
-   184
+   180
   ],
   [
    "Literal Instead of Constant",
@@ -156,42 +151,52 @@
   [
    "Literal Instead of Constant",
    "contracts/src/core/modules/coreStorage.sol",
+   187
+  ],
+  [
+   "Literal Instead of Constant",
+   "contracts/src/core/modules/coreStorage.sol",
    188
   ],
   [
    "Literal Instead of Constant",
    "contracts/src/core/modules/coreStorage.sol",
-   189
+   190
+  ],
+  [
+   "Literal Instead of Constant",
+   "contracts/src/core/modules/coreStorage.sol",
+   191
   ],
   [
    "Literal Instead of Constant",
    "contracts/src/series/seriesFactory.sol",
-   124
+   128
   ],
   [
    "Literal Instead of Constant",
    "contracts/src/series/seriesFactory.sol",
-   181
+   185
   ],
   [
    "Literal Instead of Constant",
    "contracts/src/series/seriesFactory.sol",
-   215
+   219
   ],
   [
    "Literal Instead of Constant",
    "contracts/src/series/seriesFactory.sol",
-   220
+   224
   ],
   [
    "Literal Instead of Constant",
    "contracts/src/series/seriesFactory.sol",
-   221
+   225
   ],
   [
    "Literal Instead of Constant",
    "contracts/src/series/seriesFactory.sol",
-   222
+   226
   ],
   [
    "Literal Instead of Constant",
@@ -211,7 +216,7 @@
   [
    "Loop Contains `require`/`revert`",
    "contracts/src/core/modules/coreSeriesLifecycle.sol",
-   131
+   132
   ],
   [
    "Loop Contains `require`/`revert`",
@@ -231,32 +236,37 @@
   [
    "Loop Contains `require`/`revert`",
    "contracts/src/series/seriesFactory.sol",
-   183
+   187
   ],
   [
    "Loop Contains `require`/`revert`",
    "contracts/src/series/seriesFactory.sol",
-   204
+   208
   ],
   [
    "Loop Contains `require`/`revert`",
    "contracts/src/series/seriesFactory.sol",
-   216
+   220
   ],
   [
    "Loop Contains `require`/`revert`",
    "contracts/src/series/seriesFactory.sol",
-   225
+   237
+  ],
+  [
+   "Missing Inheritance",
+   "contracts/src/series/seriesFactory.sol",
+   13
   ],
   [
    "Modifier Invoked Only Once",
    "contracts/src/core/modules/coreStorage.sol",
-   126
+   128
   ],
   [
    "Modifier Invoked Only Once",
    "contracts/src/series/seriesFactory.sol",
-   170
+   174
   ],
   [
    "Redundant Statement",
@@ -296,12 +306,42 @@
   [
    "Reentrancy: State change after external call",
    "contracts/src/core/modules/coreSeriesLifecycle.sol",
-   96
+   97
   ],
   [
    "Reentrancy: State change after external call",
    "contracts/src/core/modules/coreVaultFlows.sol",
    32
+  ],
+  [
+   "Reentrancy: State change after external call",
+   "contracts/src/parking/blueParking.sol",
+   89
+  ],
+  [
+   "Reentrancy: State change after external call",
+   "contracts/src/parking/blueParking.sol",
+   91
+  ],
+  [
+   "Reentrancy: State change after external call",
+   "contracts/src/parking/blueParking.sol",
+   98
+  ],
+  [
+   "Reentrancy: State change after external call",
+   "contracts/src/parking/blueParking.sol",
+   140
+  ],
+  [
+   "Reentrancy: State change after external call",
+   "contracts/src/parking/blueParking.sol",
+   157
+  ],
+  [
+   "Reentrancy: State change after external call",
+   "contracts/src/parking/blueParking.sol",
+   158
   ],
   [
    "Reentrancy: State change after external call",
@@ -481,12 +521,7 @@
   [
    "State Change Without Event",
    "contracts/src/core/modules/coreSeriesLifecycle.sol",
-   92
-  ],
-  [
-   "State Change Without Event",
-   "contracts/src/core/modules/coreVaultFlows.sol",
-   11
+   93
   ],
   [
    "State Change Without Event",
@@ -497,16 +532,6 @@
    "State Change Without Event",
    "contracts/src/core/modules/coreVaultFlows.sol",
    20
-  ],
-  [
-   "State Change Without Event",
-   "contracts/src/core/modules/coreVaultFlows.sol",
-   25
-  ],
-  [
-   "State Change Without Event",
-   "contracts/src/core/modules/coreVaultFlows.sol",
-   30
   ],
   [
    "State Change Without Event",
@@ -531,7 +556,7 @@
   [
    "Unchecked Return",
    "contracts/src/core/modules/coreSeriesLifecycle.sol",
-   87
+   88
   ],
   [
    "Unchecked Return",
@@ -581,7 +606,7 @@
   [
    "Unsafe ERC20 Operation",
    "contracts/src/core/modules/coreParkingBooks.sol",
-   60
+   90
   ],
   [
    "Unsafe ERC20 Operation",
@@ -592,6 +617,16 @@
    "Unsafe ERC20 Operation",
    "contracts/src/core/modules/coreVaultFlows.sol",
    51
+  ],
+  [
+   "Unsafe ERC20 Operation",
+   "contracts/src/parking/blueParking.sol",
+   131
+  ],
+  [
+   "Unsafe ERC20 Operation",
+   "contracts/src/parking/blueParking.sol",
+   229
   ],
   [
    "Unsafe ERC20 Operation",

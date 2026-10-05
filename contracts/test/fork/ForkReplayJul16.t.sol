@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BUSL-1.1
-// Morrow Finance: fork group B: Morrow holds a live series inside real Midnight markets while the busiest real
-// liquidation day (2026-07-16) is replayed transaction by transaction with the feed rounds of the time.
+// Morrow Finance: fork group B: Morrow holds a live series inside a real Midnight market while the busiest real
+// liquidation day (2026-07-16) is replayed transaction by transaction; the 0.915 market of that day is now refused.
 // @author adiii.eth
 
 pragma solidity 0.8.34;
@@ -9,6 +9,7 @@ import {console} from "forge-std/console.sol";
 import {Market} from "@morpho-org/midnight/src/interfaces/IMidnight.sol";
 import {ForkBase, iChainlinkFeed} from "./ForkBase.t.sol";
 import {creditSeries} from "../../src/series/creditSeries.sol";
+import {seriesFactory} from "../../src/series/seriesFactory.sol";
 import {SeriesState} from "../../src/interfaces/iSeries.sol";
 import {iErc20Like} from "../../src/interfaces/iErc20Like.sol";
 
@@ -193,7 +194,14 @@ contract ForkReplayJul16CbbtcTest is ReplayBase {
         return 0xa28cffd5ae5f8b59335d974ef541aaf4c3d3beee5d12e28079eebfd1c5e2669f;
     }
 
-    function test_B2_realLiquidationWave_cbbtcMarketAtTheCeiling() public {
-        _replayDay();
+    function test_B2_cursorRuleKeepsSeriesOutOfTheJul16CeilingMarket() public {
+        Market memory m = midnight.toMarket(_marketId());
+        assertEq(m.collateralParams[0].lltv, 0.915e18, "the replayed market sits at the ceiling");
+        assertLt(m.collateralParams[0].liquidationCursor, 0.5e18, "its liquidation cursor is below the rule");
+        bytes32[] memory one = new bytes32[](1);
+        one[0] = _marketId();
+        vm.expectRevert(abi.encodeWithSelector(seriesFactory.IneligibleMarket.selector, _marketId(), uint8(7)));
+        factory.checkEligibility(one);
+        console.log("B2 Jul 16 cbBTC 0.915 market, cursor (wad):", m.collateralParams[0].liquidationCursor);
     }
 }

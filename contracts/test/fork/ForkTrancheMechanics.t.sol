@@ -206,7 +206,7 @@ contract ForkTrancheMechanicsTest is StressBase {
         core.executePolicyChange(keccak256("minIdleJuniorWad"));
         core.executePolicyChange(keccak256("maxPerMaturityWindowWad"));
 
-        creditSeries s = _isolatedSeries(400_000e6, 100_000e6, 380_000e6, 100_000e6, 12, 40_000e6);
+        creditSeries s = _isolatedSeries(400_010e6, 100_010e6, 380_000e6, 100_000e6, 12, 40_000e6);
         _crashAndRealize(12, 0);
         vm.warp(s.T());
         vm.prank(keeper);
@@ -280,6 +280,14 @@ contract ForkTrancheMechanicsTest is StressBase {
         (ids, ms) = abi.decode(vm.parseBytes(vm.readFile(file)), (bytes32[], Market[]));
     }
 
+    function _eligibilityRule(bytes32[] memory one) internal view returns (bool ok, uint8 rule) {
+        try factory.checkEligibility(one) {
+            ok = true;
+        } catch (bytes memory err) {
+            if (err.length >= 68) rule = uint8(err[67]);
+        }
+    }
+
     function test_O1_O2_O3_eligibilityAgainstEveryLiveMarket() public {
         (bytes32[] memory eIds, Market[] memory eMs) = _loadMarkets("eligible");
         uint256 passed;
@@ -288,14 +296,21 @@ contract ForkTrancheMechanicsTest is StressBase {
             assertEq(midnight.touchMarket(eMs[k]), eIds[k], "O3: API parameters reproduce the market id");
             bytes32[] memory one = new bytes32[](1);
             one[0] = eIds[k];
-            try factory.checkEligibility(one) {
+            (bool ok, uint8 rule) = _eligibilityRule(one);
+            if (ok) {
                 passed++;
-            } catch {
+            } else {
                 rejected++;
-                console.log("O3 eligible-by-LLTV but rejected (allowlist):", vm.toString(eIds[k]));
+                console.log(
+                    string.concat(
+                        "O3 eligible-by-LLTV but rejected: ", vm.toString(eIds[k]), " rule ", vm.toString(rule)
+                    )
+                );
             }
         }
         console.log("O3 class E markets passing eligibility / rejected:", passed, rejected);
+        assertEq(passed, 7, "O3: seven live class E markets pass the factory rules");
+        assertEq(rejected, 4, "O3: four are rejected by the allowlist or the cursor rule");
 
         (bytes32[] memory xIds, Market[] memory xMs) = _loadMarkets("above_ceiling");
         for (uint256 k = 0; k < xIds.length; k++) {

@@ -1,0 +1,16 @@
+testMode: property
+prefix: "echidna_"
+testLimit: 50000
+seqLen: 100
+shrinkLimit: 2000
+workers: 1
+codeSize: 0xffffff
+corpusDir: "cache/echidna-corpus"
+coverage: true
+deployer: "0x30000"
+sender: ["0x10000", "0x20000", "0x30000"]
+maxTimeDelay: 604800
+maxBlockDelay: 60480
+cryticArgs: ["--foundry-ignore-compile", "--foundry-out-directory", "contracts/out"]
+timeout: 1800
+disableSlither: true

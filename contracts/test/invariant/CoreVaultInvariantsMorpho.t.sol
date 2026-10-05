@@ -48,4 +48,12 @@ contract CoreVaultInvariantsMorphoTest is CoreVaultInvariantsTest {
         }
         assertLe(claimed, parking.poolAssets(), "accounts can never be worth more than the pool holds");
     }
+
+    function invariant_parkingLossIsJuniorFirst() public view {
+        assertEq(
+            parkingChaosHandler.ghost_seniorHitWhileJuniorCovered(),
+            0,
+            "a parking loss never reached senior idle while junior idle covered it"
+        );
+    }
 }

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-// Morrow Finance: scenario harness with idle cash parked in a (mock) Morpho vault.
+// Morrow Finance: scenario harness with idle cash in a yield-bearing parking venue (a mock Morpho vault by default).
 // @author adiii.eth
 
 pragma solidity 0.8.34;
@@ -12,29 +12,44 @@ import {TickLib} from "@morpho-org/midnight/src/libraries/TickLib.sol";
 import {ORACLE_PRICE_SCALE} from "@morpho-org/midnight/src/libraries/ConstantsLib.sol";
 
 import {ScenarioBase} from "./ScenarioBase.t.sol";
+import {SeriesRegistry} from "../invariant/handlers/SeriesRegistry.sol";
 import {SeriesRegistryMorphoParking} from "../invariant/handlers/SeriesRegistryMorphoParking.sol";
-import {MockMorphoVault} from "../mocks/MockMorphoVault.sol";
 import {MockUSDC} from "../mocks/MockUSDC.sol";
-import {morphoParking} from "../../src/parking/morphoParking.sol";
 import {creditSeries} from "../../src/series/creditSeries.sol";
 import {wadMath} from "../../src/libraries/wadMath.sol";
+
+interface iVenueKnobs {
+    function accrueBps(uint256 bps) external;
+    function loseBps(uint256 bps) external;
+    function setLiquidityCap(uint256 cap) external;
+}
+
+interface iParkingView {
+    function totalAssets(address account) external view returns (uint256);
+    function maxWithdraw(address account) external view returns (uint256);
+    function liquidity() external view returns (uint256);
+}
 
 abstract contract MorphoScenarioBase is ScenarioBase {
     using wadMath for uint256;
 
-    SeriesRegistryMorphoParking mregistry;
-    MockMorphoVault vault;
-    morphoParking mparking;
+    iVenueKnobs vault;
+    iParkingView mparking;
+
+    function _newVenueRegistry() internal virtual returns (SeriesRegistry reg, address knobs, address adapter) {
+        SeriesRegistryMorphoParking r = new SeriesRegistryMorphoParking();
+        return (r, address(r.morphoVault()), address(r.morphoParkingAdapter()));
+    }
 
     function setUp() public virtual override {
-        mregistry = new SeriesRegistryMorphoParking();
-        registry = mregistry;
+        (SeriesRegistry reg, address knobs, address adapter) = _newVenueRegistry();
+        registry = reg;
         core = registry.realCore();
         seniorVault = registry.seniorVault();
         juniorVault = registry.juniorVault();
         usdc = registry.usdc();
-        vault = mregistry.morphoVault();
-        mparking = mregistry.morphoParkingAdapter();
+        vault = iVenueKnobs(knobs);
+        mparking = iParkingView(adapter);
     }
 
     function _registerBid(address seriesAddr, uint256 maturity, uint256 units, address borrower)
