@@ -159,7 +159,7 @@ contract morphoParking is iParking {
         uint256 held = sharesOf[account];
         if (shares > held) {
             uint256 heldValueUp = held.mulDivUp(pool + 1, totalShares + VIRTUAL_SHARES);
-            require(assets <= heldValueUp + DUST_ASSETS, InsufficientBalance());
+            require(held > 0 && assets <= heldValueUp + DUST_ASSETS, InsufficientBalance());
             shares = held;
         }
         sharesOf[account] = held - shares;

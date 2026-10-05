@@ -54,6 +54,7 @@ abstract contract coreStorage {
     event PolicyExecuted(bytes32 indexed key, uint256 value);
     event Paused_(bool paused);
     event FeeRecipientSet(address feeRecipient);
+    event IdleLossAbsorbed(uint256 seniorLossAssets, uint256 claimsMoved);
 
     struct Book {
         uint256 parkingClaims;
@@ -113,6 +114,7 @@ abstract contract coreStorage {
     Book public senior;
     Book public junior;
     uint256 public totalParkingClaims;
+    uint256 public claimPriceMark;
 
     address[] public liveSeries;
     address[] public recoveringSeries;

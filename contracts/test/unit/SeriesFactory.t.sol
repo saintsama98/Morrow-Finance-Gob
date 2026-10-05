@@ -148,6 +148,65 @@ contract SeriesFactoryTest is Test, MidnightHarness {
         factory.checkEligibility(ids);
     }
 
+    function _factory915() internal returns (seriesFactory f) {
+        f = new seriesFactory(
+            iMidnightMinimal(address(midnight)), address(setterRatifier), address(usdc), governance, 0.915e18, 4
+        );
+        vm.startPrank(governance);
+        f.proposeCollateralAllowed(cbBTC, true);
+        f.proposeOracleAllowed(cbBTC, address(cbBtcOracle), true);
+        vm.warp(block.timestamp + 48 hours);
+        f.executeCollateralAllowed(cbBTC, true);
+        f.executeOracleAllowed(cbBTC, address(cbBtcOracle), true);
+        vm.warp(block.timestamp - 48 hours);
+        vm.stopPrank();
+        midnight.enableLltv(0.915e18);
+    }
+
+    function _one(bytes32 id) internal pure returns (bytes32[] memory ids) {
+        ids = new bytes32[](1);
+        ids[0] = id;
+    }
+
+    function test_E7_cursorRule_highThresholdNeedsCursorAtLeastHalf() public {
+        seriesFactory f = _factory915();
+        MidnightHarnessMarketBuilder builder = new MidnightHarnessMarketBuilder();
+        bytes32 thin = _touch(
+            builder.buildMarket(
+                address(midnight), address(usdc), cbBTC, 0.915e18, CURSOR_25, address(cbBtcOracle), maturity
+            )
+        );
+        vm.expectRevert(abi.encodeWithSelector(seriesFactory.IneligibleMarket.selector, thin, uint8(7)));
+        f.checkEligibility(_one(thin));
+
+        bytes32 ok = _touch(
+            builder.buildMarket(
+                address(midnight), address(usdc), cbBTC, 0.915e18, CURSOR_50, address(cbBtcOracle), maturity
+            )
+        );
+        f.checkEligibility(_one(ok));
+    }
+
+    function test_E8_tenorTier_longTermsCappedAtPoint86() public {
+        seriesFactory f = _factory915();
+        MidnightHarnessMarketBuilder builder = new MidnightHarnessMarketBuilder();
+        uint256 longMaturity = block.timestamp + 120 days;
+        bytes32 high = _touch(
+            builder.buildMarket(
+                address(midnight), address(usdc), cbBTC, 0.915e18, CURSOR_50, address(cbBtcOracle), longMaturity
+            )
+        );
+        vm.expectRevert(abi.encodeWithSelector(seriesFactory.IneligibleMarket.selector, high, uint8(8)));
+        f.checkEligibility(_one(high));
+
+        bytes32 ok = _touch(
+            builder.buildMarket(
+                address(midnight), address(usdc), cbBTC, LLTV_86, CURSOR_25, address(cbBtcOracle), longMaturity
+            )
+        );
+        f.checkEligibility(_one(ok));
+    }
+
     function test_E5_duplicateMarket() public {
         bytes32 id = _touch(_cbBtcMarket(maturity, LLTV_77));
 

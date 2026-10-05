@@ -1,92 +1,140 @@
-# Morrow-Finance-Gob (Gob - symbolizes early beta and testing cascade for the protocol, similar to early form of glass as a base material, also known as "Gob") 
+# Morrow Finance (Gob)
 
-dated senior and junior credit tranches on Morpho Midnight, one surface with two tokens.
+Dated senior and junior credit tranches on Morpho Midnight, behind two vault tokens.
 
-morrow runs a series engine and two vault tokens. the allocator opens series against staggered maturities on Midnight, each series lends into a basket of 1–4 ungated USDC markets maturing at the same date, and splits every outcome through a strict waterfall. senior vault holders (`srUSDC`) are paid first at maturity up to a fixed senior claim. junior vault holders (`jrUSDC`) take the first loss of every series and receive the residual.
+Gob is the first, pre-audit release. The name refers to the early form of glass: the base material before it is shaped.
 
-deposits are always open. senior deposits are synchronous ERC-4626. junior deposits and all redemptions go through weekly epochs with ERC-7540 async request/fulfillment. the only user-facing tokens are `srUSDC` and `jrUSDC`; series are internal state machines managed by the core.
+## What Morrow does
 
-every series locks capital from finalization until maturity, with no early exit. withdrawable liquidity from market repayments and liquidations is collected into the books and allocated into the next series. settlement is rule-based: finalize after the deployment window, collect at any time, write off after T + 7 days, settle once all markets are resolved. every deadline has a permissionless fallback, keepers earn nothing.
+Morrow pools USDC from two kinds of depositor and lends it into fixed-maturity credit markets on Morpho Midnight.
 
-## system overview
+- **Senior** (`srUSDC`) holds a fixed claim on each series: paid first at maturity, up to an amount set when the series is priced.
+- **Junior** (`jrUSDC`) takes the first loss of every series and receives the residual, including a premium paid by senior.
 
-| role | trust |
-|---|---|
-| senior depositors | deposit USDC, hold `srUSDC` shares |
-| junior depositors | deposit USDC through epochs, hold `jrUSDC` shares |
-| allocator | opens series, deploys capital into Midnight, runs finalization and settlement steps. a safe multisig, caps set by curator |
-| curator | sets risk policy: eligible markets and oracles, coverage minimum and junior share band, premium curve anchors, caps and idle floors. must hold ≥10% of `jrUSDC` supply |
-| sentinel | can only reduce risk: pause deposits, lower caps, cancel series before any fill |
-| keeper | anyone. runs deadline-driven state transitions (finalize, collect, settle, writeOff, closeEpoch, fulfillEpoch) after their time has passed |
-| governance | owns the factory allowlists and the curator seat, behind a 48h timelock |
+Capital is deployed in **series**. A series lends into a basket of Midnight markets that share one maturity date, holds the credit to maturity, collects what the markets return, and divides it between senior and junior through a fixed waterfall. Series are opened on staggered maturities, and settled cash rolls into the next series. Depositors never hold series directly; the two vault tokens are the only user-facing surface.
 
-## architecture
+Seniority cannot exist inside a Midnight market, where every lender shares losses pro rata. Morrow creates it above the market by aggregating the post-loss value of its positions and splitting that one number in a fixed order.
 
-| layer | contracts | role |
+## Architecture
+
+| Layer | Contracts | Role |
 |---|---|---|
-| vaults (L2) | `SeniorVault`, `JuniorVault`, `EpochQueue` | share ledgers on top of the core books |
-| core (L1) | `SeriesCore` | custody, books (senior and junior), series registry, coverage and capacity rules |
-| engine (L0) | `SeriesFactory`, `Series` per maturity, `parking` adapters | lend into Midnight per series, run waterfall, push payouts to core |
+| Vaults | `usdcSeniorVault`, `usdcJuniorVault` (with `usdcVaultBase`) | Share ledgers over the core's books. Senior deposits are synchronous (ERC-4626). Junior deposits and all exits are batched (ERC-7540 requests with ERC-7887 cancels). |
+| Core | `seriesCore` | Single custody. Keeps a senior book and a junior book as claims on one parking position, a series registry, capacity and coverage rules, the stress gate, the cross-series backstop and the policy timelock. |
+| Engine | `seriesFactory`, `creditSeries` (one per maturity) | Eligibility checks, offers and fills on Midnight, finalize and pricing, collection, settlement, write-off and waterfall payouts. |
+| Parking | `blueParking`, `morphoParking`, `idleParking` behind `iParking` | Holds idle USDC. `blueParking` lends it directly in one Morpho Blue market whose collateral, threshold and oracle match the series markets. `morphoParking` wraps an ERC-4626 vault. `idleParking` holds plain USDC. |
 
-the core holds all USDC in a parking adapter (idle capital earns yield). the vaults hold no assets; they read their value from the core's books and manage epoch requests. series are immutable per maturity and created by the core only. value moves down through `openSeries` and back up through `receiveReturn` (at finalize) and `receivePayout` (at every waterfall rerun). the roll is the product: settled cash returns to the books and is allocated into the next series.
+Value flows down through `openSeries` and back up through `receiveReturn` (at finalize or cancel) and `receivePayout` (on every waterfall run). The vaults hold no assets.
 
-## series lifecycle
+### Series lifecycle
 
 ```
-DEPLOYING (allocator registers offers, borrows take bids on Midnight)
-    ↓ (finalize: price senior claim, freeze rates)
-LOCKED (no entry or exit, navs follow Midnight credit updates)
-    ↓ (after maturity, startSettlement)
-SETTLING (collect when borrowers repay or liquidators settle, sync loss)
-    ↓ (all markets resolved, or T + 7 days passed)
-SETTLED (rerun waterfall on recoveries until no more cash arrives)
+DEPLOYING   offers registered, borrowers fill the series' bids on Midnight
+    | finalize: price the senior claim, return undeployed cash
+LOCKED      held to maturity, marked to Midnight credit and loss factor
+    | startSettlement, after maturity
+SETTLING    collect repayments and liquidation proceeds
+    | settle (all markets resolved) or writeOff (after the write-off delay)
+SETTLED     the waterfall reruns on every later recovery
 ```
 
-cancellation if `K_d == 0` (nothing filled), returning cash to both books immediately.
+A series with no fills is cancelled and its cash returns to both books. A series that deploys less than its minimum size settles pro rata instead of through the waterfall.
 
-## pricing and tranches
+### Fills funded just in time
 
-a series with allocated `S` (senior) and `J` (junior) sets `a = J / (S + J)` and `u = COV / a` (coverage utilization). a three-anchor premium curve adjusts based on `u` and `a`; the realized senior rate is `r_s = r_pool * (1 - pi(u))` where `r_pool` is net pool rate and `pi(u)` is the junior premium. senior gets a fixed claim `C_S = S_d * (1 + r_s)` priced at finalize; junior gets the residual after every loss and the operator fee (10% of junior profit by default).
+The series is its own Midnight buy callback. When a borrower takes a series bid, Midnight calls the series' `onBuy`, which checks price, caps and window, then withdraws exactly the needed USDC from parking. With `blueParking`, that withdrawal comes out of the Morpho Blue position inside the same transaction.
 
-early losses hit junior in full immediately (via live loss factor sync). if junior is wiped, senior takes the next loss (stress gate then closes senior deposits). if a series underperforms, recovery flows senior-first, keeping strict seniority.
+## Pricing and the waterfall
 
-## arithmetic (model under simulation)
+For a series with senior `S` and junior `J`:
 
-[`/docs/morrow-finance-gob-arithmatic.md`](docs/morrow-finance-gob-arithmatic.md) is the mathematical model behind all of Morrow-Finance-Gob. it defines every variable, states every expression the protocol uses, explains why each takes its form, and checks the arithmetic against exact rational computation. read it to understand how a series is priced, how the waterfall divides proceeds, and why senior is fixed and junior is the residual.
+```
+a   = J / (S + J)                     junior share, between 0.15 and 0.30
+u   = 0.15 / a                        coverage utilisation
+pi  = premium(u)                      piecewise linear: 0.10, 0.20 at u = 0.9, 0.35
+r_s = r_pool * (1 - pi)               senior rate, from the realised pool rate
+C_S = S_d * (1 + r_s)                 senior claim, fixed at finalize
+```
 
-it covers: the zero coupon Midnight market underneath, the premium curve and senior claim, the cushion and junior share floor, the waterfall and its recoveries rerun, the three properties that define subordination, per-series loss isolation, rounding and signed arithmetic, and the risk side (loss frequency, expected loss, stress thresholds, tenor and liquidity buffer sizing).
+At settlement, proceeds `P` pay senior up to `C_S`, junior the remainder, and a fee of 10% on junior profit above its principal. Recoveries rerun the waterfall on cumulative proceeds and pay only increments.
 
-the document holds three kinds of statement, and it marks which is which:
+The full model, with every rounding direction and its audit, is in [`docs/morrow-finance-gob-arithmatic.md`](docs/morrow-finance-gob-arithmatic.md). Its two Python models (`docs/morrow-finance-gob-reference_model.py`, `docs/morrow-finance-gob-stress_model.py`) reproduce every number in it.
 
-| kind | meaning |
+## Loss order
+
+1. **Inside a series:** the waterfall. Junior absorbs every loss up to the cushion; senior only beyond it.
+2. **Across series:** a cross-series backstop, on by default. A senior shortfall in a settled series is covered from up to 50% of junior's idle cash.
+3. **On idle cash:** junior-first. A fall in the parking position's value moves claims from the junior book to the senior book until senior is restored to its value at the last settlement point, limited by junior's idle. Gains are shared pro rata. The settlement point advances on every book-changing call and on the permissionless `syncAll`.
+
+While any live series' junior value is below half its deployed junior, the stress gate closes senior deposits.
+
+## Roles
+
+| Role | Can do |
 |---|---|
-| derivation | true given the stated definitions |
-| audited result | produced by an exact integer reference implementation, reproducible by anyone |
-| simulation result | depends on modelled market behaviour. this part is still under simulation, and figures not yet computed are marked `[Pending]` |
+| Senior and junior depositors | Deposit, request exits, cancel, claim |
+| Allocator | Open series within policy, register offers, take asks, finalize early, operate batches |
+| Curator | Set risk policy through a timelock (risk-reducing moves are instant). Must hold at least 10% of `jrUSDC`. Can pause. |
+| Sentinel | Risk-reducing only: pause, lower caps, cancel an unfilled series, move Blue parking to cash |
+| Governance | Factory allowlists (collateral, oracles, maximum threshold, markets per basket) behind a 48-hour timelock, role wiring |
+| Keeper (anyone) | Every deadline has a permissionless path: finalize, collect, settle, write off, close and fill batches after their windows, sync |
 
-two Python models in `/docs` produce every number in the document, using only the standard library:
+## Market eligibility
 
-| file | role |
+A market is accepted into a series only if:
+- its loan token is USDC and it shares the basket's maturity;
+- it has no enter or liquidator gate;
+- every collateral and oracle is allowlisted, and every threshold is within the factory ceiling (a deployment parameter, hard cap 0.915);
+- a threshold of 0.915 or more has a liquidation cursor of at least 0.50 (cursor rule);
+- a market maturing more than 91 days out has every threshold at 0.86 or below (tenor tier).
+
+## Parameters
+
+| Parameter | Default |
 |---|---|
-| [`docs/morrow-finance-gob-reference_model.py`](docs/morrow-finance-gob-reference_model.py) | exact integer implementation of the tranche arithmetic, audited against exact rational computation. writes `audit_tables.md` and `audit_results.json` |
-| [`docs/morrow-finance-gob-stress_model.py`](docs/morrow-finance-gob-stress_model.py) | deterministic stress model mapping a collateral price shock to pool loss and each claim's outcome. writes `stress_tables.md` |
+| Minimum junior share, maximum junior share | 0.15, 0.30 |
+| Premium anchors | 0.10, 0.20 (kink at u = 0.9), 0.35 |
+| Fee on junior profit | 0.10 |
+| Senior capacity | 4 × junior assets |
+| Junior exit coverage floor | 0.15 |
+| Idle floor per book (kept out of new series, available to exits) | 0.05 |
+| Stress gate | junior value below 0.50 of deployed junior in any live series |
+| Backstop | on, up to 0.50 of junior idle |
+| Live series, per-series size | 12, 1,000,000 USDC |
+| Markets per basket | deployment parameter, hard cap 8 |
+| Exit batches | permissionless close after 7 days, permissionless fill after 3 more, cancel 14 days after close |
+| Blue parking raw buffer | 5% of the parking pool |
 
-run each with `python3 <file>`. the document refers to them by their short names, `reference_model.py` and `stress_model.py`.
+## Build and test
 
-the contracts implement this arithmetic, so the document is the reference for what the code is meant to compute. where the two ever disagree, treat it as a defect to resolve, not as a choice of source. the simulation results are model output, not a forecast or a guarantee of returns.
+Foundry 1.7.1, solc 0.8.34, `via_ir`, EVM `osaka` (Midnight requires it). Dependencies are git submodules; Morpho Blue is used from the copy vendored inside Midnight.
 
-## parameters (defaults)
+```
+forge build
+forge test                                   # unit, scenario, fuzz, invariants, formal twins
+BASE_RPC_URL=<base rpc> forge test --match-path "contracts/test/fork/*"   # Base mainnet fork suites
+```
 
-coverage minimum `COV = 0.15`, junior share band `[0.15, 0.30]`, premium anchors `pi0/piT/pi1 = 0.10/0.20/0.35`, operator fee on junior profit `theta = 0.10`, series size typically 250k–1m USDC per maturity, max 4 markets per basket (cbBTC and WBTC collateral, ungated, Base only), write-off delay after maturity 7 days, epoch length 7 days, backstop enabled by default (junior is first loss for entire senior book).
+Fork tests are skipped when `BASE_RPC_URL` is unset. Stateful fuzzing, static analysis and symbolic checks have their own entry points, listed with every result in [`docs/VERIFICATION.md`](docs/VERIFICATION.md).
 
-## build
+## Verification
 
-Foundry, solc 0.8.34, EVM version `osaka` (Midnight uses `clz`). tests deploy the real Midnight contract from a pinned commit, not a mock. unit tests per module, fuzz tests per main invariant, stateful invariant suite with handlers for every actor, scenario tests S0–S14 (base and fork). differential tests (Solidity vs Python twins of the math) are planned and not in the suite yet.
+[`docs/VERIFICATION.md`](docs/VERIFICATION.md) records everything run against this code, with the commands to reproduce it:
+- unit, scenario, fuzz and invariant suites;
+- differential tests against Python twins of the arithmetic;
+- Slither and Aderyn, with every result triaged;
+- a 24-mutant mutation campaign;
+- Echidna and Medusa campaigns;
+- Halmos targets;
+- Base mainnet fork tests against real Midnight markets and the real Morpho Blue market;
+- historical crash replays at Chainlink round level, 124 rolling windows, default and recovery grids, and a correlated crash across series and parking.
 
-repository layout: `/contracts/src` (contracts), `/contracts/test` (tests), `/docs` (build spec, VERIFY_LOG.md, the arithmetic model `morrow-finance-gob-arithmatic.md`, and its two Python models).
+## Status
 
-## status
+Pre-audit. Not deployed. The contracts have not been reviewed by an external auditor.
 
-v0.1 (Gob), pre beta. build spec is the source of truth (section 0 of `/docs/SERIES_BUILD_SPEC.md`). milestones M0–M12 lay out the build order: M0 resolves Midnight facts, M1–M8 build engine and surface, M9 forks to Base, M10 optional Vault V2 adapter, M11 simulation and risk report, M12 audit prep.
+This is software, not an offer. `srUSDC` and `jrUSDC` are unregistered, and their legal characterisation depends on jurisdiction.
 
-software, not an offer. `srUSDC` and `jrUSDC` are unregistered and their legal characterization is jurisdiction-specific (a launch gate).
+## License
+
+BUSL-1.1. See [`LICENSE`](LICENSE).

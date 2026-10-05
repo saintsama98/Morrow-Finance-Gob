@@ -80,13 +80,26 @@ The parameters, fixed per series at open:
 | u_T | Location of the premium kink | 0.90 | Chosen |
 | θ | Fee rate on junior profit above principal | 0.10 | Chosen |
 | K_min | Minimum deployed size for a tranche | 50,000 USDC | Chosen |
-| L_max | Highest permitted liquidation threshold | 0.86 | Chosen, see market selection |
-| ψ | Ceiling on mean borrower LTV relative to the threshold | 0.85 | Chosen, see market selection |
-| τ | Series tenor | 180 days | Simulation, see tenor section |
-| N | Series running at once | 9 | Simulation, see buffer section |
-| b_min, b_max | Bounds on the liquidity buffer | 0.02, 0.08 | Simulation, see buffer section |
+| L_max | Highest permitted liquidation threshold | 0.86 | Chosen, see market selection. On chain this is the factory's `maxLltvWad`, a deployment parameter with a hard cap of 0.915. |
+| ψ | Ceiling on mean borrower LTV relative to the threshold | 0.85 | Chosen, see market selection. Evaluated off chain by the allocator when a series opens and recorded in the series' attestation hash; not checked on chain. |
+| τ | Series tenor | 180 days | Simulation, see tenor section. Chosen per series by the allocator from the eligible maturities; not enforced on chain. |
+| N | Series running at once | 9 | Simulation, see buffer section. On chain, `maxSeries` caps live series at 12. |
+| b_min, b_max | Bounds on the liquidity buffer | 0.02, 0.08 | Simulation, see buffer section. On chain the buffer is a fixed idle floor of 0.05 per book, inside these bounds. |
 
 Chosen means set conservatively without calibration. No parameter in this table has been fitted to operating data, because none exists yet.
+
+The vault layer above the series adds the following parameters. They are the protocol defaults and can be changed only through the curator's timelocked policy, except that risk-reducing moves take effect at once.
+
+| Parameter | Meaning | Default |
+| --- | --- | --- |
+| covVaultWad | Senior capacity: senior assets may reach juniorAssets × (1 − 0.20) / 0.20, four times junior | 0.20 |
+| covVaultMinWad | Junior exit floor: a junior exit may not take vault coverage below this | 0.15 |
+| minIdleSeniorWad, minIdleJuniorWad | Idle kept out of new series, as a share of each book | 0.05, 0.05 |
+| stressJuniorFloorWad | Senior deposits close while any live series' junior NAV is below this share of its deployed junior | 0.50 |
+| backstopEnabled, backstopWad | Cross-series backstop on, using up to this share of junior idle | true, 0.50 |
+| maxPerSeriesAssets, maxPerMaturityWindowWad | Size of one series, and exposure to one maturity window as a share of assets | 1,000,000 USDC, 0.50 |
+| curatorMinShareWad | Minimum junior share the curator must keep | 0.10 |
+| Exit batches | Permissionless close after, permissionless fill after, cancel after close | 7 days, 3 days, 14 days |
 
 ---
 
@@ -340,9 +353,9 @@ Structured finance separates these as time tranching, which orders when claimant
 
 ---
 
-## Losses are isolated per series
+## Losses are isolated per series, then backstopped from junior idle
 
-Each series has its own cushion and no capital in one series absorbs a loss in another. Senior's total loss across n series is therefore the sum of per series shortfalls.
+Each series has its own cushion and its own waterfall, and no capital deployed in one series absorbs a loss in another. Before any backstop, senior's total loss across n series is the sum of per series shortfalls.
 
 Proposition. For losses X_k and cushions B_k,
 
@@ -353,6 +366,10 @@ Proposition. For losses X_k and cushions B_k,
 The left side is senior's loss under isolation and the right side is what it would be if the cushions were pooled. The inequality follows from the positive part being subadditive. Equality holds when every X_k − B_k has the same sign, which is the case when series losses move together.
 
 Two consequences follow. With a single collateral family and overlapping maturities, series losses are strongly correlated and isolation costs senior little. As collateral diversifies, the gap widens, and the benefit of diversification accrues to junior rather than to senior.
+
+The protocol narrows that gap with a cross-series backstop, enabled by default. When a series settles with senior short of its claim, the shortfall is covered from junior's idle cash, up to backstopWad of it, before senior's book records a loss. The backstop moves only junior idle, never another series' deployed capital, so each waterfall stays exact.
+
+Idle cash itself is junior-first. Both books hold proportional claims on one parking position. When the value per claim falls, claims move from the junior book to the senior book until senior is restored to its value at the last settlement, limited by junior's idle. Gains stay proportional. The settlement point advances on every book-changing call and on the permissionless sync, so a gain accrued since the last sync is shared proportionally if a loss arrives before the next one.
 
 ---
 
@@ -376,6 +393,8 @@ The lower bound holds because F_net equals K_d(1 + r) exactly while each rounded
 | 10B to 100B USDC | 20,000 | 0 | 1.112153 |
 
 The excess grows only with S_d / 10^18, so it stays near one unit for pools from one USDC to one hundred billion USDC and becomes material at no realistic scale.
+
+The same direction holds for idle cash. The books hold claims on the parking position at 10^6 claims per unit of USDC, and the price per claim is kept at a scale of 10^36. After a parking loss that junior's idle covers, senior's idle value is at least its value at the last settlement point less two units. At a scale of 10^18 the price per claim would keep about twelve significant digits, and senior would lose up to S / 10^18 units at each settlement point, where S is senior's claim count.
 
 ---
 
@@ -599,7 +618,7 @@ A market is eligible for a series only if it satisfies four constraints. Each fo
 | Borrower buffer | Debt weighted mean borrower LTV ≤ ψ · LLTV | Sets a floor under b_0 and therefore under z |
 | Tenor tier | LLTV ≤ 0.86 when τ exceeds 91 days | A longer term gives collateral more room to move |
 
-At the defaults the cursor rule and the tenor tier do not bind, because L_max is already 0.86. They take effect only if the threshold ceiling is raised.
+On chain, the threshold ceiling is the factory's `maxLltvWad`, a deployment parameter with a hard cap of 0.915. The cursor rule and the tenor tier are enforced by the factory whenever a market's threshold reaches them, so raising the ceiling cannot admit a market the model excludes. On Base every Midnight market uses a cursor of 0.30, so no market at 0.915 is eligible there today. The borrower buffer constraint is evaluated off chain by the allocator and recorded with the series.
 
 The borrower buffer constraint is the most consequential. It is the only one that acts on the starting distance b_0, which the stress results below show to be the largest single driver of loss. Borrower positions are public, so the constraint can be evaluated exactly at the moment a series opens.
 
@@ -661,8 +680,8 @@ The orderly decline produces no bad debt, which is a check on the model rather t
 
 | Live book result | Value |
 | --- | --- |
-| Junior exhausted, current borrower book | [Pending: computed from live market state] |
-| Date and block of computation | [Pending] |
+| Junior exhausted, current borrower book | Not computed from a single live book. Fork replays on Base at block 51,894,109 measured the realized loss at which senior is first impaired: 64,133 USDC, about 21.5% of deployed capital, for the reference basket. Across 124 rolling 30 day windows from April 2024 to September 2026, senior was never impaired. |
+| Date and block of computation | 2026-09-28, Base block 51,894,109 |
 
 ---
 
@@ -717,6 +736,12 @@ Here q95 is the 95th percentile of redemptions minus deposits over any window of
 Deposits are liquidity. Incoming deposits pay outgoing redemptions before any series settles, so the buffer is insurance against net outflow and earns its cost only when the book is flat or shrinking. It buys service quality, not solvency, because the wait without a buffer is bounded by the gap g.
 
 The buffer venue carries its own credit risk. It is an open term lending market, not cash, and belongs in the loss model with its own allowance.
+
+The implementation follows this design with two simplifications.
+
+- Idle cash, including both floors, is lent directly into one Morpho Blue market whose collateral, threshold and oracle match the series markets: cbBTC against USDC at 0.86 on Base, priced by the same oracle contract the series markets use. A raw USDC slice of 5% of the parking pool is kept so that small fills need no venue call. Fills draw on the position just in time, inside the Midnight callback that settles them.
+- The buffer target is a fixed idle floor per book rather than a recomputed q95 target. The floor keeps capital out of new series. It does not restrict exits: redemptions may use all idle cash, floor included. The curator can raise the floor at once, and lower it through the timelock, when flow statistics justify it.
+- The venue's credit risk is carried junior-first, as described in the section on isolation.
 
 | Flow regime | Buffer | Same day fill | Mean wait | Net yield |
 | --- | --- | --- | --- | --- |
@@ -774,9 +799,11 @@ Every parameter default is chosen conservatively and not calibrated. The basis o
 The reference implementation and the stress model use only the Python standard library.
 
 ```
-python3 reference_model.py
-python3 stress_model.py
+python3 docs/morrow-finance-gob-reference_model.py
+python3 docs/morrow-finance-gob-stress_model.py
 ```
+
+The protocol's Solidity libraries are checked against independent Python twins of the same arithmetic in `sim/`, through the differential tests in `contracts/test/unit/MathDifferential.t.sol`.
 
 The first prints every table in the audit and writes them to audit_tables.md. The second prints every table in the market and stress sections and writes them to stress_tables.md. Every value in this document is generated by one of the two.
 

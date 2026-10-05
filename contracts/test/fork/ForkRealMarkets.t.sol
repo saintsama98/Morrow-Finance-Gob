@@ -4,6 +4,7 @@
 
 pragma solidity 0.8.34;
 
+import {seriesFactory} from "../../src/series/seriesFactory.sol";
 import {Market} from "@morpho-org/midnight/src/interfaces/IMidnight.sol";
 import {ForkBase, iChainlinkFeed} from "./ForkBase.t.sol";
 import {creditSeries} from "../../src/series/creditSeries.sol";
@@ -222,10 +223,17 @@ contract ForkRealMarketsTest is ForkBase {
         assertEq(s.paidS(), s.seniorClaim(), "A6: senior whole");
     }
 
-    function test_A7_lltvBandEdges_0_77_and_0_915() public {
+    function test_A7_lltvBandEdges_0_77_and_0_86_and_0_915Rejected() public {
         _fundBooks(1_000_000e6, 400_000e6);
         Market memory low = _cbMarket(0.77e18, OCT_30, 2_000_000_000);
-        Market memory high = _cbMarket(0.915e18, OCT_30, 5_000_000_000);
+        Market memory high = _cbMarket(0.86e18, OCT_30, 3_000_000_000);
+        Market memory above = _cbMarket(0.915e18, OCT_30, 5_000_000_000);
+        bytes32 aboveId = midnight.touchMarket(above);
+        bytes32[] memory one = new bytes32[](1);
+        one[0] = aboveId;
+        vm.expectRevert(abi.encodeWithSelector(seriesFactory.IneligibleMarket.selector, aboveId, uint8(7)));
+        factory.checkEligibility(one);
+
         Market[] memory ms = new Market[](2);
         ms[0] = low;
         ms[1] = high;
@@ -235,7 +243,7 @@ contract ForkRealMarketsTest is ForkBase {
         (creditSeries s, bytes32[] memory ids) = _openSeries(ms, caps, 240_000e6, 60_000e6);
         _borrow(s, 0, low, 100_000e6, bob, 90);
         _borrow(s, 1, high, 100_000e6, carol, 99);
-        assertTrue(midnight.isHealthy(high, ids[1], carol), "A7: 0.915 borrower just inside health");
+        assertTrue(midnight.isHealthy(high, ids[1], carol), "A7: 0.86 borrower just inside health");
         _finalizeByKeeper(s);
         _toSettling(s);
         _repayAll(low, ids[0], bob);

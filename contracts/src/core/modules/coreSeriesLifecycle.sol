@@ -82,6 +82,7 @@ abstract contract coreSeriesLifecycle is coreVaultFlows {
     }
 
     function syncAll() external {
+        _settleIdleLoss(_parked());
         uint256 length = liveSeries.length;
         for (uint256 i = 0; i < length; i++) {
             creditSeries(liveSeries[i]).navsSynced();
@@ -162,6 +163,7 @@ abstract contract coreSeriesLifecycle is coreVaultFlows {
         if (already >= shortfall) return;
         uint256 remaining = shortfall - already;
 
+        _settleIdleLoss(_parked());
         uint256 maxFromIdle = idle(false).mulDivDown(policy.backstopWad, WAD);
         uint256 backstop = remaining < maxFromIdle ? remaining : maxFromIdle;
         if (backstop == 0) return;
