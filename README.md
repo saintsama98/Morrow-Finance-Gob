@@ -4,7 +4,7 @@ Dated senior and junior credit tranches on Morpho Midnight, behind two vault tok
 
 Gob is the early beta and testing cascade of the protocol, named after the early form of glass: the base material before it is shaped.
 
-Morrow runs a series engine and two vault tokens. The allocator opens series against staggered maturities on Midnight, each series lends into a basket of ungated USDC markets maturing at the same date, and splits every outcome through a strict waterfall. Senior holders (`srUSDC`) are paid first at maturity up to a fixed senior claim. junior vault holders (`jrUSDC`) take the first loss of every series and receive the residual.
+Morrow runs a series engine and two vault tokens. The allocator opens series against staggered maturities on Midnight, each series lends into a basket of ungated USDC markets maturing at the same date, and splits every outcome through a strict waterfall. Senior holders (`srUSDC`) are paid first at maturity up to a fixed senior claim. Junior holders (`jrUSDC`) take the first loss of every series and receive the residual.
 
 ## What Morrow does
 
@@ -21,10 +21,10 @@ Seniority cannot exist inside a Midnight market, where every lender shares losse
 
 Gob is built to establish two things.
 
-1. **The arithmetic of the tranches.** Pricing, the cushion, the waterfall, recoveries and every rounding direction are written down in [`docs/morrow-finance-gob-arithmatic.md`](docs/morrow-finance-gob-arithmatic.md) and checked against an independent integer reference implementation. The waterfall split, the allocation split and the batch prices are also proven symbolically within stated bounds.
-2. **The rolling mechanism under stress.** Series are opened, deployed, settled and rolled against the live Midnight deployment on a Base mainnet fork, through historical crashes replayed at Chainlink round level, de-pegs, default and recovery grids, a fully borrowed parking market and real bad debt in it.
+1. **The arithmetic of the tranches.** Pricing, the cushion, the waterfall, recoveries and every rounding direction are written down in [`docs/morrow-finance-gob-arithmatic.md`](docs/morrow-finance-gob-arithmatic.md) and checked against an independent integer reference implementation. The waterfall split, the allocation split and the batch prices are also proven symbolically with Halmos within stated bounds.
+2. **The rolling mechanism under stress.** Series are opened, deployed, settled and rolled against the live Midnight deployment on a Base mainnet fork, through historical crashes replayed from recorded Chainlink prices (one month of them round by round), de-pegs, default and recovery grids, a fully borrowed parking market and real bad debt in it.
 
-Everything that was run, with its result and the command to reproduce it, is in [`docs/VERIFICATION.md`](docs/VERIFICATION.md).
+Everything that was run, with its result and the command to reproduce it, is in [`docs/verification.md`](docs/verification.md).
 
 Governance, gating and some operating parameters are deliberately simple in this build. They are listed under [Secondary in this build](#secondary-in-this-build).
 
@@ -71,12 +71,12 @@ C_S = S_d * (1 + r_s)                 senior claim, fixed at finalize
 
 At settlement, proceeds `P` pay senior up to `C_S`, junior the remainder, and a fee of 10% on junior profit above its principal. Recoveries rerun the waterfall on cumulative proceeds and pay only increments.
 
-The full model, with every rounding direction and its audit, is in [`docs/morrow-finance-gob-arithmatic.md`](docs/morrow-finance-gob-arithmatic.md). Its two Python models (`docs/morrow-finance-gob-reference_model.py`, `docs/morrow-finance-gob-stress_model.py`) reproduce every number in it.
+The full model, with every rounding direction and its audit, is in [`docs/morrow-finance-gob-arithmatic.md`](docs/morrow-finance-gob-arithmatic.md). Its two Python models (`docs/morrow-finance-gob-reference_model.py`, `docs/morrow-finance-gob-stress_model.py`) reproduce every number in its audit and stress tables.
 
 ## Loss order
 
 1. **Inside a series:** the waterfall. Junior absorbs every loss up to the cushion; senior only beyond it.
-2. **Across series:** a cross-series backstop, on by default. A senior shortfall in a settled series is covered from up to 50% of junior's idle cash.
+2. **Across series:** a cross-series backstop, on by default. A senior shortfall in a settled series is reduced using up to 50% of junior's idle cash; a shortfall larger than that remains senior's loss.
 3. **On idle cash:** junior first. A fall in the parking position's value moves claims from the junior book to the senior book until senior is back to its value at the last settlement point, limited by junior's idle. Gains are shared pro rata. The settlement point advances on every book-changing call and on the permissionless `syncAll`.
 
 While any live series' junior value is below half its deployed junior, the stress gate closes senior deposits.
@@ -116,6 +116,7 @@ A market is accepted into a series only if:
 | Live series, per-series size | 12, 1,000,000 USDC |
 | Markets per basket | deployment parameter, hard cap 8 |
 | Exit batches | permissionless close after 7 days, permissionless fill after 3 more, cancel 14 days after close |
+| Policy timelocks | curator policy 3 days; factory allowlists 48 hours |
 | Blue parking raw buffer | deployment parameter; 5% in the fork tests |
 
 ## Secondary in this build
@@ -127,6 +128,7 @@ These parts work and are tested, but they are simpler than a production release 
 - **Idle floor.** The floor is a fixed share of each book, not sized to measured flows.
 - **Borrower buffer.** The rule on mean borrower loan to value is evaluated off chain by the allocator and recorded with the series; it is not checked on chain.
 - **Recovering list.** If the list of settled series awaiting recoveries is full, a further written-off series is not tracked and the stress gate does not see it. The curator keeps `maxRecovering` above the number of live series.
+- **Operator fill timing.** A batch filled by the curator or allocator before an unrealized loss is realized pays the pre-loss price. Operators should not fill batches while the stress gate is closed or a live position is unhealthy; this is operating policy, not enforced on chain.
 - **Oracle.** The cbBTC oracle prices cbBTC as BTC and cannot see a de-peg. Midnight reads its price feed without a staleness check.
 
 ## Build and test
@@ -139,7 +141,7 @@ forge test                                   # unit, scenario, fuzz, invariants,
 BASE_RPC_URL=<base rpc> forge test --match-path "contracts/test/fork/*" --threads 1   # Base mainnet fork suites
 ```
 
-Fork tests are skipped when `BASE_RPC_URL` is unset. Stateful fuzzing, static analysis, mutation and symbolic checks have their own entry points, listed with every result in [`docs/VERIFICATION.md`](docs/VERIFICATION.md).
+Fork tests are skipped when `BASE_RPC_URL` is unset. Stateful fuzzing, static analysis, mutation and symbolic checks have their own entry points, listed with every result in [`docs/verification.md`](docs/verification.md).
 
 ## Status
 

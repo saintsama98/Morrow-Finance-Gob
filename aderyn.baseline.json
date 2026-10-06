@@ -1,7 +1,7 @@
 {
  "tool": "aderyn 0.6.8",
  "scope": "contracts/src",
- "triage": "docs/VERIFICATION.md, section \"Static analysis\"",
+ "triage": "docs/verification.md, section \"Static analysis\"",
  "accepted": [
   [
    "Address State Variable Set Without Checks",
