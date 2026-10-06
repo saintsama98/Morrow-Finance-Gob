@@ -10,7 +10,7 @@ __pycache__/
 
 # planning, decision and working documents stay local; only the public docs below are tracked
 docs/*
-!docs/VERIFICATION.md
+!docs/verification.md
 !docs/morrow-finance-gob-arithmatic.md
 !docs/morrow-finance-gob-reference_model.py
 !docs/morrow-finance-gob-stress_model.py

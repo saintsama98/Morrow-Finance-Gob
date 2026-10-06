@@ -79,7 +79,7 @@ The parameters, fixed per series at open:
 | π_0, π_T, π_1 | Premium at u = 0, at the kink, at u = 1 | 0.10, 0.20, 0.35 | Chosen |
 | u_T | Location of the premium kink | 0.90 | Chosen |
 | θ | Fee rate on junior profit above principal | 0.10 | Chosen |
-| K_min | Minimum deployed size for a tranche | 50,000 USDC | Chosen |
+| K_min | Minimum deployed size for a tranche | Per series, at most 50,000 USDC | Chosen by the allocator; the cap is curator policy |
 | L_max | Highest permitted liquidation threshold | 0.86 | Chosen, see market selection. On chain this is the factory's `maxLltvWad`, a deployment parameter with a hard cap of 0.915. |
 | ψ | Ceiling on mean borrower LTV relative to the threshold | 0.85 | Chosen, see market selection. Evaluated off chain by the allocator when a series opens and recorded in the series' attestation hash; not checked on chain. |
 | τ | Series tenor | Per series | Chosen by the allocator from the eligible maturities. Beyond 91 days the tenor tier caps the threshold at 0.86 on chain. |
@@ -97,7 +97,7 @@ The vault layer above the series adds the following parameters. They are the pro
 | stressJuniorFloorWad | Senior deposits close while any live series' junior NAV is below this share of its deployed junior | 0.50 |
 | backstopEnabled, backstopWad | Cross-series backstop on, using up to this share of junior idle | true, 0.50 |
 | maxPerSeriesAssets, maxPerMaturityWindowWad | Size of one series, and exposure to one maturity window as a share of assets | 1,000,000 USDC, 0.50 |
-| curatorMinShareWad | Minimum junior share the curator must keep | 0.10 |
+| curatorMinShareWad | Share of junior supply the curator's own junior exits may not take it below | 0.10 |
 | Exit batches | Permissionless close after, permissionless fill after, cancel after close | 7 days, 3 days, 14 days |
 
 ---
@@ -151,7 +151,7 @@ When junior is thin relative to the minimum, u approaches one and junior's capit
 | 0.25 | 0.600000000000000000 | 0.166666666666666667 |
 | 0.30 | 0.500000000000000000 | 0.155555555555555556 |
 
-At the kink the stored values are shown below. The upper branch moves in steps of at least two units because its ceiling rounds a fractional step up. The curve remains monotone.
+At the kink the stored values are shown below. Above the kink the slope is 1.5 units of π per unit of u, and the ceiling rounds each step up, so the curve moves in alternating steps of two and one units, starting with two. The curve remains monotone.
 
 | Point | u (stored) | π (stored) |
 | --- | --- | --- |
@@ -434,7 +434,7 @@ In the table the deployed capital is 1,000,000 USDC, face due is 800,000 and the
 
 ## Undersized pools
 
-A series that deploys less than K_min could be settled pro rata instead of through the waterfall, with senior receiving P · S_d / K_d. This allocation is not a subordination, and it fails in two directions rather than one.
+A series that deploys less than K_min is settled pro rata instead of through the waterfall, with senior receiving P · S_d / K_d. This allocation is not a subordination, and it fails in two directions rather than one.
 
 Whenever senior falls below its claim, junior still holds value, so first loss fails. And whenever the face loss is below K_d · r_pool · π, which is 1,916.67 USDC in the example, senior receives more than its claim, so the cap fails. At zero loss the excess over the claim equals S_d · r_pool · π, 1,568.181818 USDC in the example, which is the premium senior paid for protection it did not receive.
 
@@ -608,7 +608,7 @@ Tenor enters the first factor through σ√τ. It does not enter the second, bec
 
 ## Market selection
 
-A market is eligible for a series only if it satisfies four constraints. Each follows from the quantities above.
+The model admits a market into a series only if it satisfies four constraints. Each follows from the quantities above. Three are enforced on chain; the borrower buffer is checked off chain.
 
 | Constraint | Statement | Reason |
 | --- | --- | --- |
@@ -617,9 +617,9 @@ A market is eligible for a series only if it satisfies four constraints. Each fo
 | Borrower buffer | Debt weighted mean borrower LTV ≤ ψ · LLTV | Sets a floor under b_0 and therefore under z |
 | Tenor tier | LLTV ≤ 0.86 when τ exceeds 91 days | A longer term gives collateral more room to move |
 
-On chain, the threshold ceiling is the factory's `maxLltvWad`, a deployment parameter with a hard cap of 0.915. The cursor rule and the tenor tier are enforced by the factory whenever a market's threshold reaches them, so raising the ceiling cannot admit a market the model excludes. The live Midnight markets at 0.915 on Base use a cursor of 0.30, so none of them is eligible today. The borrower buffer constraint is evaluated off chain by the allocator and recorded with the series.
+On chain, the threshold ceiling is the factory's `maxLltvWad`, a deployment parameter with a hard cap of 0.915. The cursor rule and the tenor tier are enforced by the factory whenever a market's threshold reaches them, so raising the ceiling cannot admit a high-threshold market that breaks either rule. The live Midnight markets at 0.915 on Base use a cursor of 0.30, so none of them is eligible today. The borrower buffer constraint is evaluated off chain by the allocator and recorded with the series.
 
-The borrower buffer constraint is the most consequential. It is the only one that acts on the starting distance b_0, which the stress results below show to be the largest single driver of loss. Borrower positions are public, so the constraint can be evaluated exactly at the moment a series opens.
+The borrower buffer constraint is the most consequential. It is the only one that acts on the starting distance b_0, which the stress results below show to be the largest driver of loss among the inputs the stress model varies. Borrower positions are public, so the constraint can be evaluated exactly at the moment a series opens.
 
 ---
 
@@ -686,9 +686,9 @@ The orderly decline produces no bad debt, which is a check on the model rather t
 
 ## Idle cash
 
-Capital in a series is committed until maturity, so exits are served first from idle cash, then from settlement proceeds, then from a queue. Idle cash is not left as plain USDC.
+Capital in a series is committed until maturity. Exits are batched and filled from idle cash, and settlement proceeds return to idle cash, so a batch that idle cash cannot fill completes as later settlements arrive. Idle cash is not left as plain USDC.
 
-- It is lent directly into one Morpho Blue market whose collateral, threshold and oracle match the series markets: cbBTC against USDC at 0.86 on Base, priced by the same oracle contract the series markets use. A raw USDC slice of 5% of the parking pool needs no venue call.
+- It is lent directly into one Morpho Blue market whose collateral, threshold and oracle match the series markets: cbBTC against USDC at 0.86 on Base, priced by the same oracle contract the series markets use. A raw USDC slice of the parking pool, a deployment parameter set at 5% in the tests, needs no venue call.
 - Fills draw on the position just in time, inside the Midnight callback that settles them.
 - The idle floor of 0.05 per book keeps capital out of new series. It does not restrict exits: exits may use all idle cash, floor included, up to what the Blue market can pay out at that moment.
 - When the Blue market is fully borrowed, a fill larger than the raw slice does not go through and an exit batch pays what is withdrawable, then the remainder later at the same price.
@@ -731,7 +731,7 @@ python3 docs/morrow-finance-gob-stress_model.py
 
 The protocol's Solidity libraries are checked against independent Python twins of the same arithmetic in `sim/`, through the differential tests in `contracts/test/unit/MathDifferential.t.sol`.
 
-The first prints every table in the audit and writes them to audit_tables.md. The second prints every table in the market and stress sections and writes them to stress_tables.md. Every value in this document is generated by one of the two.
+The first prints every table in the audit and writes them to audit_tables.md. The second prints every table in the market and stress sections and writes them to stress_tables.md. Every value in those tables is generated by one of the two. The live-market results (the fork measurement under stress thresholds and the idle cash table) come from the Base mainnet fork tests listed in `docs/verification.md`.
 
 ---
 
