@@ -6,6 +6,7 @@ pragma solidity 0.8.34;
 
 import {wadMath} from "./wadMath.sol";
 
+/// @notice Premium senior pays junior as a function of coverage utilisation.
 library premiumCurve {
     using wadMath for uint256;
 
@@ -13,6 +14,7 @@ library premiumCurve {
 
     error InvalidAnchors();
 
+    /// @notice Piecewise linear premium through three anchors, with a kink at uT.
     function pi(uint256 u, uint256 uT, uint256 pi0, uint256 piT, uint256 pi1) internal pure returns (uint256) {
         if (!(pi0 <= piT && piT <= pi1 && pi1 < WAD)) revert InvalidAnchors();
 

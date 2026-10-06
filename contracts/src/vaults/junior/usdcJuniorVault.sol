@@ -8,9 +8,11 @@ import {usdcVaultBase} from "../shared/usdcVaultBase.sol";
 import {usdcJuniorRedeemCancels} from "./usdcJuniorRedeemCancels.sol";
 import {seriesCore} from "../../core/seriesCore.sol";
 
+/// @notice jrUSDC: batched deposits and exits.
 contract usdcJuniorVault is usdcJuniorRedeemCancels {
     constructor(seriesCore core_, address usdc_) usdcVaultBase(core_, usdc_, "Morrow Junior USDC", "jrUSDC") {}
 
+    /// @notice ERC-165 interface check.
     function supportsInterface(bytes4 interfaceId) public pure override returns (bool) {
         return interfaceId == 0x01ffc9a7 || interfaceId == 0xce3bbe50 || interfaceId == 0x620ee8e4
             || interfaceId == 0xe3bc4e65 || interfaceId == 0x2f0a18c5 || interfaceId == 0x8bf840e3

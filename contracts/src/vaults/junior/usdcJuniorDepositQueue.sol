@@ -9,6 +9,7 @@ import {iErc20Like} from "../../interfaces/iErc20Like.sol";
 import {wadMath} from "../../libraries/wadMath.sol";
 import {epochMath} from "../../libraries/epochMath.sol";
 
+/// @notice Batched junior deposits, filled oldest first.
 abstract contract usdcJuniorDepositQueue is usdcVaultBase {
     using wadMath for uint256;
 
@@ -46,22 +47,27 @@ abstract contract usdcJuniorDepositQueue is usdcVaultBase {
         depositEpochOpenedAt[1] = block.timestamp;
     }
 
+    /// @notice Zero: junior deposits are requested, not synchronous.
     function maxDeposit(address) external pure returns (uint256) {
         return 0;
     }
 
+    /// @notice Zero: junior deposits are requested, not synchronous.
     function maxMint(address) external pure returns (uint256) {
         return 0;
     }
 
+    /// @notice Unsupported for asynchronous deposits; reverts.
     function previewDeposit(uint256) external pure returns (uint256) {
         revert AsyncPreviewUnsupported();
     }
 
+    /// @notice Unsupported for asynchronous deposits; reverts.
     function previewMint(uint256) external pure returns (uint256) {
         revert AsyncPreviewUnsupported();
     }
 
+    /// @notice Requests a deposit into the open batch.
     function requestDeposit(uint256 assets, address controller, address owner) external returns (uint256 requestId) {
         require(assets > 0, ZeroAssets());
         require(!CORE.paused(), DepositsPaused());
@@ -79,18 +85,22 @@ abstract contract usdcJuniorDepositQueue is usdcVaultBase {
         emit DepositRequest(controller, owner, requestId, msg.sender, assets);
     }
 
+    /// @notice Assets still waiting to be filled.
     function pendingDepositRequest(uint256 requestId, address controller) public view returns (uint256 assets) {
         return _depositRemainingUnfulfilled(requestId, controller);
     }
 
+    /// @notice Filled assets ready to claim as shares.
     function claimableDepositRequest(uint256 requestId, address controller) public view returns (uint256 assets) {
         return _depositEntitledAssetsTotal(requestId, controller) - claimedAssetsOnDeposit[requestId][controller];
     }
 
+    /// @notice Shares owed for filled assets not yet claimed.
     function owedDepositShares(uint256 requestId, address controller) public view returns (uint256) {
         return _depositOwedSharesTotal(requestId, controller);
     }
 
+    /// @notice Closes the open batch and records its price; the curator or allocator, or anyone after the window.
     function closeDepositEpoch() external returns (uint256 epochId) {
         epochId = openDepositEpochId;
         _requireOperatorOrAfter(depositEpochOpenedAt[epochId] + MAX_EPOCH_DURATION);
@@ -104,6 +114,7 @@ abstract contract usdcJuniorDepositQueue is usdcVaultBase {
         emit DepositEpochClosed(epochId, e.ppsCloseWad);
     }
 
+    /// @notice Fills the oldest closed batch into the junior book; the curator or allocator, or anyone after the grace period.
     function fulfillDeposit(uint256 epochId, uint256 assetsToInvest) external {
         DepositEpoch storage e = depositEpochs[epochId];
         require(e.closed, EpochNotClosed());

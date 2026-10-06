@@ -9,15 +9,18 @@ import {iErc20Like} from "../../interfaces/iErc20Like.sol";
 import {wadMath} from "../../libraries/wadMath.sol";
 import {idleLossMath} from "../../libraries/idleLossMath.sol";
 
+/// @notice Each book's claim on the single parking position, with idle losses allocated junior first.
 abstract contract coreParkingBooks is coreStorage {
     using wadMath for uint256;
 
+    /// @notice Idle cash of one book, after junior-first loss allocation.
     function idle(bool isSenior) public view returns (uint256) {
         uint256 parked = _parked();
         (uint256 seniorClaims, uint256 juniorClaims,) = _effectiveClaims(parked);
         return _claimValue(isSenior ? seniorClaims : juniorClaims, parked);
     }
 
+    /// @notice Cash the core can withdraw from parking right now.
     function parkingLiquidity() public view returns (uint256) {
         return PARKING.maxWithdraw(address(this));
     }

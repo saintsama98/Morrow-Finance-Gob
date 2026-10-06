@@ -14,17 +14,21 @@ import {iBuyCallback} from "../../interfaces/iBuyCallback.sol";
 import {SeriesState} from "../../interfaces/iSeries.sol";
 import {wadMath} from "../../libraries/wadMath.sol";
 
+/// @notice Offers and fills on Midnight while the series is deploying.
 abstract contract seriesDeployment is seriesMarks, iBuyCallback {
     using wadMath for uint256;
 
+    /// @notice Highest tick the series will buy at in one market.
     function tickMaxFor(uint256 i) external view returns (uint256) {
         return _tickMax(i);
     }
 
+    /// @notice Highest price the series will pay in one market.
     function priceMaxFor(uint256 i) external view returns (uint256) {
         return _priceMax(i);
     }
 
+    /// @notice Ratifies a tree of buy offers for the deployment window.
     function registerOffers(bytes32 root, Offer[] calldata leaves)
         external
         onlyAllocator
@@ -48,15 +52,18 @@ abstract contract seriesDeployment is seriesMarks, iBuyCallback {
         emit OffersRegistered(root, uint64(block.timestamp), length);
     }
 
+    /// @notice Withdraws the ratification of an offer tree.
     function revokeOffers(bytes32 root) external onlyAllocator {
         SETTER_RATIFIER.setIsRootRatified(address(this), root, false);
         emit OffersRevoked(root);
     }
 
+    /// @notice Marks an offer group as fully consumed so it cannot fill.
     function cancelGroup(bytes32 group) external onlyAllocator {
         MIDNIGHT.setConsumed(group, type(uint128).max, address(this));
     }
 
+    /// @notice Midnight buy callback: checks price, caps and window, then funds the fill from parking.
     function onBuy(
         bytes32 id,
         Market memory,
@@ -98,6 +105,7 @@ abstract contract seriesDeployment is seriesMarks, iBuyCallback {
         return bytes32(keccak256("morpho.midnight.callbackSuccess"));
     }
 
+    /// @notice Takes a borrower's sell offer within the series' price and caps.
     function deployTake(uint256 i, Offer calldata offer, bytes calldata ratifierData, uint256 units)
         external
         onlyAllocator
@@ -144,6 +152,7 @@ abstract contract seriesDeployment is seriesMarks, iBuyCallback {
         emit Filled(i, buyerAssets, units, priceWad, false);
     }
 
+    /// @notice Most the series can still pay into a market now.
     function buyerAssetsBound(bytes32, Market memory, address, bytes memory data) external view returns (uint256) {
         if (state != SeriesState.DEPLOYING || block.timestamp > T_DEPLOY_END) return 0;
         uint256 i = abi.decode(data, (uint256));

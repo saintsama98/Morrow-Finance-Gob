@@ -8,6 +8,7 @@ import {seriesFactory} from "../../series/seriesFactory.sol";
 import {iParking} from "../../parking/iParking.sol";
 import {wadMath} from "../../libraries/wadMath.sol";
 
+/// @notice Storage, policy defaults, events and errors of the core.
 abstract contract coreStorage {
     using wadMath for uint256;
 

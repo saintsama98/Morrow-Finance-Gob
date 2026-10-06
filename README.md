@@ -1,10 +1,10 @@
-# Morrow-Finance-Gob  
+# Morrow-Finance-Gob
 
 Dated senior and junior credit tranches on Morpho Midnight, behind two vault tokens.
 
-(** Gob - symbolizes early beta and testing cascade for the protocol, similar to early form of glass as a base material, also known as "Gob" **)
+Gob is the early beta and testing cascade of the protocol, named after the early form of glass: the base material before it is shaped.
 
-morrow runs a series engine and two vault tokens. the allocator opens series against staggered maturities on Midnight, each series lends into a basket of 1–4 ungated USDC markets maturing at the same date, and splits every outcome through a strict waterfall. senior vault holders (`srUSDC`) are paid first at maturity up to a fixed senior claim. junior vault holders (`jrUSDC`) take the first loss of every series and receive the residual.
+morrow runs a series engine and two vault tokens. the allocator opens series against staggered maturities on Midnight, each series lends into a basket of ungated USDC markets maturing at the same date, and splits every outcome through a strict waterfall. senior vault holders (`srUSDC`) are paid first at maturity up to a fixed senior claim. junior vault holders (`jrUSDC`) take the first loss of every series and receive the residual.
 
 ## What Morrow does
 
@@ -16,6 +16,17 @@ Morrow pools USDC from two kinds of depositor and lends it into fixed-maturity c
 Capital is deployed in **series**. A series lends into a basket of Midnight markets that share one maturity date, holds the credit to maturity, collects what the markets return, and divides it between senior and junior through a fixed waterfall. Series are opened on staggered maturities, and settled cash rolls into the next series. Depositors never hold series directly; the two vault tokens are the only user-facing surface.
 
 Seniority cannot exist inside a Midnight market, where every lender shares losses pro rata. Morrow creates it above the market by aggregating the post-loss value of its positions and splitting that one number in a fixed order.
+
+## What this build establishes
+
+Gob is built to establish two things.
+
+1. **The arithmetic of the tranches.** Pricing, the cushion, the waterfall, recoveries and every rounding direction are written down in [`docs/morrow-finance-gob-arithmatic.md`](docs/morrow-finance-gob-arithmatic.md) and checked against an independent integer reference implementation. The waterfall split, the allocation split and the batch prices are also proven symbolically within stated bounds.
+2. **The rolling mechanism under stress.** Series are opened, deployed, settled and rolled against the live Midnight deployment on a Base mainnet fork, through historical crashes replayed at Chainlink round level, de-pegs, default and recovery grids, a fully borrowed parking market and real bad debt in it.
+
+Everything that was run, with its result and the command to reproduce it, is in [`docs/VERIFICATION.md`](docs/VERIFICATION.md).
+
+Governance, gating and some operating parameters are deliberately simple in this build. They are listed under [Secondary in this build](#secondary-in-this-build).
 
 ## Architecture
 
@@ -44,7 +55,7 @@ A series with no fills is cancelled and its cash returns to both books. A series
 
 ### Fills funded just in time
 
-The series is its own Midnight buy callback. When a borrower takes a series bid, Midnight calls the series' `onBuy`, which checks price, caps and window, then withdraws exactly the needed USDC from parking. With `blueParking`, that withdrawal comes out of the Morpho Blue position inside the same transaction.
+The series is its own Midnight buy callback. When a borrower takes a series bid, Midnight calls the series' `onBuy`, which checks price, caps and window, then withdraws exactly the needed USDC from parking. With `blueParking`, that withdrawal comes out of the Morpho Blue position inside the same transaction. If Blue cannot pay it out, the fill does not go through and nothing moves.
 
 ## Pricing and the waterfall
 
@@ -66,7 +77,7 @@ The full model, with every rounding direction and its audit, is in [`docs/morrow
 
 1. **Inside a series:** the waterfall. Junior absorbs every loss up to the cushion; senior only beyond it.
 2. **Across series:** a cross-series backstop, on by default. A senior shortfall in a settled series is covered from up to 50% of junior's idle cash.
-3. **On idle cash:** junior-first. A fall in the parking position's value moves claims from the junior book to the senior book until senior is restored to its value at the last settlement point, limited by junior's idle. Gains are shared pro rata. The settlement point advances on every book-changing call and on the permissionless `syncAll`.
+3. **On idle cash:** junior first. A fall in the parking position's value moves claims from the junior book to the senior book until senior is back to its value at the last settlement point, limited by junior's idle. Gains are shared pro rata. The settlement point advances on every book-changing call and on the permissionless `syncAll`.
 
 While any live series' junior value is below half its deployed junior, the stress gate closes senior deposits.
 
@@ -75,11 +86,11 @@ While any live series' junior value is below half its deployed junior, the stres
 | Role | Can do |
 |---|---|
 | Senior and junior depositors | Deposit, request exits, cancel, claim |
-| Allocator | Open series within policy, register offers, take asks, finalize early, operate batches |
-| Curator | Set risk policy through a timelock (risk-reducing moves are instant). Must hold at least 10% of `jrUSDC`. Can pause. |
-| Sentinel | Risk-reducing only: pause, lower caps, cancel an unfilled series, move Blue parking to cash |
-| Governance | Factory allowlists (collateral, oracles, maximum threshold, markets per basket) behind a 48-hour timelock, role wiring |
-| Keeper (anyone) | Every deadline has a permissionless path: finalize, collect, settle, write off, close and fill batches after their windows, sync |
+| Allocator | Open series within policy, register offers, take asks, finalize early, cancel an unfilled series, close and fill batches |
+| Curator | Set risk policy through a timelock (risk-reducing moves are instant), close and fill batches, pause, move Blue parking to cash. Its own junior exits may not take it below 10% of `jrUSDC` supply. |
+| Sentinel | Risk-reducing only: pause, lower caps, raise floors, disable the backstop, cancel an unfilled series, move Blue parking to cash |
+| Governance | Factory allowlists (collateral, oracles, maximum threshold, markets per basket) behind a 48-hour timelock, role wiring, unpause |
+| Keeper (anyone) | Every deadline has a permissionless path: finalize after the deployment window, start settlement, collect, settle, write off, close and fill batches after their windows, sync |
 
 ## Market eligibility
 
@@ -105,7 +116,18 @@ A market is accepted into a series only if:
 | Live series, per-series size | 12, 1,000,000 USDC |
 | Markets per basket | deployment parameter, hard cap 8 |
 | Exit batches | permissionless close after 7 days, permissionless fill after 3 more, cancel 14 days after close |
-| Blue parking raw buffer | 5% of the parking pool |
+| Blue parking raw buffer | deployment parameter; 5% in the fork tests |
+
+## Secondary in this build
+
+These parts work and are tested, but they are simpler than a production release would need.
+
+- **Governance.** Governance transfer is single step. Role setters emit no events. The vault and core wiring are one-shot, so deployment arguments must be verified.
+- **Curator alignment.** The 10% junior holding is enforced only on the curator's own exit requests. `jrUSDC` remains transferable.
+- **Idle floor.** The floor is a fixed share of each book, not sized to measured flows.
+- **Borrower buffer.** The rule on mean borrower loan to value is evaluated off chain by the allocator and recorded with the series; it is not checked on chain.
+- **Recovering list.** If the list of settled series awaiting recoveries is full, a further written-off series is not tracked and the stress gate does not see it. The curator keeps `maxRecovering` above the number of live series.
+- **Oracle.** The cbBTC oracle prices cbBTC as BTC and cannot see a de-peg. Midnight reads its price feed without a staleness check.
 
 ## Build and test
 
@@ -114,26 +136,14 @@ Foundry 1.7.1, solc 0.8.34, `via_ir`, EVM `osaka` (Midnight requires it). Depend
 ```
 forge build
 forge test                                   # unit, scenario, fuzz, invariants, formal twins
-BASE_RPC_URL=<base rpc> forge test --match-path "contracts/test/fork/*"   # Base mainnet fork suites
+BASE_RPC_URL=<base rpc> forge test --match-path "contracts/test/fork/*" --threads 1   # Base mainnet fork suites
 ```
 
-Fork tests are skipped when `BASE_RPC_URL` is unset. Stateful fuzzing, static analysis and symbolic checks have their own entry points, listed with every result in [`docs/VERIFICATION.md`](docs/VERIFICATION.md).
-
-## Verification
-
-[`docs/VERIFICATION.md`](docs/VERIFICATION.md) records everything run against this code, with the commands to reproduce it:
-- unit, scenario, fuzz and invariant suites;
-- differential tests against Python twins of the arithmetic;
-- Slither and Aderyn, with every result triaged;
-- a 24-mutant mutation campaign;
-- Echidna and Medusa campaigns;
-- Halmos targets;
-- Base mainnet fork tests against real Midnight markets and the real Morpho Blue market;
-- historical crash replays at Chainlink round level, 124 rolling windows, default and recovery grids, and a correlated crash across series and parking.
+Fork tests are skipped when `BASE_RPC_URL` is unset. Stateful fuzzing, static analysis, mutation and symbolic checks have their own entry points, listed with every result in [`docs/VERIFICATION.md`](docs/VERIFICATION.md).
 
 ## Status
 
-Pre-audit. Not deployed. The contracts have not been reviewed by an external auditor.
+Pre-audit. Not deployed. The contracts have not been reviewed by an external auditor. Passing tests and clean static analysis are evidence, not a guarantee of security.
 
 This is software, not an offer. `srUSDC` and `jrUSDC` are unregistered, and their legal characterisation depends on jurisdiction.
 

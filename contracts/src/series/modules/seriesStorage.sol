@@ -10,6 +10,7 @@ import {iMidnightMinimal} from "../../interfaces/iMidnightMinimal.sol";
 import {SeriesParams, SeriesState} from "../../interfaces/iSeries.sol";
 import {iParking} from "../../parking/iParking.sol";
 
+/// @notice Storage, immutables, events and errors of a series.
 abstract contract seriesStorage {
     uint256 internal constant U_T_WAD = 0.9e18;
     uint256 internal constant MIN_TERM = 14 days;

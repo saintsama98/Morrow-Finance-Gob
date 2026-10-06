@@ -1,12 +1,12 @@
-# Morrow: A Mathematical Model of Dated Senior and Junior Credit
+# Morrow-Finance-Gob: Arithmetic
 
 This document sets out the mathematics behind Morrow. It defines every variable, states every expression, explains why each one takes the form it does, and verifies the arithmetic against exact rational computation.
 
-It contains three kinds of statement. Derivations are true given the definitions. Audited results come from an exact integer reference implementation and can be reproduced by anyone. Simulation results depend on modelled market behaviour and are marked as pending where they have not yet been inserted.
+It contains three kinds of statement. Derivations are true given the definitions. Audited results come from an exact integer reference implementation and can be reproduced by anyone. Stress results come from a deterministic stress model and from tests against the live Base deployment, each stated with its inputs.
 
 ---
 
-## Morrow tranches fixed maturity credit
+## What Morrow tranches
 
 Morrow pools capital from two sources and lends it into fixed maturity credit markets. One source takes a senior claim: a fixed amount owed at maturity, paid first. The other takes a junior claim: whatever remains after the senior claim is paid, and the first loss if the loans perform badly.
 
@@ -18,7 +18,7 @@ Several series run at once with staggered maturities. When one settles, the proc
 
 ---
 
-## The underlying market is zero coupon
+## The underlying market
 
 Morrow lends into Morpho Midnight. Each Midnight market has a fixed maturity. Lending positions are fungible credit units, and one credit unit redeems for exactly one unit of the loan token at maturity. A lender buys units at a discount and is repaid at face.
 
@@ -30,7 +30,7 @@ Morrow therefore cannot create seniority inside a Midnight market. It creates se
 
 ---
 
-## Notation is fixed
+## Notation
 
 Values are stored as integers. Assets and credit units use six decimals. Dimensionless ratios use eighteen decimals, written WAD.
 
@@ -82,9 +82,8 @@ The parameters, fixed per series at open:
 | K_min | Minimum deployed size for a tranche | 50,000 USDC | Chosen |
 | L_max | Highest permitted liquidation threshold | 0.86 | Chosen, see market selection. On chain this is the factory's `maxLltvWad`, a deployment parameter with a hard cap of 0.915. |
 | ψ | Ceiling on mean borrower LTV relative to the threshold | 0.85 | Chosen, see market selection. Evaluated off chain by the allocator when a series opens and recorded in the series' attestation hash; not checked on chain. |
-| τ | Series tenor | 180 days | Simulation, see tenor section. Chosen per series by the allocator from the eligible maturities; not enforced on chain. |
-| N | Series running at once | 9 | Simulation, see buffer section. On chain, `maxSeries` caps live series at 12. |
-| b_min, b_max | Bounds on the liquidity buffer | 0.02, 0.08 | Simulation, see buffer section. On chain the buffer is a fixed idle floor of 0.05 per book, inside these bounds. |
+| τ | Series tenor | Per series | Chosen by the allocator from the eligible maturities. Beyond 91 days the tenor tier caps the threshold at 0.86 on chain. |
+| N | Series running at once | At most 12 | `maxSeries` on chain. |
 
 Chosen means set conservatively without calibration. No parameter in this table has been fitted to operating data, because none exists yet.
 
@@ -103,7 +102,7 @@ The vault layer above the series adds the following parameters. They are the pro
 
 ---
 
-## Two primitives perform every division
+## Division primitives
 
 Every rounding decision in the model is made by one of two functions, applied to non negative integers.
 
@@ -118,7 +117,7 @@ The general rule for direction is that a division rounds so as to leave value in
 
 ---
 
-## The pool is split at open
+## Split at open
 
 ```
 K_alloc = S + J
@@ -132,7 +131,7 @@ The two directions are opposite by design. Because a is at least c, utilisation 
 
 ---
 
-## The premium rises with utilisation
+## Premium
 
 The premium is piecewise linear in u, with a shallow slope below the kink and a steep one above it.
 
@@ -164,7 +163,7 @@ At the kink the stored values are shown below. The upper branch moves in steps o
 
 ---
 
-## Deployment fixes the pool
+## Deployment
 
 Deployment rarely fills completely. The quantities that matter are those of the capital actually lent.
 
@@ -180,7 +179,7 @@ The expression for r_pool divides credit units by USDC. That is meaningful only 
 
 ---
 
-## Negative carry is clamped
+## Negative carry
 
 If the deployed capital buys no more face than it cost, the pool earns nothing. In that case the senior return is set to zero and the senior claim to senior's deployed principal.
 
@@ -192,7 +191,7 @@ The comparison is made on the raw values F_net and K_d before any subtraction. B
 
 ---
 
-## The senior claim is fixed at deployment
+## Senior claim
 
 When the pool return is positive, senior receives the pool return less the premium.
 
@@ -205,7 +204,7 @@ Both round down. C_S is the most senior can ever receive from the series and it 
 
 ---
 
-## The cushion has three components
+## Cushion
 
 The cushion is the face value that can be lost before senior is affected.
 
@@ -236,7 +235,7 @@ The realised cushion exceeds the exact decomposition by 0.63 of a unit, where on
 
 ---
 
-## The cushion never falls below the junior share
+## Cushion floor
 
 Proposition. If F_net ≥ K_d, then A_F ≥ a.
 
@@ -248,7 +247,7 @@ This gives the minimum junior share c a direct meaning. Whenever the pool return
 
 ---
 
-## Returns split exactly
+## Return split
 
 The senior and junior term returns have closed forms.
 
@@ -270,7 +269,7 @@ Junior's net return is its gross return less the fee on profit above principal. 
 
 ---
 
-## The waterfall pays senior first
+## Waterfall
 
 At settlement the proceeds P are divided as follows.
 
@@ -295,7 +294,7 @@ Senior is a line that rises and then caps. Junior is zero, then rises one for on
 
 ---
 
-## The waterfall is a tranche payoff
+## Waterfall as a tranche payoff
 
 Measure the face loss as X = F_net − P. Substituting into the waterfall gives two identities that hold exactly in integers for every X between zero and F_net.
 
@@ -315,7 +314,7 @@ The cushion B_0 is the attachment point. Junior absorbs every loss up to it and 
 
 ---
 
-## Recoveries rerun the waterfall
+## Recoveries
 
 Recoveries can arrive after maturity, so P can grow after the first distribution. The waterfall is rerun on cumulative P and only the increase in each entitlement is paid.
 
@@ -325,7 +324,7 @@ This matters because a payout that could fall as P rose would require recovering
 
 ---
 
-## Three properties define subordination
+## Subordination
 
 A division of a pooled loss X into a senior loss and a junior loss is a subordination if and only if it satisfies three properties.
 
@@ -341,7 +340,7 @@ The third property gives a practical test. Remove the junior claim and recompute
 
 ---
 
-## Maturity does not create seniority
+## Maturity and seniority
 
 A proposal that recurs in dated credit is to treat short maturity exposure as senior and long maturity exposure as junior. The three properties show why this fails. Senior capital in one market and junior capital in another produce two independent losses with no common X, so conservation has nothing to conserve.
 
@@ -353,7 +352,7 @@ Structured finance separates these as time tranching, which orders when claimant
 
 ---
 
-## Losses are isolated per series, then backstopped from junior idle
+## Loss isolation and the backstop
 
 Each series has its own cushion and its own waterfall, and no capital deployed in one series absorbs a loss in another. Before any backstop, senior's total loss across n series is the sum of per series shortfalls.
 
@@ -373,7 +372,7 @@ Idle cash itself is junior-first. Both books hold proportional claims on one par
 
 ---
 
-## Rounding never overstates the senior claim
+## Rounding direction
 
 Every division in the chain from deployment to the cushion rounds in the direction that keeps the senior claim at or below its exact value and the cushion at or above its exact value.
 
@@ -398,7 +397,7 @@ The same direction holds for idle cash. The books hold claims on the parking pos
 
 ---
 
-## Signed arithmetic keeps every pool settleable
+## Signed arithmetic
 
 Two subtractions in the deployment chain can produce a negative value.
 
@@ -433,7 +432,7 @@ In the table the deployed capital is 1,000,000 USDC, face due is 800,000 and the
 
 ---
 
-## Undersized pools are not tranched
+## Undersized pools
 
 A series that deploys less than K_min could be settled pro rata instead of through the waterfall, with senior receiving P · S_d / K_d. This allocation is not a subordination, and it fails in two directions rather than one.
 
@@ -449,7 +448,7 @@ Pro rata settlement therefore converts the senior claim into a proportional equi
 
 ---
 
-## The audit reproduces every number
+## Audit
 
 The reference implementation computes every quantity in this document with the same order of operations and the same rounding as the protocol. It then compares each result with exact rational arithmetic from the same stored inputs, so each rounding direction is verified rather than assumed.
 
@@ -534,7 +533,7 @@ Every structural property holds with zero failures. The three rows marked expect
 
 ---
 
-## Loss requires a gap through the buffer
+## Loss requires a gap
 
 The market model begins from a fact about liquidation. An orderly price decline, however deep, does not create bad debt. The position crosses its liquidation threshold, a liquidator acts, the collateral is sold and the lender is repaid. The loss falls on the borrower's equity.
 
@@ -571,7 +570,7 @@ It also shows what γ is. A higher cursor raises the liquidator's discount, whic
 
 ---
 
-## Distance to the threshold sets frequency
+## Distance to the threshold
 
 For a borrower at loan to value LTV_0, the log distance to the liquidation threshold is b_0 = ln(LLTV / LTV_0). Expressed in standard deviations over a horizon τ with annual volatility σ,
 
@@ -593,7 +592,7 @@ Debt accrues over the term, so the buffer erodes even with no price movement. Th
 
 ---
 
-## Expected loss has three factors
+## Expected loss
 
 Expected lender loss in a market decomposes as
 
@@ -607,24 +606,24 @@ Tenor enters the first factor through σ√τ. It does not enter the second, bec
 
 ---
 
-## Market selection bounds the buffer
+## Market selection
 
 A market is eligible for a series only if it satisfies four constraints. Each follows from the quantities above.
 
 | Constraint | Statement | Reason |
 | --- | --- | --- |
 | Threshold ceiling | LLTV ≤ L_max | Bad debt rises steeply as the solvent band narrows |
-| Cursor rule | γ = 0.50 when LLTV ≥ 0.915 | A higher cursor is worth its cost only where the band is thin |
+| Cursor rule | γ ≥ 0.50 when LLTV ≥ 0.915 | A higher cursor is worth its cost only where the band is thin |
 | Borrower buffer | Debt weighted mean borrower LTV ≤ ψ · LLTV | Sets a floor under b_0 and therefore under z |
 | Tenor tier | LLTV ≤ 0.86 when τ exceeds 91 days | A longer term gives collateral more room to move |
 
-On chain, the threshold ceiling is the factory's `maxLltvWad`, a deployment parameter with a hard cap of 0.915. The cursor rule and the tenor tier are enforced by the factory whenever a market's threshold reaches them, so raising the ceiling cannot admit a market the model excludes. On Base every Midnight market uses a cursor of 0.30, so no market at 0.915 is eligible there today. The borrower buffer constraint is evaluated off chain by the allocator and recorded with the series.
+On chain, the threshold ceiling is the factory's `maxLltvWad`, a deployment parameter with a hard cap of 0.915. The cursor rule and the tenor tier are enforced by the factory whenever a market's threshold reaches them, so raising the ceiling cannot admit a market the model excludes. The live Midnight markets at 0.915 on Base use a cursor of 0.30, so none of them is eligible today. The borrower buffer constraint is evaluated off chain by the allocator and recorded with the series.
 
 The borrower buffer constraint is the most consequential. It is the only one that acts on the starting distance b_0, which the stress results below show to be the largest single driver of loss. Borrower positions are public, so the constraint can be evaluated exactly at the moment a series opens.
 
 ---
 
-## Stress thresholds are computed, not forecast
+## Stress thresholds
 
 A stress threshold is the smallest instantaneous collateral price shock that produces a given outcome for a series. It is computed deterministically by passing the shock through each borrower's loan to value, the liquidation incentive, recovery, the market loss factor and the waterfall, then solving for the shock.
 
@@ -685,104 +684,31 @@ The orderly decline produces no bad debt, which is a check on the model rather t
 
 ---
 
-## Tenor is chosen per calendar year
+## Idle cash
 
-Published parameter research asks what threshold is safe for one market over one term. Morrow asks a different question, because its capital is continuously redeployed. The relevant measure is loss per calendar year on capital that never stops working.
+Capital in a series is committed until maturity, so exits are served first from idle cash, then from settlement proceeds, then from a queue. Idle cash is not left as plain USDC.
 
-If expected loss over a term of length τ scales as EL(τ) = C τ^p, the annual loss rate is
+- It is lent directly into one Morpho Blue market whose collateral, threshold and oracle match the series markets: cbBTC against USDC at 0.86 on Base, priced by the same oracle contract the series markets use. A raw USDC slice of 5% of the parking pool needs no venue call.
+- Fills draw on the position just in time, inside the Midnight callback that settles them.
+- The idle floor of 0.05 per book keeps capital out of new series. It does not restrict exits: exits may use all idle cash, floor included, up to what the Blue market can pay out at that moment.
+- When the Blue market is fully borrowed, a fill larger than the raw slice does not go through and an exit batch pays what is withdrawable, then the remainder later at the same price.
+- The venue's credit risk is carried junior first, as described under loss isolation.
 
-```
-ℓ(τ) = EL(τ) · 365 / τ  ∝  τ^(p − 1)
-```
+Each of these was measured against the live Blue market on a Base mainnet fork.
 
-When p is below one, ℓ falls as τ rises and longer tenors are cheaper per year, even though each individual term loses more. Six 30 day terms consume six independent borrower cohorts where one 180 day term consumes one.
-
-The first passage structure predicts p near one half when borrowers sit close to their thresholds, and above one when they start far from them, because the time spent near the threshold grows differently in the two cases. The tenor choice therefore depends on the borrower book, and the simulation must report p as a function of b_0.
-
-The model also predicts that P(bad debt | liquidation) is invariant to tenor, since it depends on local dynamics at the threshold. If confirmed, tenor affects frequency only.
-
-| Tenor | P(liquidation) | P(bad debt given liquidation) | Loss per term | Loss per year | Tail loss (CVaR 99) |
-| --- | --- | --- | --- | --- | --- |
-| 30 days | [Pending] | [Pending] | [Pending] | [Pending] | [Pending] |
-| 90 days | [Pending] | [Pending] | [Pending] | [Pending] | [Pending] |
-| 180 days | [Pending] | [Pending] | [Pending] | [Pending] | [Pending] |
-
-| Borrower starting LTV | Loss at 30 days | Loss at 180 days | Fitted exponent p |
-| --- | --- | --- | --- |
-| Deep buffer | [Pending] | [Pending] | [Pending] |
-| Median | [Pending] | [Pending] | [Pending] |
-| Thin buffer | [Pending] | [Pending] | [Pending] |
-
----
-
-## The liquidity buffer is sized to flow
-
-Holders of either claim may redeem, but capital in a series is committed until maturity. Redemptions are served first from a liquidity buffer held in an open term market with the same collateral, threshold and oracle as the series markets, then from settlement proceeds, then from a queue.
-
-With N series spread evenly over a tenor τ, the gap in days between settlements is
-
-```
-g = τ / N
-```
-
-The buffer needs to cover net outflow over one gap, not the senior claim. The first is a flow and the second a stock, and sizing against the stock overshoots by several times.
-
-```
-target = clamp( q95(net outflow over g) / total assets, b_min, b_max ) × total assets
-```
-
-Here q95 is the 95th percentile of redemptions minus deposits over any window of length g. The target is recomputed on a fixed cadence. At the defaults, 180 days and nine series give a gap of 20 days.
-
-Deposits are liquidity. Incoming deposits pay outgoing redemptions before any series settles, so the buffer is insurance against net outflow and earns its cost only when the book is flat or shrinking. It buys service quality, not solvency, because the wait without a buffer is bounded by the gap g.
-
-The buffer venue carries its own credit risk. It is an open term lending market, not cash, and belongs in the loss model with its own allowance.
-
-The implementation follows this design with two simplifications.
-
-- Idle cash, including both floors, is lent directly into one Morpho Blue market whose collateral, threshold and oracle match the series markets: cbBTC against USDC at 0.86 on Base, priced by the same oracle contract the series markets use. A raw USDC slice of 5% of the parking pool is kept so that small fills need no venue call. Fills draw on the position just in time, inside the Midnight callback that settles them.
-- The buffer target is a fixed idle floor per book rather than a recomputed q95 target. The floor keeps capital out of new series. It does not restrict exits: redemptions may use all idle cash, floor included. The curator can raise the floor at once, and lower it through the timelock, when flow statistics justify it.
-- The venue's credit risk is carried junior-first, as described in the section on isolation.
-
-| Flow regime | Buffer | Same day fill | Mean wait | Net yield |
-| --- | --- | --- | --- | --- |
-| Growing | [Pending] | [Pending] | [Pending] | [Pending] |
-| Flat | [Pending] | [Pending] | [Pending] | [Pending] |
-| Shrinking | [Pending] | [Pending] | [Pending] | [Pending] |
-| Redemption burst | [Pending] | [Pending] | [Pending] | [Pending] |
-
-| Series running | Gap | Buffer | Same day fill | Net yield |
-| --- | --- | --- | --- | --- |
-| [Pending] | [Pending] | [Pending] | [Pending] | [Pending] |
-
----
-
-## The simulation stack models four things
-
-The tenor and buffer results depend on simulated market behaviour. The stack must model four components, each for a stated reason.
-
-| Component | What it must model | Why |
-| --- | --- | --- |
-| Price process | Diffusion with jumps and clustered volatility | Bad debt requires gaps, and gaps cluster in stress |
-| Liquidation engine | Incentive against execution cost, clearing capacity, recovery close factor, dust threshold | Loss depends on whether and how fast liquidation clears |
-| Borrower book | Starting LTV distribution, accrual, repayment at maturity | The starting distance b_0 dominates frequency |
-| Flow process | Deposits, redemptions and bursts over a year | Sizes the buffer and the series cadence |
-
-| Configuration item | Value |
+| Live Blue market result | Value |
 | --- | --- |
-| Price data source and window | [Pending] |
-| Time step | [Pending] |
-| Paths per configuration | [Pending] |
-| Calibration target | [Pending] |
-| Borrower book source | [Pending] |
-| Flow data source | [Pending] |
-
-Each reported figure should state its configuration and the number of paths behind it.
+| Fills funded from Blue, register plus take | about 541,000 gas |
+| Full lifecycle, 1.5M senior and 500k junior | 1,514,284.5 and 505,684.5 USDC paid on exit |
+| Market fully borrowed | 39,798 USDC fill served from the raw slice; 300,000 fill refused, books untouched; exit paid 83,085 at once and 670,529 after repayment, at the same price |
+| Real bad debt in the Blue market | 53.2M USDC realized; Morrow's parked cash lost 61,189 USDC, all absorbed by junior idle; senior idle unchanged |
+| Date and block of computation | 2026-10-05 and 2026-10-06, Base block 51,894,109 |
 
 ---
 
-## The model has stated limits
+## Limits
 
-The arithmetic covers how a loss is divided, not how likely it is. The audit is an independent implementation that agrees with the protocol on large random samples. It is strong evidence of correct arithmetic and is not a formal proof.
+The arithmetic covers how a loss is divided, not how likely it is. The audit is an independent implementation that agrees with the protocol on large random samples. It is strong evidence of correct arithmetic and is not a formal proof. The waterfall split, the allocation split and the batch prices are also proven symbolically within stated bounds; the rounding bounds in this document are not.
 
 Oracle failure is outside every threshold here. The underlying market uses its price feed without a staleness check, and a wrong price is instantaneous and identical for every tenor. The controls for it are the choice of oracle and a validating wrapper, not any quantity in this model.
 
@@ -794,7 +720,7 @@ Every parameter default is chosen conservatively and not calibrated. The basis o
 
 ---
 
-## Reproducing the results
+## Reproducing
 
 The reference implementation and the stress model use only the Python standard library.
 

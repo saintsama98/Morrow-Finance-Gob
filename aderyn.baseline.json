@@ -6,22 +6,17 @@
   [
    "Address State Variable Set Without Checks",
    "contracts/src/core/modules/coreGovernance.sol",
-   12
+   14
   ],
   [
    "Address State Variable Set Without Checks",
    "contracts/src/core/modules/coreGovernance.sol",
-   13
+   15
   ],
   [
    "Address State Variable Set Without Checks",
    "contracts/src/core/modules/coreGovernance.sol",
-   19
-  ],
-  [
-   "Address State Variable Set Without Checks",
-   "contracts/src/core/modules/coreGovernance.sol",
-   23
+   22
   ],
   [
    "Address State Variable Set Without Checks",
@@ -31,12 +26,12 @@
   [
    "Address State Variable Set Without Checks",
    "contracts/src/core/modules/coreGovernance.sol",
-   31
+   32
   ],
   [
    "Address State Variable Set Without Checks",
-   "contracts/src/core/modules/coreStorage.sol",
-   165
+   "contracts/src/core/modules/coreGovernance.sol",
+   37
   ],
   [
    "Address State Variable Set Without Checks",
@@ -60,63 +55,63 @@
   ],
   [
    "Address State Variable Set Without Checks",
-   "contracts/src/series/seriesFactory.sol",
-   82
+   "contracts/src/core/modules/coreStorage.sol",
+   170
   ],
   [
    "Address State Variable Set Without Checks",
    "contracts/src/series/seriesFactory.sol",
-   91
+   83
   ],
   [
    "Address State Variable Set Without Checks",
    "contracts/src/series/seriesFactory.sol",
-   158
+   93
+  ],
+  [
+   "Address State Variable Set Without Checks",
+   "contracts/src/series/seriesFactory.sol",
+   169
   ],
   [
    "Costly operations inside loop",
    "contracts/src/core/modules/coreSeriesLifecycle.sol",
-   95
+   101
   ],
   [
    "Costly operations inside loop",
    "contracts/src/core/modules/coreSeriesLifecycle.sol",
-   112
+   118
   ],
   [
    "Costly operations inside loop",
    "contracts/src/core/modules/coreSeriesLifecycle.sol",
-   182
+   188
   ],
   [
    "Costly operations inside loop",
    "contracts/src/series/modules/seriesSettlement.sol",
-   68
+   73
   ],
   [
    "Incorrect use of caret operator",
    "contracts/src/libraries/wadMath.sol",
-   48
+   50
   ],
   [
    "Internal Function Used Only Once",
    "contracts/src/libraries/idleLossMath.sol",
-   14
+   16
   ],
   [
    "Internal Function Used Only Once",
    "contracts/src/libraries/seriesMath.sol",
-   25
+   27
   ],
   [
    "Literal Instead of Constant",
    "contracts/src/core/modules/coreStorage.sol",
-   173
-  ],
-  [
-   "Literal Instead of Constant",
-   "contracts/src/core/modules/coreStorage.sol",
-   175
+   174
   ],
   [
    "Literal Instead of Constant",
@@ -136,12 +131,12 @@
   [
    "Literal Instead of Constant",
    "contracts/src/core/modules/coreStorage.sol",
-   180
+   179
   ],
   [
    "Literal Instead of Constant",
    "contracts/src/core/modules/coreStorage.sol",
-   185
+   181
   ],
   [
    "Literal Instead of Constant",
@@ -161,7 +156,7 @@
   [
    "Literal Instead of Constant",
    "contracts/src/core/modules/coreStorage.sol",
-   190
+   189
   ],
   [
    "Literal Instead of Constant",
@@ -170,198 +165,198 @@
   ],
   [
    "Literal Instead of Constant",
-   "contracts/src/series/seriesFactory.sol",
-   128
+   "contracts/src/core/modules/coreStorage.sol",
+   192
   ],
   [
    "Literal Instead of Constant",
    "contracts/src/series/seriesFactory.sol",
-   185
+   135
   ],
   [
    "Literal Instead of Constant",
    "contracts/src/series/seriesFactory.sol",
-   219
+   197
   ],
   [
    "Literal Instead of Constant",
    "contracts/src/series/seriesFactory.sol",
-   224
+   232
   ],
   [
    "Literal Instead of Constant",
-   "contracts/src/series/seriesFactory.sol",
-   225
-  ],
-  [
-   "Literal Instead of Constant",
-   "contracts/src/series/seriesFactory.sol",
-   226
-  ],
-  [
-   "Literal Instead of Constant",
-   "contracts/src/vaults/shared/usdcVaultBase.sol",
-   79
-  ],
-  [
-   "Literal Instead of Constant",
-   "contracts/src/vaults/shared/usdcVaultBase.sol",
-   83
-  ],
-  [
-   "Literal Instead of Constant",
-   "contracts/src/vaults/shared/usdcVaultBase.sol",
-   96
-  ],
-  [
-   "Loop Contains `require`/`revert`",
-   "contracts/src/core/modules/coreSeriesLifecycle.sol",
-   132
-  ],
-  [
-   "Loop Contains `require`/`revert`",
-   "contracts/src/core/modules/coreValuation.sol",
-   85
-  ],
-  [
-   "Loop Contains `require`/`revert`",
-   "contracts/src/series/modules/seriesDeployment.sol",
-   39
-  ],
-  [
-   "Loop Contains `require`/`revert`",
-   "contracts/src/series/modules/seriesSettlement.sol",
-   56
-  ],
-  [
-   "Loop Contains `require`/`revert`",
-   "contracts/src/series/seriesFactory.sol",
-   187
-  ],
-  [
-   "Loop Contains `require`/`revert`",
-   "contracts/src/series/seriesFactory.sol",
-   208
-  ],
-  [
-   "Loop Contains `require`/`revert`",
-   "contracts/src/series/seriesFactory.sol",
-   220
-  ],
-  [
-   "Loop Contains `require`/`revert`",
    "contracts/src/series/seriesFactory.sol",
    237
   ],
   [
+   "Literal Instead of Constant",
+   "contracts/src/series/seriesFactory.sol",
+   238
+  ],
+  [
+   "Literal Instead of Constant",
+   "contracts/src/series/seriesFactory.sol",
+   239
+  ],
+  [
+   "Literal Instead of Constant",
+   "contracts/src/vaults/shared/usdcVaultBase.sol",
+   84
+  ],
+  [
+   "Literal Instead of Constant",
+   "contracts/src/vaults/shared/usdcVaultBase.sol",
+   89
+  ],
+  [
+   "Literal Instead of Constant",
+   "contracts/src/vaults/shared/usdcVaultBase.sol",
+   104
+  ],
+  [
+   "Loop Contains `require`/`revert`",
+   "contracts/src/core/modules/coreSeriesLifecycle.sol",
+   138
+  ],
+  [
+   "Loop Contains `require`/`revert`",
+   "contracts/src/core/modules/coreValuation.sol",
+   97
+  ],
+  [
+   "Loop Contains `require`/`revert`",
+   "contracts/src/series/modules/seriesDeployment.sol",
+   43
+  ],
+  [
+   "Loop Contains `require`/`revert`",
+   "contracts/src/series/modules/seriesSettlement.sol",
+   60
+  ],
+  [
+   "Loop Contains `require`/`revert`",
+   "contracts/src/series/seriesFactory.sol",
+   199
+  ],
+  [
+   "Loop Contains `require`/`revert`",
+   "contracts/src/series/seriesFactory.sol",
+   221
+  ],
+  [
+   "Loop Contains `require`/`revert`",
+   "contracts/src/series/seriesFactory.sol",
+   233
+  ],
+  [
+   "Loop Contains `require`/`revert`",
+   "contracts/src/series/seriesFactory.sol",
+   250
+  ],
+  [
    "Missing Inheritance",
    "contracts/src/series/seriesFactory.sol",
-   13
+   14
   ],
   [
    "Modifier Invoked Only Once",
    "contracts/src/core/modules/coreStorage.sol",
-   128
+   129
   ],
   [
    "Modifier Invoked Only Once",
    "contracts/src/series/seriesFactory.sol",
-   174
+   185
   ],
   [
    "Redundant Statement",
    "contracts/src/vaults/junior/usdcJuniorDepositClaims.sol",
-   45
+   49
   ],
   [
    "Redundant Statement",
    "contracts/src/vaults/junior/usdcJuniorRedeemClaims.sol",
-   45
+   49
   ],
   [
    "Redundant Statement",
    "contracts/src/vaults/senior/usdcSeniorRedeemClaims.sol",
+   49
+  ],
+  [
+   "Reentrancy: State change after external call",
+   "contracts/src/core/modules/coreSeriesLifecycle.sol",
    45
   ],
   [
    "Reentrancy: State change after external call",
    "contracts/src/core/modules/coreSeriesLifecycle.sol",
-   43
+   48
   ],
   [
    "Reentrancy: State change after external call",
    "contracts/src/core/modules/coreSeriesLifecycle.sol",
-   46
+   49
   ],
   [
    "Reentrancy: State change after external call",
    "contracts/src/core/modules/coreSeriesLifecycle.sol",
-   47
+   77
   ],
   [
    "Reentrancy: State change after external call",
    "contracts/src/core/modules/coreSeriesLifecycle.sol",
-   73
-  ],
-  [
-   "Reentrancy: State change after external call",
-   "contracts/src/core/modules/coreSeriesLifecycle.sol",
-   97
+   103
   ],
   [
    "Reentrancy: State change after external call",
    "contracts/src/core/modules/coreVaultFlows.sol",
-   32
+   38
   ],
   [
    "Reentrancy: State change after external call",
    "contracts/src/parking/blueParking.sol",
-   89
+   100
   ],
   [
    "Reentrancy: State change after external call",
    "contracts/src/parking/blueParking.sol",
-   91
+   102
   ],
   [
    "Reentrancy: State change after external call",
    "contracts/src/parking/blueParking.sol",
-   98
+   109
   ],
   [
    "Reentrancy: State change after external call",
    "contracts/src/parking/blueParking.sol",
-   140
+   154
   ],
   [
    "Reentrancy: State change after external call",
    "contracts/src/parking/blueParking.sol",
-   157
+   173
   ],
   [
    "Reentrancy: State change after external call",
    "contracts/src/parking/blueParking.sol",
-   158
+   174
   ],
   [
    "Reentrancy: State change after external call",
    "contracts/src/parking/idleParking.sol",
-   22
+   24
   ],
   [
    "Reentrancy: State change after external call",
    "contracts/src/parking/morphoParking.sol",
-   52
+   53
   ],
   [
    "Reentrancy: State change after external call",
    "contracts/src/series/modules/seriesDeployment.sol",
-   89
-  ],
-  [
-   "Reentrancy: State change after external call",
-   "contracts/src/series/modules/seriesDeployment.sol",
-   112
+   96
   ],
   [
    "Reentrancy: State change after external call",
@@ -371,92 +366,92 @@
   [
    "Reentrancy: State change after external call",
    "contracts/src/series/modules/seriesDeployment.sol",
-   123
+   128
   ],
   [
    "Reentrancy: State change after external call",
    "contracts/src/series/modules/seriesDeployment.sol",
-   124
+   131
   ],
   [
    "Reentrancy: State change after external call",
    "contracts/src/series/modules/seriesDeployment.sol",
-   125
+   132
   ],
   [
    "Reentrancy: State change after external call",
    "contracts/src/series/modules/seriesDeployment.sol",
-   135
+   133
+  ],
+  [
+   "Reentrancy: State change after external call",
+   "contracts/src/series/modules/seriesDeployment.sol",
+   143
   ],
   [
    "Reentrancy: State change after external call",
    "contracts/src/series/modules/seriesFunding.sol",
-   39
+   42
   ],
   [
    "Reentrancy: State change after external call",
    "contracts/src/series/modules/seriesFunding.sol",
-   87
+   91
   ],
   [
    "Reentrancy: State change after external call",
    "contracts/src/series/modules/seriesFunding.sol",
-   105
+   109
   ],
   [
    "Reentrancy: State change after external call",
    "contracts/src/series/modules/seriesFunding.sol",
-   106
+   110
   ],
   [
    "Reentrancy: State change after external call",
    "contracts/src/series/modules/seriesSettlement.sol",
-   31
+   34
   ],
   [
    "Reentrancy: State change after external call",
    "contracts/src/series/modules/seriesSettlement.sol",
-   32
+   35
   ],
   [
    "Reentrancy: State change after external call",
    "contracts/src/series/modules/seriesSettlement.sol",
-   33
+   36
   ],
   [
    "Reentrancy: State change after external call",
    "contracts/src/series/modules/seriesSettlement.sol",
-   37
+   40
   ],
   [
    "Reentrancy: State change after external call",
    "contracts/src/series/modules/seriesSettlement.sol",
-   38
+   41
   ],
   [
    "Reentrancy: State change after external call",
    "contracts/src/series/modules/seriesSettlement.sol",
-   39
+   42
   ],
   [
    "Reentrancy: State change after external call",
    "contracts/src/series/modules/seriesSettlement.sol",
-   44
+   47
   ],
   [
    "Reentrancy: State change after external call",
    "contracts/src/series/modules/seriesSettlement.sol",
-   46
+   49
   ],
   [
    "Reentrancy: State change after external call",
    "contracts/src/series/modules/seriesSettlement.sol",
-   79
-  ],
-  [
-   "Reentrancy: State change after external call",
-   "contracts/src/vaults/junior/usdcJuniorDepositQueue.sol",
-   67
+   85
   ],
   [
    "Reentrancy: State change after external call",
@@ -466,17 +461,12 @@
   [
    "Reentrancy: State change after external call",
    "contracts/src/vaults/junior/usdcJuniorDepositQueue.sol",
-   74
+   79
   ],
   [
    "Reentrancy: State change after external call",
-   "contracts/src/vaults/junior/usdcJuniorRedeemQueue.sol",
-   59
-  ],
-  [
-   "Reentrancy: State change after external call",
-   "contracts/src/vaults/junior/usdcJuniorRedeemQueue.sol",
-   60
+   "contracts/src/vaults/junior/usdcJuniorDepositQueue.sol",
+   80
   ],
   [
    "Reentrancy: State change after external call",
@@ -486,87 +476,92 @@
   [
    "Reentrancy: State change after external call",
    "contracts/src/vaults/junior/usdcJuniorRedeemQueue.sol",
-   123
+   62
+  ],
+  [
+   "Reentrancy: State change after external call",
+   "contracts/src/vaults/junior/usdcJuniorRedeemQueue.sol",
+   63
+  ],
+  [
+   "Reentrancy: State change after external call",
+   "contracts/src/vaults/junior/usdcJuniorRedeemQueue.sol",
+   134
   ],
   [
    "Reentrancy: State change after external call",
    "contracts/src/vaults/senior/usdcSeniorRedeemQueue.sol",
-   114
+   125
   ],
   [
    "Reentrancy: State change after external call",
    "contracts/src/vaults/senior/usdcSeniorRedeemQueue.sol",
-   115
+   126
   ],
   [
    "State Change Without Event",
    "contracts/src/core/modules/coreGovernance.sol",
-   18
-  ],
-  [
-   "State Change Without Event",
-   "contracts/src/core/modules/coreGovernance.sol",
-   22
-  ],
-  [
-   "State Change Without Event",
-   "contracts/src/core/modules/coreGovernance.sol",
-   26
-  ],
-  [
-   "State Change Without Event",
-   "contracts/src/core/modules/coreGovernance.sol",
-   30
-  ],
-  [
-   "State Change Without Event",
-   "contracts/src/core/modules/coreSeriesLifecycle.sol",
-   93
-  ],
-  [
-   "State Change Without Event",
-   "contracts/src/core/modules/coreVaultFlows.sol",
-   16
-  ],
-  [
-   "State Change Without Event",
-   "contracts/src/core/modules/coreVaultFlows.sol",
-   20
-  ],
-  [
-   "State Change Without Event",
-   "contracts/src/core/modules/coreVaultFlows.sol",
-   47
-  ],
-  [
-   "State Change Without Event",
-   "contracts/src/parking/idleParking.sol",
    21
   ],
   [
    "State Change Without Event",
-   "contracts/src/parking/idleParking.sol",
+   "contracts/src/core/modules/coreGovernance.sol",
    26
   ],
   [
    "State Change Without Event",
-   "contracts/src/parking/idleParking.sol",
+   "contracts/src/core/modules/coreGovernance.sol",
    31
+  ],
+  [
+   "State Change Without Event",
+   "contracts/src/core/modules/coreGovernance.sol",
+   36
+  ],
+  [
+   "State Change Without Event",
+   "contracts/src/core/modules/coreSeriesLifecycle.sol",
+   99
+  ],
+  [
+   "State Change Without Event",
+   "contracts/src/core/modules/coreVaultFlows.sol",
+   19
+  ],
+  [
+   "State Change Without Event",
+   "contracts/src/core/modules/coreVaultFlows.sol",
+   24
+  ],
+  [
+   "State Change Without Event",
+   "contracts/src/core/modules/coreVaultFlows.sol",
+   54
+  ],
+  [
+   "State Change Without Event",
+   "contracts/src/parking/idleParking.sol",
+   23
+  ],
+  [
+   "State Change Without Event",
+   "contracts/src/parking/idleParking.sol",
+   29
+  ],
+  [
+   "State Change Without Event",
+   "contracts/src/parking/idleParking.sol",
+   35
   ],
   [
    "Unchecked Return",
    "contracts/src/core/modules/coreSeriesLifecycle.sol",
-   88
+   93
   ],
   [
    "Unchecked Return",
    "contracts/src/parking/morphoParking.sol",
-   137
-  ],
-  [
-   "Unchecked Return",
-   "contracts/src/parking/morphoParking.sol",
-   144
+   146
   ],
   [
    "Unchecked Return",
@@ -575,78 +570,83 @@
   ],
   [
    "Unchecked Return",
-   "contracts/src/series/modules/seriesMarks.sol",
-   17
+   "contracts/src/parking/morphoParking.sol",
+   162
   ],
   [
    "Unchecked Return",
    "contracts/src/series/modules/seriesMarks.sol",
-   34
+   19
+  ],
+  [
+   "Unchecked Return",
+   "contracts/src/series/modules/seriesMarks.sol",
+   38
   ],
   [
    "Unchecked Return",
    "contracts/src/series/modules/seriesSettlement.sol",
-   31
+   34
   ],
   [
    "Unchecked Return",
    "contracts/src/vaults/junior/usdcJuniorDepositQueue.sol",
-   124
-  ],
-  [
-   "Unchecked Return",
-   "contracts/src/vaults/junior/usdcJuniorRedeemQueue.sol",
    135
   ],
   [
    "Unchecked Return",
+   "contracts/src/vaults/junior/usdcJuniorRedeemQueue.sol",
+   146
+  ],
+  [
+   "Unchecked Return",
    "contracts/src/vaults/senior/usdcSeniorRedeemQueue.sol",
-   128
+   139
   ],
   [
    "Unsafe ERC20 Operation",
    "contracts/src/core/modules/coreParkingBooks.sol",
-   90
+   93
   ],
   [
    "Unsafe ERC20 Operation",
    "contracts/src/core/modules/coreVaultFlows.sol",
-   22
+   26
   ],
   [
    "Unsafe ERC20 Operation",
    "contracts/src/core/modules/coreVaultFlows.sol",
-   51
+   58
   ],
   [
    "Unsafe ERC20 Operation",
    "contracts/src/parking/blueParking.sol",
-   131
+   144
   ],
   [
    "Unsafe ERC20 Operation",
    "contracts/src/parking/blueParking.sol",
-   229
+   252
   ],
   [
    "Unsafe ERC20 Operation",
    "contracts/src/parking/idleParking.sol",
-   28
+   31
   ],
   [
    "Unsafe ERC20 Operation",
    "contracts/src/parking/morphoParking.sol",
-   79
+   82
   ],
   [
    "Unsafe ERC20 Operation",
    "contracts/src/parking/morphoParking.sol",
-   136
+   145
   ],
   [
    "`nonReentrant` is Not the First Modifier",
    "contracts/src/series/modules/seriesDeployment.sol",
-   104
+   112
   ]
  ]
 }

@@ -4,12 +4,14 @@
 
 pragma solidity 0.8.34;
 
+/// @notice Full-precision multiply-then-divide with explicit rounding.
 library wadMath {
     uint256 internal constant WAD = 1e18;
 
     error DivisionByZero();
     error MulDivOverflow();
 
+    /// @notice x times y divided by d, rounded down, without intermediate overflow.
     function mulDivDown(uint256 x, uint256 y, uint256 d) internal pure returns (uint256 result) {
         if (d == 0) revert DivisionByZero();
 
@@ -57,6 +59,7 @@ library wadMath {
         }
     }
 
+    /// @notice x times y divided by d, rounded up.
     function mulDivUp(uint256 x, uint256 y, uint256 d) internal pure returns (uint256 result) {
         result = mulDivDown(x, y, d);
         unchecked {
@@ -67,18 +70,22 @@ library wadMath {
         }
     }
 
+    /// @notice x times y in WAD, rounded down.
     function wMulDown(uint256 x, uint256 y) internal pure returns (uint256) {
         return mulDivDown(x, y, WAD);
     }
 
+    /// @notice x times y in WAD, rounded up.
     function wMulUp(uint256 x, uint256 y) internal pure returns (uint256) {
         return mulDivUp(x, y, WAD);
     }
 
+    /// @notice x divided by y in WAD, rounded down.
     function wDivDown(uint256 x, uint256 y) internal pure returns (uint256) {
         return mulDivDown(x, WAD, y);
     }
 
+    /// @notice x divided by y in WAD, rounded up.
     function wDivUp(uint256 x, uint256 y) internal pure returns (uint256) {
         return mulDivUp(x, WAD, y);
     }

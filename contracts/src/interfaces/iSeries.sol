@@ -32,10 +32,16 @@ enum SeriesState {
     CANCELED
 }
 
+/// @notice The part of a series the core calls.
 interface iSeries {
+    /// @notice Lifecycle state.
     function state() external view returns (SeriesState);
+    /// @notice Whether the series settles pro rata instead of through the waterfall.
     function passThrough() external view returns (bool);
+    /// @notice Funds the series with its senior and junior allocations.
     function initialize(uint256 seniorAllocated, uint256 juniorAllocated) external;
+    /// @notice Cancels a series with no fills and returns its cash.
     function cancel() external;
+    /// @notice Prices the senior claim and returns undeployed cash.
     function finalize() external;
 }

@@ -7,9 +7,11 @@ pragma solidity 0.8.34;
 import {usdcJuniorDepositQueue} from "./usdcJuniorDepositQueue.sol";
 import {wadMath} from "../../libraries/wadMath.sol";
 
+/// @notice Claims of filled junior deposits.
 abstract contract usdcJuniorDepositClaims is usdcJuniorDepositQueue {
     using wadMath for uint256;
 
+    /// @notice Claims shares for an amount of filled assets.
     function deposit(uint256 assets, address receiver, address controller)
         external
         onlyControllerOrOperator(controller)
@@ -18,6 +20,7 @@ abstract contract usdcJuniorDepositClaims is usdcJuniorDepositQueue {
         return _depositClaim(assets, receiver, controller);
     }
 
+    /// @notice Claims an amount of shares from filled assets.
     function mint(uint256 shares, address receiver, address controller)
         external
         onlyControllerOrOperator(controller)
@@ -41,6 +44,7 @@ abstract contract usdcJuniorDepositClaims is usdcJuniorDepositQueue {
         emit Deposit(controller, receiver, assets, shares);
     }
 
+    /// @notice Claims every share filled for the caller.
     function claimDeposit(uint256 epochId) external returns (uint256 shares) {
         epochId;
         uint256 requestId = activeDepositRequestId[msg.sender];

@@ -10,6 +10,7 @@ import {seriesSettlement} from "./modules/seriesSettlement.sol";
 import {iMidnightMinimal} from "../interfaces/iMidnightMinimal.sol";
 import {SeriesParams} from "../interfaces/iSeries.sol";
 
+/// @notice One dated series: lends into a basket of Midnight markets with one maturity and pays senior first.
 contract creditSeries is seriesSettlement {
     constructor(
         iMidnightMinimal midnight,

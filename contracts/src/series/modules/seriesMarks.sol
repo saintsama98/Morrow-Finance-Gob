@@ -10,9 +10,11 @@ import {SeriesState} from "../../interfaces/iSeries.sol";
 import {wadMath} from "../../libraries/wadMath.sol";
 import {seriesMath} from "../../libraries/seriesMath.sol";
 
+/// @notice Marks of a series against Midnight credit and its loss factor.
 abstract contract seriesMarks is seriesStorage {
     using wadMath for uint256;
 
+    /// @notice Writes accrual for one market and emits the series' buffer.
     function sync(uint256 i) external {
         MIDNIGHT.updatePosition(_markets[i], address(this));
 
@@ -24,10 +26,12 @@ abstract contract seriesMarks is seriesStorage {
         emit BufferUpdated(i, creditI, fNetNow, bufferAtT, lossAtT);
     }
 
+    /// @notice Senior and junior marks and accrued fee, without writing.
     function navs() external view returns (uint256 navS, uint256 navJ, uint256 feeAccrued) {
         return _navs();
     }
 
+    /// @notice Senior and junior marks and accrued fee, after writing accrual.
     function navsSynced() external returns (uint256 navS, uint256 navJ, uint256 feeAccrued) {
         uint256 length = _marketIds.length;
         for (uint256 i = 0; i < length; i++) {
@@ -36,10 +40,12 @@ abstract contract seriesMarks is seriesStorage {
         return _navs();
     }
 
+    /// @notice Ids of the basket's markets.
     function marketIds() external view returns (bytes32[] memory) {
         return _marketIds;
     }
 
+    /// @notice Parameters of the basket's markets.
     function markets() external view returns (Market[] memory) {
         return _markets;
     }
