@@ -6,6 +6,7 @@ pragma solidity 0.8.34;
 
 import {wadMath} from "./wadMath.sol";
 
+/// @notice Pricing, marks and the waterfall of a series.
 library seriesMath {
     using wadMath for uint256;
 
@@ -22,6 +23,7 @@ library seriesMath {
         bool negativeCarry;
     }
 
+    /// @notice Splits deployed capital; senior rounds down and junior takes the remainder.
     function allocationSplit(uint256 kDeployed, uint256 juniorShareWad)
         internal
         pure
@@ -31,6 +33,7 @@ library seriesMath {
         juniorDeployed = kDeployed - seniorDeployed;
     }
 
+    /// @notice Senior rate, senior claim, attachment and cushion at finalize.
     function price(uint256 kDeployed, uint256 juniorShareWad, uint256 faceNetAtFinalize, uint256 piWad)
         internal
         pure
@@ -55,6 +58,7 @@ library seriesMath {
         r.buffer0 = int256(faceNetAtFinalize) - int256(r.seniorClaim);
     }
 
+    /// @notice Senior and junior marks during the term, converging to the waterfall at maturity.
     function nav(
         uint256 elapsed,
         uint256 tau,
@@ -98,6 +102,7 @@ library seriesMath {
         return seniorMark < v ? seniorMark : v;
     }
 
+    /// @notice Pro-rata marks for a series below its minimum size.
     function navPassThrough(uint256 v, uint256 seniorDeployed, uint256 kDeployed)
         internal
         pure
@@ -107,6 +112,7 @@ library seriesMath {
         navJ = v - navS;
     }
 
+    /// @notice Senior paid first up to its claim, junior the rest, less the fee on junior profit.
     function waterfall(uint256 proceeds, uint256 seniorClaim, uint256 juniorDeployed, uint256 thetaWad)
         internal
         pure
@@ -118,6 +124,7 @@ library seriesMath {
         juniorPaid = residualToJunior - fee;
     }
 
+    /// @notice Pro-rata split for a series below its minimum size.
     function waterfallPassThrough(uint256 proceeds, uint256 seniorDeployed, uint256 kDeployed)
         internal
         pure

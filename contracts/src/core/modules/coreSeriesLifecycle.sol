@@ -11,9 +11,11 @@ import {SeriesParams, SeriesState} from "../../interfaces/iSeries.sol";
 import {iMidnightMinimal} from "../../interfaces/iMidnightMinimal.sol";
 import {wadMath} from "../../libraries/wadMath.sol";
 
+/// @notice Opening series, receiving their cash back, syncing marks and pruning settled series.
 abstract contract coreSeriesLifecycle is coreVaultFlows {
     using wadMath for uint256;
 
+    /// @notice Opens a series with senior and junior allocations within policy.
     function openSeries(SeriesParams calldata p, uint256 S, uint256 J)
         external
         onlyAllocator
@@ -52,6 +54,7 @@ abstract contract coreSeriesLifecycle is coreVaultFlows {
         emit SeriesFunded(seriesAddr, S, J);
     }
 
+    /// @notice Credits undeployed cash returned by a series at finalize or cancel.
     function receiveReturn(uint256 toSenior, uint256 toJunior) external onlyRegisteredSeries {
         _creditBooks(toSenior, toJunior);
 
@@ -62,6 +65,7 @@ abstract contract coreSeriesLifecycle is coreVaultFlows {
         emit ReturnReceived(msg.sender, toSenior, toJunior);
     }
 
+    /// @notice Credits a waterfall payout from a series and applies the backstop if senior is short.
     function receivePayout(uint256 toSenior, uint256 toJunior) external onlyRegisteredSeries {
         _creditBooks(toSenior, toJunior);
 
@@ -81,6 +85,7 @@ abstract contract coreSeriesLifecycle is coreVaultFlows {
         emit PayoutReceived(msg.sender, toSenior, toJunior);
     }
 
+    /// @notice Settles idle losses and syncs every live series' marks; anyone may call.
     function syncAll() external {
         _settleIdleLoss(_parked());
         uint256 length = liveSeries.length;
@@ -90,6 +95,7 @@ abstract contract coreSeriesLifecycle is coreVaultFlows {
         emit Synced(seniorAssets(), juniorAssets());
     }
 
+    /// @notice Moves settled and cancelled series out of the live set.
     function pruneSeries() external {
         uint256 i;
         while (i < liveSeries.length) {

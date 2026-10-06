@@ -12,20 +12,31 @@ import {iParking} from "./iParking.sol";
 import {iErc20Like} from "../interfaces/iErc20Like.sol";
 import {wadMath} from "../libraries/wadMath.sol";
 
+/// @notice The part of the series factory the Blue adapter reads.
 interface iParkingFactoryLike {
+    /// @notice Core address.
     function core() external view returns (address);
+    /// @notice Loan token.
     function USDC() external view returns (address);
+    /// @notice Whether a collateral token is allowlisted.
     function collateralAllowed(address token) external view returns (bool);
+    /// @notice Whether an oracle is allowlisted for a collateral.
     function oracleAllowed(address token, address oracle) external view returns (bool);
+    /// @notice Highest permitted liquidation threshold.
     function maxLltvWad() external view returns (uint256);
 }
 
+/// @notice The part of the core the Blue adapter reads.
 interface iParkingCoreLike {
+    /// @notice Current curator.
     function curator() external view returns (address);
+    /// @notice Current sentinel.
     function sentinel() external view returns (address);
+    /// @notice Series registry entry; the last field is whether the address is a registered series.
     function info(address series) external view returns (uint256, uint256, uint256, bool);
 }
 
+/// @notice Parking that lends idle cash directly in one Morpho Blue market, with a raw USDC buffer.
 contract blueParking is iParking {
     using wadMath for uint256;
     using MarketParamsLib for MarketParams;
@@ -108,6 +119,7 @@ contract blueParking is iParking {
         BUFFER_WAD = bufferWad;
     }
 
+    /// @notice Parks assets for the caller and lends the excess over the buffer in Blue.
     function deposit(uint256 assets) external nonReentrant onlyMorrow {
         if (assets == 0) return;
         uint256 pool = poolAssets();
@@ -122,6 +134,7 @@ contract blueParking is iParking {
         _investExcess();
     }
 
+    /// @notice Withdraws the caller's assets, pulling from Blue if the buffer is short.
     function withdraw(uint256 assets, address to) external nonReentrant onlyMorrow {
         if (assets == 0) return;
         require(to != address(0), ZeroAddress());
@@ -134,6 +147,7 @@ contract blueParking is iParking {
         _refillIfLow();
     }
 
+    /// @notice Moves part of the caller's position; a series may move it only to the core.
     function transferPosition(address to, uint256 assets) external nonReentrant onlyMorrow {
         if (assets == 0) return;
         require(to != address(0), ZeroAddress());
@@ -145,6 +159,7 @@ contract blueParking is iParking {
         emit Transferred(msg.sender, to, assets, shares);
     }
 
+    /// @notice Moves the raw buffer back to its target; anyone may call.
     function rebalance() external nonReentrant {
         uint256 target = poolAssets().mulDivDown(BUFFER_WAD, WAD);
         uint256 buffer = USDC.balanceOf(address(this));
@@ -153,6 +168,7 @@ contract blueParking is iParking {
         emit Rebalanced(USDC.balanceOf(address(this)), blueAssets());
     }
 
+    /// @notice Pulls everything liquid out of Blue and stops lending; sentinel or curator, one-way.
     function exitToCash() external nonReentrant {
         address core = FACTORY.core();
         require(
@@ -165,29 +181,35 @@ contract blueParking is iParking {
         emit ExitedToCash(msg.sender, USDC.balanceOf(address(this)) - before, blueAssets());
     }
 
+    /// @notice Value of an account's position.
     function totalAssets(address account) public view returns (uint256) {
         return sharesOf[account].mulDivDown(poolAssets() + 1, totalShares + VIRTUAL_SHARES);
     }
 
+    /// @notice Assets an account can withdraw now.
     function maxWithdraw(address account) external view returns (uint256) {
         uint256 owned = totalAssets(account);
         uint256 liquid = liquidity();
         return owned < liquid ? owned : liquid;
     }
 
+    /// @notice Raw buffer plus the Blue position.
     function poolAssets() public view returns (uint256) {
         return USDC.balanceOf(address(this)) + blueAssets();
     }
 
+    /// @notice Raw buffer plus what Blue can pay out now.
     function liquidity() public view returns (uint256) {
         return USDC.balanceOf(address(this)) + blueLiquidity();
     }
 
+    /// @notice Parameters of the Blue market.
     function marketParams() public view returns (MarketParams memory) {
         return
             MarketParams({loanToken: address(USDC), collateralToken: COLLATERAL, oracle: ORACLE, irm: IRM, lltv: LLTV});
     }
 
+    /// @notice Value of the Blue position after accrued interest.
     function blueAssets() public view returns (uint256) {
         uint256 shares = blueShares;
         if (shares == 0) return 0;
@@ -195,6 +217,7 @@ contract blueParking is iParking {
         return shares.toAssetsDown(supplyAssets, supplyShares);
     }
 
+    /// @notice Part of the Blue position the market can pay out now.
     function blueLiquidity() public view returns (uint256) {
         uint256 shares = blueShares;
         if (shares == 0) return 0;

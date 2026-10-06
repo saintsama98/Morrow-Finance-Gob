@@ -9,6 +9,7 @@ import {usdcJuniorDepositCancels} from "./usdcJuniorDepositCancels.sol";
 import {wadMath} from "../../libraries/wadMath.sol";
 import {epochMath} from "../../libraries/epochMath.sol";
 
+/// @notice Batched junior exits, filled oldest first and limited by the coverage floor.
 abstract contract usdcJuniorRedeemQueue is usdcJuniorDepositCancels {
     using wadMath for uint256;
 
@@ -45,6 +46,7 @@ abstract contract usdcJuniorRedeemQueue is usdcJuniorDepositCancels {
         redeemEpochOpenedAt[1] = block.timestamp;
     }
 
+    /// @notice Requests an exit into the open batch.
     function requestRedeem(uint256 shares, address controller, address owner) external returns (uint256 requestId) {
         require(shares > 0, ZeroShares());
         require(activeRedeemRequestId[controller] == 0, RequestAlreadyActive());
@@ -68,36 +70,44 @@ abstract contract usdcJuniorRedeemQueue is usdcJuniorDepositCancels {
         emit RedeemRequest(controller, owner, requestId, msg.sender, shares);
     }
 
+    /// @notice Shares still waiting to be filled.
     function pendingRedeemRequest(uint256 requestId, address controller) public view returns (uint256 shares) {
         return _redeemRemainingUnfulfilled(requestId, controller);
     }
 
+    /// @notice Filled shares ready to claim.
     function claimableRedeemRequest(uint256 requestId, address controller) public view returns (uint256 shares) {
         return _redeemEntitledSharesTotal(requestId, controller) - claimedSharesOnRedeem[requestId][controller];
     }
 
+    /// @notice Assets owed for filled shares not yet claimed.
     function owedRedeemAssets(uint256 requestId, address controller) public view returns (uint256) {
         return _redeemOwedAssetsTotal(requestId, controller);
     }
 
+    /// @notice Shares a controller can redeem now.
     function maxRedeem(address controller) public view returns (uint256) {
         uint256 requestId = activeRedeemRequestId[controller];
         return requestId == 0 ? 0 : claimableRedeemRequest(requestId, controller);
     }
 
+    /// @notice Assets a controller can withdraw now.
     function maxWithdraw(address controller) external view returns (uint256) {
         uint256 requestId = activeRedeemRequestId[controller];
         return requestId == 0 ? 0 : _redeemOwedAssetsTotal(requestId, controller);
     }
 
+    /// @notice Unsupported for asynchronous exits; reverts.
     function previewRedeem(uint256) external pure returns (uint256) {
         revert AsyncPreviewUnsupported();
     }
 
+    /// @notice Unsupported for asynchronous exits; reverts.
     function previewWithdraw(uint256) external pure returns (uint256) {
         revert AsyncPreviewUnsupported();
     }
 
+    /// @notice Closes the open batch and records its price; the curator or allocator, or anyone after the window.
     function closeRedeemEpoch() external returns (uint256 epochId) {
         epochId = openRedeemEpochId;
         _requireOperatorOrAfter(redeemEpochOpenedAt[epochId] + MAX_EPOCH_DURATION);
@@ -112,6 +122,7 @@ abstract contract usdcJuniorRedeemQueue is usdcJuniorDepositCancels {
         emit RedeemEpochClosed(epochId, e.ppsCloseWad);
     }
 
+    /// @notice Fills the oldest closed batch within the coverage floor; the curator or allocator, or anyone after the grace period.
     function fulfillRedeem(uint256 epochId, uint256 assetsToUse) external {
         RedeemEpoch storage e = redeemEpochs[epochId];
         require(e.closed, EpochNotClosed());

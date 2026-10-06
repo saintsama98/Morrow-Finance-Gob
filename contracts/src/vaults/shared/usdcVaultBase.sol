@@ -9,6 +9,7 @@ import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {seriesCore} from "../../core/seriesCore.sol";
 import {wadMath} from "../../libraries/wadMath.sol";
 
+/// @notice Share token and pricing shared by both vaults; assets live in the core.
 abstract contract usdcVaultBase is ERC20, IERC165 {
     using wadMath for uint256;
 
@@ -61,33 +62,40 @@ abstract contract usdcVaultBase is ERC20, IERC165 {
         USDC = usdc_;
     }
 
+    /// @notice Share token, which is this contract.
     function share() external view returns (address) {
         return address(this);
     }
 
+    /// @notice Underlying asset, USDC.
     function asset() external view returns (address) {
         return USDC;
     }
 
+    /// @notice Lets an operator act for the caller's requests.
     function setOperator(address operator, bool approved) external returns (bool success) {
         isOperator[msg.sender][operator] = approved;
         emit OperatorSet(msg.sender, operator, approved);
         return true;
     }
 
+    /// @notice Shares for assets at the current price.
     function convertToShares(uint256 assets) public view returns (uint256) {
         return assets.mulDivDown(totalSupply() + 10 ** DECIMALS_OFFSET, _bookAssets() + 1);
     }
 
+    /// @notice Assets for shares at the current price.
     function convertToAssets(uint256 shares) public view returns (uint256) {
         return shares.mulDivDown(_bookAssets() + 1, totalSupply() + 10 ** DECIMALS_OFFSET);
     }
 
+    /// @notice Current price of one share in assets.
     function pricePerShareWad() public view returns (uint256) {
         uint256 supply = totalSupply();
         return supply == 0 ? 1e6 : _bookAssets().mulDivDown(WAD, supply);
     }
 
+    /// @notice This vault's book in the core.
     function totalAssets() external view returns (uint256) {
         return _bookAssets();
     }

@@ -6,15 +6,18 @@ pragma solidity 0.8.34;
 
 import {wadMath} from "./wadMath.sol";
 
+/// @notice Junior-first allocation of a fall in the value of parked claims.
 library idleLossMath {
     using wadMath for uint256;
 
     uint256 internal constant PRICE_SCALE = 1e36;
 
+    /// @notice Value per parking claim at a 1e36 scale.
     function claimPrice(uint256 parked, uint256 totalClaimsWithVirtual) internal pure returns (uint256) {
         return (parked + 1).mulDivDown(PRICE_SCALE, totalClaimsWithVirtual);
     }
 
+    /// @notice Moves claims from junior to senior until senior is back to its marked value, capped at junior's claims.
     function effectiveClaims(
         uint256 seniorClaims,
         uint256 juniorClaims,

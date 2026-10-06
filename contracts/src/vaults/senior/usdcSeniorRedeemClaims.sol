@@ -7,9 +7,11 @@ pragma solidity 0.8.34;
 import {usdcSeniorRedeemQueue} from "./usdcSeniorRedeemQueue.sol";
 import {wadMath} from "../../libraries/wadMath.sol";
 
+/// @notice Claims of filled senior exits.
 abstract contract usdcSeniorRedeemClaims is usdcSeniorRedeemQueue {
     using wadMath for uint256;
 
+    /// @notice Claims assets for filled shares.
     function redeem(uint256 shares, address receiver, address controller)
         external
         onlyControllerOrOperator(controller)
@@ -18,6 +20,7 @@ abstract contract usdcSeniorRedeemClaims is usdcSeniorRedeemQueue {
         return _redeem(shares, receiver, controller);
     }
 
+    /// @notice Claims an amount of assets from filled shares.
     function withdraw(uint256 assets, address receiver, address controller)
         external
         onlyControllerOrOperator(controller)
@@ -41,6 +44,7 @@ abstract contract usdcSeniorRedeemClaims is usdcSeniorRedeemQueue {
         emit Withdraw(msg.sender, receiver, controller, assets, shares);
     }
 
+    /// @notice Claims everything filled for the caller.
     function claim(uint256 epochId) external returns (uint256 assets) {
         epochId;
         uint256 requestId = activeRedeemRequestId[msg.sender];

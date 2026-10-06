@@ -13,9 +13,11 @@ import {wadMath} from "../../libraries/wadMath.sol";
 import {premiumCurve} from "../../libraries/premiumCurve.sol";
 import {seriesMath} from "../../libraries/seriesMath.sol";
 
+/// @notice Funding, cancellation and finalize of a series.
 abstract contract seriesFunding is seriesDeployment {
     using wadMath for uint256;
 
+    /// @notice Records the senior and junior allocations moved in by the core.
     function initialize(uint256 seniorAllocated_, uint256 juniorAllocated_) external inState(SeriesState.DEPLOYING) {
         require(msg.sender == CORE, NotCoreOrSentinel());
 
@@ -35,6 +37,7 @@ abstract contract seriesFunding is seriesDeployment {
         emit Initialized(seniorAllocated_, juniorAllocated_);
     }
 
+    /// @notice Cancels a series with no fills; allocator or sentinel.
     function cancel() external nonReentrant inState(SeriesState.DEPLOYING) {
         require(msg.sender == ALLOCATOR || msg.sender == iSeriesCoreMinimal(CORE).sentinel(), NotCoreOrSentinel());
         require(totalFilled == 0, AlreadyFilled());
@@ -43,6 +46,7 @@ abstract contract seriesFunding is seriesDeployment {
         _returnAllCashToCore();
     }
 
+    /// @notice Prices the senior claim and returns undeployed cash; allocator any time, anyone after the window.
     function finalize() external nonReentrant inState(SeriesState.DEPLOYING) {
         require(msg.sender == ALLOCATOR || block.timestamp > T_DEPLOY_END, NotAllocator());
 

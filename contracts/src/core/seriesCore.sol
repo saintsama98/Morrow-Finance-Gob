@@ -9,6 +9,7 @@ import {coreSeriesLifecycle} from "./modules/coreSeriesLifecycle.sol";
 import {seriesFactory} from "../series/seriesFactory.sol";
 import {iParking} from "../parking/iParking.sol";
 
+/// @notice Custody and books for both tranches: holds idle cash in parking, opens series and rolls settled cash.
 contract seriesCore is coreSeriesLifecycle {
     constructor(
         address usdc,

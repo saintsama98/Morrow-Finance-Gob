@@ -9,6 +9,7 @@ import {iErc20Like} from "../interfaces/iErc20Like.sol";
 import {iErc4626Like} from "../interfaces/iErc4626Like.sol";
 import {wadMath} from "../libraries/wadMath.sol";
 
+/// @notice Parking that lends idle cash through an ERC-4626 vault, with a raw USDC buffer.
 contract morphoParking is iParking {
     using wadMath for uint256;
 
@@ -56,6 +57,7 @@ contract morphoParking is iParking {
         BUFFER_WAD = bufferWad;
     }
 
+    /// @notice Parks assets for the caller and invests the excess over the buffer.
     function deposit(uint256 assets) external nonReentrant {
         if (assets == 0) return;
         uint256 pool = poolAssets();
@@ -70,6 +72,7 @@ contract morphoParking is iParking {
         _investExcess();
     }
 
+    /// @notice Withdraws the caller's assets, pulling from the vault if the buffer is short.
     function withdraw(uint256 assets, address to) external nonReentrant {
         if (assets == 0) return;
         require(to != address(0), ZeroAddress());
@@ -82,6 +85,7 @@ contract morphoParking is iParking {
         _refillIfLow();
     }
 
+    /// @notice Moves part of the caller's position to another account.
     function transferPosition(address to, uint256 assets) external nonReentrant {
         if (assets == 0) return;
         require(to != address(0), ZeroAddress());
@@ -91,24 +95,29 @@ contract morphoParking is iParking {
         emit Transferred(msg.sender, to, assets, shares);
     }
 
+    /// @notice Value of an account's position.
     function totalAssets(address account) public view returns (uint256) {
         return sharesOf[account].mulDivDown(poolAssets() + 1, totalShares + VIRTUAL_SHARES);
     }
 
+    /// @notice Assets an account can withdraw now.
     function maxWithdraw(address account) external view returns (uint256) {
         uint256 owned = totalAssets(account);
         uint256 liquid = liquidity();
         return owned < liquid ? owned : liquid;
     }
 
+    /// @notice Raw buffer plus the vault position.
     function poolAssets() public view returns (uint256) {
         return USDC.balanceOf(address(this)) + VAULT.previewRedeem(VAULT.balanceOf(address(this)));
     }
 
+    /// @notice Raw buffer plus what the vault can pay out now.
     function liquidity() public view returns (uint256) {
         return USDC.balanceOf(address(this)) + VAULT.maxWithdraw(address(this));
     }
 
+    /// @notice Moves the raw buffer back to its target; anyone may call.
     function rebalance() external nonReentrant {
         uint256 target = poolAssets().mulDivDown(BUFFER_WAD, WAD);
         uint256 buffer = USDC.balanceOf(address(this));

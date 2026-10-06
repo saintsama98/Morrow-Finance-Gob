@@ -8,15 +8,19 @@ import {Market} from "@morpho-org/midnight/src/interfaces/IMidnight.sol";
 import {IdLib} from "@morpho-org/midnight/src/libraries/IdLib.sol";
 import {iMidnightMinimal} from "../interfaces/iMidnightMinimal.sol";
 
+/// @notice Reads market state and a series' position from Midnight.
 library midnightReader {
+    /// @notice Market parameters for an id.
     function marketConfig(iMidnightMinimal midnight, bytes32 id) internal view returns (Market memory) {
         return midnight.toMarket(id);
     }
 
+    /// @notice Id of a market.
     function marketId(Market memory market) internal pure returns (bytes32) {
         return IdLib.toId(market);
     }
 
+    /// @notice Face value a position will redeem for, without writing.
     function projectedRedeemableView(iMidnightMinimal midnight, Market memory market, bytes32 id, address series)
         internal
         view
@@ -26,6 +30,7 @@ library midnightReader {
         faceValue = uint256(credit) - uint256(pendingFee);
     }
 
+    /// @notice Face value a position will redeem for, after writing accrual.
     function projectedRedeemableSynced(iMidnightMinimal midnight, Market memory market, address series)
         internal
         returns (uint256 faceValue, uint128 credit, uint128 pendingFee)
@@ -34,6 +39,7 @@ library midnightReader {
         faceValue = uint256(credit) - uint256(pendingFee);
     }
 
+    /// @notice Cash withdrawable from a market now.
     function withdrawableLiquidity(iMidnightMinimal midnight, bytes32 id) internal view returns (uint128) {
         return midnight.withdrawable(id);
     }

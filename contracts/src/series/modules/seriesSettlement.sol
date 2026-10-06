@@ -12,13 +12,16 @@ import {iErc20Like} from "../../interfaces/iErc20Like.sol";
 import {SeriesState} from "../../interfaces/iSeries.sol";
 import {seriesMath} from "../../libraries/seriesMath.sol";
 
+/// @notice Settlement, write-off and the waterfall reruns that pay recoveries.
 abstract contract seriesSettlement is seriesFunding {
+    /// @notice Moves a series to settling after maturity; anyone may call.
     function startSettlement() external inState(SeriesState.LOCKED) {
         require(block.timestamp >= T, TooEarly(block.timestamp));
         state = SeriesState.SETTLING;
         emit SettlementStarted();
     }
 
+    /// @notice Withdraws repaid units from one market; anyone may call.
     function collect(uint256 i) external nonReentrant returns (uint256 received) {
         require(
             state == SeriesState.LOCKED || state == SeriesState.SETTLING || state == SeriesState.SETTLED,
@@ -51,6 +54,7 @@ abstract contract seriesSettlement is seriesFunding {
         if (state == SeriesState.SETTLED) _rerunWaterfall();
     }
 
+    /// @notice Settles once every market is resolved and runs the waterfall.
     function settle() external inState(SeriesState.SETTLING) {
         uint256 length = _marketIds.length;
         for (uint256 i = 0; i < length; i++) {
@@ -62,6 +66,7 @@ abstract contract seriesSettlement is seriesFunding {
         emit Settled(_proceeds());
     }
 
+    /// @notice Settles after the write-off delay with what has been collected.
     function writeOff() external inState(SeriesState.SETTLING) {
         require(block.timestamp >= T + D_WRITE_OFF, TooEarly(block.timestamp));
         uint256 length = _marketIds.length;
@@ -74,6 +79,7 @@ abstract contract seriesSettlement is seriesFunding {
         emit WrittenOff(_proceeds());
     }
 
+    /// @notice Pays the accrued fee on junior profit to the fee recipient.
     function claimFee() external nonReentrant {
         uint256 owed = feeAccounted - feeClaimed;
         uint256 parked = PARKING.totalAssets(address(this));

@@ -10,6 +10,7 @@ import {midnightReader} from "../libraries/midnightReader.sol";
 import {SeriesParams} from "../interfaces/iSeries.sol";
 import {creditSeries} from "./creditSeries.sol";
 
+/// @notice Market eligibility rules, the governance allowlists behind a 48-hour timelock, and series creation.
 contract seriesFactory {
     using midnightReader for iMidnightMinimal;
 
@@ -86,12 +87,14 @@ contract seriesFactory {
             : HARD_MAX_MARKETS_PER_SERIES;
     }
 
+    /// @notice Wires the core; callable once.
     function setCore(address core_) external onlyGovernance {
         require(core == address(0), NotGovernance());
         core = core_;
         emit CoreSet(core_);
     }
 
+    /// @notice Queues an allowlist change for a collateral token.
     function proposeCollateralAllowed(address token, bool allowed) external onlyGovernance returns (bytes32 id) {
         id = keccak256(abi.encode("collateral", token, allowed));
         uint256 executableAt = block.timestamp + TIMELOCK;
@@ -99,6 +102,7 @@ contract seriesFactory {
         emit CollateralAllowlistProposed(token, allowed, executableAt);
     }
 
+    /// @notice Applies a queued collateral allowlist change.
     function executeCollateralAllowed(address token, bool allowed) external {
         bytes32 id = keccak256(abi.encode("collateral", token, allowed));
         _consumeTimelock(id);
@@ -106,6 +110,7 @@ contract seriesFactory {
         emit CollateralAllowlistExecuted(token, allowed);
     }
 
+    /// @notice Queues an allowlist change for a collateral's oracle.
     function proposeOracleAllowed(address token, address oracle, bool allowed)
         external
         onlyGovernance
@@ -117,6 +122,7 @@ contract seriesFactory {
         emit OracleAllowlistProposed(token, oracle, allowed, executableAt);
     }
 
+    /// @notice Applies a queued oracle allowlist change.
     function executeOracleAllowed(address token, address oracle, bool allowed) external {
         bytes32 id = keccak256(abi.encode("oracle", token, oracle, allowed));
         _consumeTimelock(id);
@@ -124,6 +130,7 @@ contract seriesFactory {
         emit OracleAllowlistExecuted(token, oracle, allowed);
     }
 
+    /// @notice Queues a new liquidation threshold ceiling, capped at 0.915.
     function proposeMaxLltv(uint256 newMaxLltvWad) external onlyGovernance returns (bytes32 id) {
         require(newMaxLltvWad <= HARD_MAX_LLTV_WAD, IneligibleMarket(bytes32(0), 4));
         id = keccak256(abi.encode("maxLltv", newMaxLltvWad));
@@ -132,6 +139,7 @@ contract seriesFactory {
         emit MaxLltvProposed(newMaxLltvWad, executableAt);
     }
 
+    /// @notice Applies a queued threshold ceiling.
     function executeMaxLltv(uint256 newMaxLltvWad) external {
         bytes32 id = keccak256(abi.encode("maxLltv", newMaxLltvWad));
         _consumeTimelock(id);
@@ -139,6 +147,7 @@ contract seriesFactory {
         emit MaxLltvExecuted(newMaxLltvWad);
     }
 
+    /// @notice Queues a new limit on markets per basket, capped at 8.
     function proposeMaxMarketsPerSeries(uint256 newMax) external onlyGovernance returns (bytes32 id) {
         require(newMax <= HARD_MAX_MARKETS_PER_SERIES, IneligibleMarket(bytes32(0), 6));
         id = keccak256(abi.encode("maxMarkets", newMax));
@@ -147,6 +156,7 @@ contract seriesFactory {
         emit MaxMarketsPerSeriesProposed(newMax, executableAt);
     }
 
+    /// @notice Applies a queued market limit.
     function executeMaxMarketsPerSeries(uint256 newMax) external {
         bytes32 id = keccak256(abi.encode("maxMarkets", newMax));
         _consumeTimelock(id);
@@ -154,6 +164,7 @@ contract seriesFactory {
         emit MaxMarketsPerSeriesExecuted(newMax);
     }
 
+    /// @notice Hands factory governance to a new address.
     function transferGovernance(address newGovernance) external onlyGovernance {
         governance = newGovernance;
         emit GovernanceUpdated(newGovernance);
@@ -176,6 +187,7 @@ contract seriesFactory {
         _;
     }
 
+    /// @notice Deploys a series for the core.
     function createSeries(SeriesParams calldata p) external onlyCore returns (address series) {
         require(
             p.rateFloorWad.length == p.marketIds.length && p.marketCapAssets.length == p.marketIds.length,
@@ -193,6 +205,7 @@ contract seriesFactory {
         series = address(new creditSeries(MIDNIGHT, SETTER_RATIFIER, USDC, core, markets, p));
     }
 
+    /// @notice Returns the markets if every one passes the rules, else reverts with the failed rule.
     function checkEligibility(bytes32[] memory marketIds) public view returns (Market[] memory markets) {
         uint256 length = marketIds.length;
         require(length > 0, BasketEmpty());

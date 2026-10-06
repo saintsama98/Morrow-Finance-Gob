@@ -7,7 +7,9 @@ pragma solidity 0.8.34;
 
 import {usdcSeniorRedeemClaims} from "./usdcSeniorRedeemClaims.sol";
 
+/// @notice Cancelling senior exit requests.
 abstract contract usdcSeniorRedeemCancels is usdcSeniorRedeemClaims {
+    /// @notice Cancels the unfilled part of an exit request.
     function cancelRedeemRequest(uint256 requestId, address controller) external onlyControllerOrOperator(controller) {
         bool closed = epochs[requestId].closed;
         require(!closed || block.timestamp >= epochClosedAt[requestId] + CANCEL_AFTER_CLOSE, EpochAlreadyClosed());
@@ -20,10 +22,12 @@ abstract contract usdcSeniorRedeemCancels is usdcSeniorRedeemClaims {
         emit CancelRedeemRequest(controller, requestId, msg.sender);
     }
 
+    /// @notice Whether a cancel is waiting to be claimed.
     function pendingCancelRedeemRequest(uint256 requestId, address controller) external view returns (bool isPending) {
         return pendingCancelShares[requestId][controller] > 0;
     }
 
+    /// @notice Shares returnable from a cancel.
     function claimableCancelRedeemRequest(uint256 requestId, address controller)
         external
         view
@@ -32,6 +36,7 @@ abstract contract usdcSeniorRedeemCancels is usdcSeniorRedeemClaims {
         return pendingCancelShares[requestId][controller];
     }
 
+    /// @notice Returns cancelled shares.
     function claimCancelRedeemRequest(uint256 requestId, address receiver, address controller)
         external
         onlyControllerOrOperator(controller)
