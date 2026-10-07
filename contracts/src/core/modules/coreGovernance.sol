@@ -44,7 +44,7 @@ abstract contract coreGovernance is coreValuation {
         emit FeeRecipientSet(newFeeRecipient);
     }
 
-    /// @notice Queues a policy change behind the curator timelock; risk-reducing values apply at once.
+    /// @notice Queues a policy change behind the 3-day curator timelock.
     function proposePolicyChange(bytes32 key, uint256 value) external returns (uint256 executableAt) {
         require(msg.sender == curator, NotCuratorOrSentinel());
         executableAt = block.timestamp + CURATOR_TIMELOCK;
