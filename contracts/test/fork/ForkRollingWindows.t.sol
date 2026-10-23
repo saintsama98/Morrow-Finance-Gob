@@ -107,15 +107,11 @@ contract ForkRollingWindowsTest is StressBase {
     }
 
     function test_jan26_roundLevel_profitLiquidator() public {
-        _roundLevelJan26(
-            Liquidator.ProfitCapacity, 0, "Jan 8 - Feb 7 2026, every Chainlink round | L1 profit+capacity"
-        );
+        _roundLevelJan26(Liquidator.ProfitCapacity, 0, "Jan 8 - Feb 7 2026, every Chainlink round | L1 profit+capacity");
     }
 
     function test_jan26_roundLevel_latency120m() public {
-        _roundLevelJan26(
-            Liquidator.Latency, 120 minutes, "Jan 8 - Feb 7 2026, every Chainlink round | L2 latency 120m"
-        );
+        _roundLevelJan26(Liquidator.Latency, 120 minutes, "Jan 8 - Feb 7 2026, every Chainlink round | L2 latency 120m");
     }
 
     function test_jan26_roundLevel_absent() public {

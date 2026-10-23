@@ -93,9 +93,7 @@ contract ForkTrancheMechanicsTest is StressBase {
         uint256 realized = _crashAndRealize(5, 0);
         (, uint256 navJAfter,) = s.navs();
         uint256 juniorPpsAfter = juniorVault.pricePerShareWad();
-        console.log(
-            "unrealized crash: series junior NAV before/after realization:", navJBefore / 1e6, navJAfter / 1e6
-        );
+        console.log("unrealized crash: series junior NAV before/after realization:", navJBefore / 1e6, navJAfter / 1e6);
         console.log("insider exit with immediate operator fill, paid:", paidEarly / 1e6);
         console.log("realized loss afterwards:", realized / 1e6);
         console.log("remaining junior price per share (wad):", juniorPpsAfter);

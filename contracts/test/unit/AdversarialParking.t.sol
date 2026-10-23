@@ -58,9 +58,7 @@ contract AdversarialParkingTest is ScenarioBase {
         uint256 lyingBook = core.seniorAssets();
         (bool okA, uint256 paidA) = _exit(alice, sA);
         (bool okB, uint256 paidB) = _exit(bob, sB);
-        console.log(
-            "senior book honest / as reported by a venue over-stating 10%:", honestBook / 1e6, lyingBook / 1e6
-        );
+        console.log("senior book honest / as reported by a venue over-stating 10%:", honestBook / 1e6, lyingBook / 1e6);
         console.log("first exiter ok / paid:", okA, paidA / 1e6);
         console.log("second exiter ok / paid:", okB, paidB / 1e6);
         assertGt(lyingBook, honestBook, "the core trusts the venue's reported assets");

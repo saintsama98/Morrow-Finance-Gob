@@ -89,14 +89,10 @@ contract CoreVaultInvariantsTest is Test {
     function invariant_vaultAssetsEqualCoreBooks() public view {
         seriesCore core = registry.realCore();
         assertEq(
-            registry.seniorVault().totalAssets(),
-            core.seniorAssets(),
-            "srUSDC totalAssets must equal the senior book"
+            registry.seniorVault().totalAssets(), core.seniorAssets(), "srUSDC totalAssets must equal the senior book"
         );
         assertEq(
-            registry.juniorVault().totalAssets(),
-            core.juniorAssets(),
-            "jrUSDC totalAssets must equal the junior book"
+            registry.juniorVault().totalAssets(), core.juniorAssets(), "jrUSDC totalAssets must equal the junior book"
         );
     }
 

@@ -82,15 +82,9 @@ contract EpochEventReplayTest is ScenarioBase {
             assertEq(b.pps, pps, "close price rebuilt from events");
             assertEq(b.closed, closed, "closed flag rebuilt from events");
             for (uint256 k = 0; k < who.length; k++) {
-                assertEq(
-                    replayRequested[id][who[k]], seniorVault.requestedShares(id, who[k]), "live request rebuilt"
-                );
-                assertEq(
-                    replayFrozenShares[id][who[k]], seniorVault.frozenShares(id, who[k]), "frozen shares rebuilt"
-                );
-                assertEq(
-                    replayFrozenAssets[id][who[k]], seniorVault.frozenAssets(id, who[k]), "frozen assets rebuilt"
-                );
+                assertEq(replayRequested[id][who[k]], seniorVault.requestedShares(id, who[k]), "live request rebuilt");
+                assertEq(replayFrozenShares[id][who[k]], seniorVault.frozenShares(id, who[k]), "frozen shares rebuilt");
+                assertEq(replayFrozenAssets[id][who[k]], seniorVault.frozenAssets(id, who[k]), "frozen assets rebuilt");
             }
         }
         assertGt(replayFrozenShares[first][bob], 0, "sanity: the timeout cancel froze a partly filled position");
