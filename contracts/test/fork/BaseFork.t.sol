@@ -14,8 +14,8 @@ import {ORACLE_PRICE_SCALE} from "@morpho-org/midnight/src/libraries/ConstantsLi
 import {SeriesFactory} from "../../src/series/SeriesFactory.sol";
 import {CreditSeries} from "../../src/series/CreditSeries.sol";
 import {SeriesCore} from "../../src/core/SeriesCore.sol";
-import {usdcSeniorVault} from "../../src/vaults/senior/usdcSeniorVault.sol";
-import {usdcJuniorVault} from "../../src/vaults/junior/usdcJuniorVault.sol";
+import {USDCSeniorVault} from "../../src/vaults/senior/USDCSeniorVault.sol";
+import {USDCJuniorVault} from "../../src/vaults/junior/USDCJuniorVault.sol";
 import {IdleParking} from "../../src/parking/IdleParking.sol";
 import {IParking} from "../../src/parking/IParking.sol";
 import {IMidnightMinimal} from "../../src/interfaces/IMidnightMinimal.sol";
@@ -69,8 +69,8 @@ contract BaseForkTest is Test {
     IMidnight internal midnight = IMidnight(MIDNIGHT);
     SeriesFactory internal factory;
     SeriesCore internal core;
-    usdcSeniorVault internal seniorVault;
-    usdcJuniorVault internal juniorVault;
+    USDCSeniorVault internal seniorVault;
+    USDCJuniorVault internal juniorVault;
 
     address internal keeper = makeAddr("keeper");
     address internal alice = makeAddr("alice");
@@ -89,8 +89,8 @@ contract BaseForkTest is Test {
         IParking parking = new IdleParking(USDC);
         core = new SeriesCore(USDC, factory, parking, GOVERNANCE, ALLOCATOR, CURATOR, SENTINEL);
         factory.setCore(address(core));
-        seniorVault = new usdcSeniorVault(core, USDC);
-        juniorVault = new usdcJuniorVault(core, USDC);
+        seniorVault = new USDCSeniorVault(core, USDC);
+        juniorVault = new USDCJuniorVault(core, USDC);
         vm.startPrank(GOVERNANCE);
         core.setVaults(address(seniorVault), address(juniorVault));
         core.setFeeRecipient(FEE_RECIPIENT);

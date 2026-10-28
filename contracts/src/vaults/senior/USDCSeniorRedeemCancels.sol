@@ -5,10 +5,10 @@
 
 pragma solidity 0.8.34;
 
-import {usdcSeniorRedeemClaims} from "./usdcSeniorRedeemClaims.sol";
+import {USDCSeniorRedeemClaims} from "./USDCSeniorRedeemClaims.sol";
 
 /// @notice Cancelling senior exit requests.
-abstract contract usdcSeniorRedeemCancels is usdcSeniorRedeemClaims {
+abstract contract USDCSeniorRedeemCancels is USDCSeniorRedeemClaims {
     /// @notice Cancels the unfilled part of an exit request.
     function cancelRedeemRequest(uint256 requestId, address controller) external onlyControllerOrOperator(controller) {
         bool closed = epochs[requestId].closed;

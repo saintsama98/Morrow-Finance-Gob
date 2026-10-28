@@ -4,12 +4,12 @@
 
 pragma solidity 0.8.34;
 
-import {usdcSeniorDeposits} from "./usdcSeniorDeposits.sol";
+import {USDCSeniorDeposits} from "./USDCSeniorDeposits.sol";
 import {WadMath} from "../../libraries/WadMath.sol";
 import {EpochMath} from "../../libraries/EpochMath.sol";
 
 /// @notice Batched senior exits, filled oldest first from idle cash.
-abstract contract usdcSeniorRedeemQueue is usdcSeniorDeposits {
+abstract contract USDCSeniorRedeemQueue is USDCSeniorDeposits {
     using WadMath for uint256;
 
     event EpochClosed(uint256 indexed epochId, uint256 ppsCloseWad);

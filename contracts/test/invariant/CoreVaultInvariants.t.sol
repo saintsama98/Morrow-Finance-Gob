@@ -16,8 +16,8 @@ import {SettleHandler} from "./handlers/SettleHandler.sol";
 
 import {SeriesCore} from "../../src/core/SeriesCore.sol";
 import {CreditSeries} from "../../src/series/CreditSeries.sol";
-import {usdcSeniorVault} from "../../src/vaults/senior/usdcSeniorVault.sol";
-import {usdcJuniorVault} from "../../src/vaults/junior/usdcJuniorVault.sol";
+import {USDCSeniorVault} from "../../src/vaults/senior/USDCSeniorVault.sol";
+import {USDCJuniorVault} from "../../src/vaults/junior/USDCJuniorVault.sol";
 
 contract CoreVaultInvariantsTest is Test {
     SeriesRegistry registry;
@@ -56,7 +56,7 @@ contract CoreVaultInvariantsTest is Test {
         epochHandler.closeJuniorDepositEpoch();
         epochHandler.fulfillJuniorDeposit(1, type(uint128).max);
         epochHandler.claimJuniorDeposit(0, 1);
-        usdcJuniorVault jvSeed = registry.juniorVault();
+        USDCJuniorVault jvSeed = registry.juniorVault();
         vm.prank(registry.CURATOR());
         jvSeed.claimDeposit(1);
         vaultHandler.seniorDeposit(0, 2_000_000e6);
@@ -113,7 +113,7 @@ contract CoreVaultInvariantsTest is Test {
     }
 
     function invariant_epochProRataSoundness() public view {
-        usdcSeniorVault sv = registry.seniorVault();
+        USDCSeniorVault sv = registry.seniorVault();
         uint256 svOpen = sv.openEpochId();
         for (uint256 id = 1; id < svOpen; id++) {
             (uint256 totalShares,, uint256 sharesFulfilled, uint256 assetsFulfilled,,) = sv.epochs(id);
@@ -125,7 +125,7 @@ contract CoreVaultInvariantsTest is Test {
             );
         }
 
-        usdcJuniorVault jv = registry.juniorVault();
+        USDCJuniorVault jv = registry.juniorVault();
         uint256 jvRedeemOpen = jv.openRedeemEpochId();
         for (uint256 id = 1; id < jvRedeemOpen; id++) {
             (uint256 totalShares,, uint256 sharesFulfilled, uint256 assetsFulfilled,,) = jv.redeemEpochs(id);
@@ -150,7 +150,7 @@ contract CoreVaultInvariantsTest is Test {
     }
 
     function invariant_epochPricingDirection() public view {
-        usdcSeniorVault sv = registry.seniorVault();
+        USDCSeniorVault sv = registry.seniorVault();
         for (uint256 id = 1; id < sv.openEpochId(); id++) {
             (,,, uint256 assetsFulfilled, uint256 ppsCloseWad,) = sv.epochs(id);
             _assertRedeemPriceWithinCeiling(
@@ -161,7 +161,7 @@ contract CoreVaultInvariantsTest is Test {
             );
         }
 
-        usdcJuniorVault jv = registry.juniorVault();
+        USDCJuniorVault jv = registry.juniorVault();
         for (uint256 id = 1; id < jv.openRedeemEpochId(); id++) {
             (,, uint256 sharesFulfilled, uint256 assetsFulfilled, uint256 ppsCloseWad,) = jv.redeemEpochs(id);
             _assertRedeemPriceWithinCeiling(
@@ -181,12 +181,12 @@ contract CoreVaultInvariantsTest is Test {
     }
 
     function invariant_batchLedgerBalances() public view {
-        usdcSeniorVault sv = registry.seniorVault();
+        USDCSeniorVault sv = registry.seniorVault();
         for (uint256 id = 1; id <= sv.openEpochId(); id++) {
             (uint256 total, uint256 remaining, uint256 filled,,,) = sv.epochs(id);
             assertEq(remaining, total - filled, "senior exit batch: remaining must equal requested minus filled");
         }
-        usdcJuniorVault jv = registry.juniorVault();
+        USDCJuniorVault jv = registry.juniorVault();
         for (uint256 id = 1; id <= jv.openRedeemEpochId(); id++) {
             (uint256 total, uint256 remaining, uint256 filled,,,) = jv.redeemEpochs(id);
             assertEq(remaining, total - filled, "junior exit batch: remaining must equal requested minus filled");
@@ -198,7 +198,7 @@ contract CoreVaultInvariantsTest is Test {
     }
 
     function invariant_fillsAreOldestFirst() public view {
-        usdcSeniorVault sv = registry.seniorVault();
+        USDCSeniorVault sv = registry.seniorVault();
         uint256 ptr = sv.nextEpochToFill();
         for (uint256 id = 1; id < ptr; id++) {
             (, uint256 remaining,,,,) = sv.epochs(id);
@@ -209,7 +209,7 @@ contract CoreVaultInvariantsTest is Test {
             assertEq(filled, 0, "senior exit: a batch ahead of the oldest unfinished one was filled");
         }
 
-        usdcJuniorVault jv = registry.juniorVault();
+        USDCJuniorVault jv = registry.juniorVault();
         ptr = jv.nextRedeemEpochToFill();
         for (uint256 id = 1; id < ptr; id++) {
             (, uint256 remaining,,,,) = jv.redeemEpochs(id);
@@ -232,7 +232,7 @@ contract CoreVaultInvariantsTest is Test {
     }
 
     function invariant_queuedExitDemandMatchesClosedBatches() public view {
-        usdcSeniorVault sv = registry.seniorVault();
+        USDCSeniorVault sv = registry.seniorVault();
         uint256 expected;
         for (uint256 id = 1; id <= sv.openEpochId(); id++) {
             (, uint256 remaining,,, uint256 pps, bool closed) = sv.epochs(id);
@@ -241,7 +241,7 @@ contract CoreVaultInvariantsTest is Test {
         assertEq(sv.queuedExitAssets(), expected, "senior queued exit demand drifted from its closed batches");
         assertEq(registry.realCore().queuedExits(true), expected, "core must see the senior exit demand");
 
-        usdcJuniorVault jv = registry.juniorVault();
+        USDCJuniorVault jv = registry.juniorVault();
         expected = 0;
         for (uint256 id = 1; id <= jv.openRedeemEpochId(); id++) {
             (, uint256 remaining,,, uint256 pps, bool closed) = jv.redeemEpochs(id);
@@ -252,8 +252,8 @@ contract CoreVaultInvariantsTest is Test {
     }
 
     function invariant_completedBatchLeavesNobodyPending() public view {
-        usdcSeniorVault sv = registry.seniorVault();
-        usdcJuniorVault jv = registry.juniorVault();
+        USDCSeniorVault sv = registry.seniorVault();
+        USDCJuniorVault jv = registry.juniorVault();
         uint256 count = vaultHandler.actorsCount();
         for (uint256 id = 1; id < sv.openEpochId(); id++) {
             (, uint256 remaining,,,,) = sv.epochs(id);
@@ -310,7 +310,7 @@ contract CoreVaultInvariantsTest is Test {
         }
     }
 
-    function _sharesFulfilledOf(usdcSeniorVault sv, uint256 id) internal view returns (uint256 sharesFulfilled) {
+    function _sharesFulfilledOf(USDCSeniorVault sv, uint256 id) internal view returns (uint256 sharesFulfilled) {
         (,, sharesFulfilled,,,) = sv.epochs(id);
     }
 
@@ -344,14 +344,14 @@ contract CoreVaultInvariantsTest is Test {
     function _sumUnclaimedRedeemAssets(bool isSenior) internal view returns (uint256 total) {
         uint256 count = vaultHandler.actorsCount();
         if (isSenior) {
-            usdcSeniorVault sv = registry.seniorVault();
+            USDCSeniorVault sv = registry.seniorVault();
             for (uint256 id = 1; id < sv.openEpochId(); id++) {
                 for (uint256 i = 0; i < count; i++) {
                     total += sv.owedRedeemAssets(id, vaultHandler.actors(i));
                 }
             }
         } else {
-            usdcJuniorVault jv = registry.juniorVault();
+            USDCJuniorVault jv = registry.juniorVault();
             for (uint256 id = 1; id < jv.openRedeemEpochId(); id++) {
                 for (uint256 i = 0; i < count; i++) {
                     total += jv.owedRedeemAssets(id, vaultHandler.actors(i));
@@ -372,10 +372,10 @@ contract CoreVaultInvariantsTest is Test {
         for (uint256 i = 0; i < count; i++) {
             address a = vaultHandler.actors(i);
             if (isSenior) {
-                usdcSeniorVault sv = registry.seniorVault();
+                USDCSeniorVault sv = registry.seniorVault();
                 total += sv.claimedAssets(id, a) + sv.owedRedeemAssets(id, a);
             } else {
-                usdcJuniorVault jv = registry.juniorVault();
+                USDCJuniorVault jv = registry.juniorVault();
                 total += jv.claimedAssets(id, a) + jv.owedRedeemAssets(id, a);
             }
         }
@@ -398,7 +398,7 @@ contract CoreVaultInvariantsTest is Test {
     {
         sharesFulfilled;
         totalAssets;
-        usdcJuniorVault jv = registry.juniorVault();
+        USDCJuniorVault jv = registry.juniorVault();
         uint256 count = vaultHandler.actorsCount();
         for (uint256 i = 0; i < count; i++) {
             address a = vaultHandler.actors(i);

@@ -17,8 +17,8 @@ import {MockUSDC} from "../mocks/MockUSDC.sol";
 import {CreditSeries} from "../../src/series/CreditSeries.sol";
 import {SeriesParams} from "../../src/interfaces/ISeries.sol";
 import {SeriesCore} from "../../src/core/SeriesCore.sol";
-import {usdcSeniorVault} from "../../src/vaults/senior/usdcSeniorVault.sol";
-import {usdcJuniorVault} from "../../src/vaults/junior/usdcJuniorVault.sol";
+import {USDCSeniorVault} from "../../src/vaults/senior/USDCSeniorVault.sol";
+import {USDCJuniorVault} from "../../src/vaults/junior/USDCJuniorVault.sol";
 import {IParking} from "../../src/parking/IParking.sol";
 import {WadMath} from "../../src/libraries/WadMath.sol";
 
@@ -29,8 +29,8 @@ abstract contract ScenarioBase is Test {
 
     SeriesRegistry registry;
     SeriesCore core;
-    usdcSeniorVault seniorVault;
-    usdcJuniorVault juniorVault;
+    USDCSeniorVault seniorVault;
+    USDCJuniorVault juniorVault;
     MockUSDC usdc;
 
     function setUp() public virtual {

@@ -20,8 +20,8 @@ import {IMidnightMinimal} from "../../../src/interfaces/IMidnightMinimal.sol";
 import {IParking} from "../../../src/parking/IParking.sol";
 import {IdleParking} from "../../../src/parking/IdleParking.sol";
 import {SeriesCore} from "../../../src/core/SeriesCore.sol";
-import {usdcSeniorVault} from "../../../src/vaults/senior/usdcSeniorVault.sol";
-import {usdcJuniorVault} from "../../../src/vaults/junior/usdcJuniorVault.sol";
+import {USDCSeniorVault} from "../../../src/vaults/senior/USDCSeniorVault.sol";
+import {USDCJuniorVault} from "../../../src/vaults/junior/USDCJuniorVault.sol";
 
 contract SeriesRegistry is Test {
     uint256 public constant WAD = 1e18;
@@ -39,8 +39,8 @@ contract SeriesRegistry is Test {
     IParking public parking;
 
     SeriesCore public realCore;
-    usdcSeniorVault public seniorVault;
-    usdcJuniorVault public juniorVault;
+    USDCSeniorVault public seniorVault;
+    USDCJuniorVault public juniorVault;
 
     address public constant ALLOCATOR = address(0xA110C000);
     address public constant SENTINEL = address(0xC0FFEE);
@@ -121,8 +121,8 @@ contract SeriesRegistry is Test {
 
         realCore = new SeriesCore(address(usdc), realFactory, parking, GOVERNANCE, ALLOCATOR, CURATOR, SENTINEL);
         realFactory.setCore(address(realCore));
-        seniorVault = new usdcSeniorVault(realCore, address(usdc));
-        juniorVault = new usdcJuniorVault(realCore, address(usdc));
+        seniorVault = new USDCSeniorVault(realCore, address(usdc));
+        juniorVault = new USDCJuniorVault(realCore, address(usdc));
         vm.prank(GOVERNANCE);
         realCore.setVaults(address(seniorVault), address(juniorVault));
         vm.prank(GOVERNANCE);

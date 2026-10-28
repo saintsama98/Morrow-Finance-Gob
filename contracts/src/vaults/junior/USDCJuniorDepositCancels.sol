@@ -5,10 +5,10 @@
 
 pragma solidity 0.8.34;
 
-import {usdcJuniorDepositClaims} from "./usdcJuniorDepositClaims.sol";
+import {USDCJuniorDepositClaims} from "./USDCJuniorDepositClaims.sol";
 
 /// @notice Cancelling junior deposit requests.
-abstract contract usdcJuniorDepositCancels is usdcJuniorDepositClaims {
+abstract contract USDCJuniorDepositCancels is USDCJuniorDepositClaims {
     event CancelDepositRequest(address indexed controller, uint256 indexed requestId, address sender);
     event CancelDepositClaimed(
         address indexed controller, address indexed receiver, uint256 indexed requestId, uint256 assets

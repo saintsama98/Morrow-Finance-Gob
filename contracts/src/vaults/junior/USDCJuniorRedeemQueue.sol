@@ -5,12 +5,12 @@
 
 pragma solidity 0.8.34;
 
-import {usdcJuniorDepositCancels} from "./usdcJuniorDepositCancels.sol";
+import {USDCJuniorDepositCancels} from "./USDCJuniorDepositCancels.sol";
 import {WadMath} from "../../libraries/WadMath.sol";
 import {EpochMath} from "../../libraries/EpochMath.sol";
 
 /// @notice Batched junior exits, filled oldest first and limited by the coverage floor.
-abstract contract usdcJuniorRedeemQueue is usdcJuniorDepositCancels {
+abstract contract USDCJuniorRedeemQueue is USDCJuniorDepositCancels {
     using WadMath for uint256;
 
     error CuratorBelowMinShare();

@@ -12,8 +12,8 @@ import {ForkBase} from "./ForkBase.t.sol";
 import {SeriesFactory} from "../../src/series/SeriesFactory.sol";
 import {CreditSeries} from "../../src/series/CreditSeries.sol";
 import {SeriesCore} from "../../src/core/SeriesCore.sol";
-import {usdcSeniorVault} from "../../src/vaults/senior/usdcSeniorVault.sol";
-import {usdcJuniorVault} from "../../src/vaults/junior/usdcJuniorVault.sol";
+import {USDCSeniorVault} from "../../src/vaults/senior/USDCSeniorVault.sol";
+import {USDCJuniorVault} from "../../src/vaults/junior/USDCJuniorVault.sol";
 import {BlueParking} from "../../src/parking/BlueParking.sol";
 import {IMidnightMinimal} from "../../src/interfaces/IMidnightMinimal.sol";
 import {IERC20Like} from "../../src/interfaces/IERC20Like.sol";
@@ -57,8 +57,8 @@ contract ForkBlueParkingTest is ForkBase {
 
         core = new SeriesCore(USDC, factory, parking, GOVERNANCE, ALLOCATOR, CURATOR, SENTINEL);
         factory.setCore(address(core));
-        seniorVault = new usdcSeniorVault(core, USDC);
-        juniorVault = new usdcJuniorVault(core, USDC);
+        seniorVault = new USDCSeniorVault(core, USDC);
+        juniorVault = new USDCJuniorVault(core, USDC);
         vm.startPrank(GOVERNANCE);
         core.setVaults(address(seniorVault), address(juniorVault));
         core.setFeeRecipient(FEE_RECIPIENT);

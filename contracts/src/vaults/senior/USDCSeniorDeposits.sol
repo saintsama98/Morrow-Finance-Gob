@@ -4,11 +4,11 @@
 
 pragma solidity 0.8.34;
 
-import {usdcVaultBase} from "../shared/usdcVaultBase.sol";
+import {USDCVaultBase} from "../shared/USDCVaultBase.sol";
 import {IERC20Like} from "../../interfaces/IERC20Like.sol";
 
 /// @notice Synchronous ERC-4626 deposits, limited by senior capacity and the stress gate.
-abstract contract usdcSeniorDeposits is usdcVaultBase {
+abstract contract USDCSeniorDeposits is USDCVaultBase {
     error StressGateClosed();
     error CapacityExceeded();
 

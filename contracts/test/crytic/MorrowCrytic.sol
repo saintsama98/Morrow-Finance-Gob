@@ -10,8 +10,8 @@ import {MorphoParking} from "../../src/parking/MorphoParking.sol";
 import {IParking} from "../../src/parking/IParking.sol";
 import {SeriesFactory} from "../../src/series/SeriesFactory.sol";
 import {SeriesCore} from "../../src/core/SeriesCore.sol";
-import {usdcSeniorVault} from "../../src/vaults/senior/usdcSeniorVault.sol";
-import {usdcJuniorVault} from "../../src/vaults/junior/usdcJuniorVault.sol";
+import {USDCSeniorVault} from "../../src/vaults/senior/USDCSeniorVault.sol";
+import {USDCJuniorVault} from "../../src/vaults/junior/USDCJuniorVault.sol";
 import {IMidnightMinimal} from "../../src/interfaces/IMidnightMinimal.sol";
 
 interface IHevm {
@@ -41,8 +41,8 @@ contract MorrowCrytic {
     MorphoParking public parking;
     SeriesFactory public factory;
     SeriesCore public core;
-    usdcSeniorVault public sv;
-    usdcJuniorVault public jv;
+    USDCSeniorVault public sv;
+    USDCJuniorVault public jv;
 
     CryticActor[N] public actors;
     CryticActor public curator;
@@ -72,8 +72,8 @@ contract MorrowCrytic {
             address(0xC0FFEE)
         );
         factory.setCore(address(core));
-        sv = new usdcSeniorVault(core, address(usdc));
-        jv = new usdcJuniorVault(core, address(usdc));
+        sv = new USDCSeniorVault(core, address(usdc));
+        jv = new USDCJuniorVault(core, address(usdc));
         core.setVaults(address(sv), address(jv));
         for (uint256 i = 0; i < N; i++) {
             actors[i] = new CryticActor();

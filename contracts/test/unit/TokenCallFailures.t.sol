@@ -9,20 +9,20 @@ import {MockUSDC} from "../mocks/MockUSDC.sol";
 import {SeriesFactory} from "../../src/series/SeriesFactory.sol";
 import {SeriesCore} from "../../src/core/SeriesCore.sol";
 import {CoreStorage} from "../../src/core/modules/CoreStorage.sol";
-import {usdcSeniorVault} from "../../src/vaults/senior/usdcSeniorVault.sol";
-import {usdcJuniorVault} from "../../src/vaults/junior/usdcJuniorVault.sol";
+import {USDCSeniorVault} from "../../src/vaults/senior/USDCSeniorVault.sol";
+import {USDCJuniorVault} from "../../src/vaults/junior/USDCJuniorVault.sol";
 import {IMidnightMinimal} from "../../src/interfaces/IMidnightMinimal.sol";
 import {IParking} from "../../src/parking/IParking.sol";
 import {IdleParking} from "../../src/parking/IdleParking.sol";
-import {usdcVaultBase} from "../../src/vaults/shared/usdcVaultBase.sol";
+import {USDCVaultBase} from "../../src/vaults/shared/USDCVaultBase.sol";
 
 contract TokenCallFailuresTest is Test {
     MockUSDC usdc;
     IdleParking parking;
     SeriesFactory factory;
     SeriesCore core;
-    usdcSeniorVault seniorVault;
-    usdcJuniorVault juniorVault;
+    USDCSeniorVault seniorVault;
+    USDCJuniorVault juniorVault;
 
     address governance = makeAddr("governance");
     address allocator = makeAddr("allocator");
@@ -41,8 +41,8 @@ contract TokenCallFailuresTest is Test {
         vm.prank(governance);
         factory.setCore(address(core));
 
-        seniorVault = new usdcSeniorVault(core, address(usdc));
-        juniorVault = new usdcJuniorVault(core, address(usdc));
+        seniorVault = new USDCSeniorVault(core, address(usdc));
+        juniorVault = new USDCJuniorVault(core, address(usdc));
         vm.prank(governance);
         core.setVaults(address(seniorVault), address(juniorVault));
 
@@ -78,7 +78,7 @@ contract TokenCallFailuresTest is Test {
         vm.startPrank(alice);
         usdc.approve(address(seniorVault), 500_000e6);
         _failTransferFrom();
-        vm.expectRevert(usdcVaultBase.TransferFailed.selector);
+        vm.expectRevert(USDCVaultBase.TransferFailed.selector);
         seniorVault.deposit(500_000e6, alice);
         vm.stopPrank();
     }
@@ -88,7 +88,7 @@ contract TokenCallFailuresTest is Test {
         vm.startPrank(alice);
         usdc.approve(address(seniorVault), 500_000e6);
         _failTransferFrom();
-        vm.expectRevert(usdcVaultBase.TransferFailed.selector);
+        vm.expectRevert(USDCVaultBase.TransferFailed.selector);
         seniorVault.mint(500_000e6 * 1e12, alice);
         vm.stopPrank();
     }
@@ -97,7 +97,7 @@ contract TokenCallFailuresTest is Test {
         vm.startPrank(alice);
         usdc.approve(address(juniorVault), 100_000e6);
         _failTransferFrom();
-        vm.expectRevert(usdcVaultBase.TransferFailed.selector);
+        vm.expectRevert(USDCVaultBase.TransferFailed.selector);
         juniorVault.requestDeposit(100_000e6, alice, alice);
         vm.stopPrank();
     }

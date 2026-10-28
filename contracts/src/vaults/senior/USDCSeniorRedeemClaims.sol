@@ -4,11 +4,11 @@
 
 pragma solidity 0.8.34;
 
-import {usdcSeniorRedeemQueue} from "./usdcSeniorRedeemQueue.sol";
+import {USDCSeniorRedeemQueue} from "./USDCSeniorRedeemQueue.sol";
 import {WadMath} from "../../libraries/WadMath.sol";
 
 /// @notice Claims of filled senior exits.
-abstract contract usdcSeniorRedeemClaims is usdcSeniorRedeemQueue {
+abstract contract USDCSeniorRedeemClaims is USDCSeniorRedeemQueue {
     using WadMath for uint256;
 
     /// @notice Claims assets for filled shares.

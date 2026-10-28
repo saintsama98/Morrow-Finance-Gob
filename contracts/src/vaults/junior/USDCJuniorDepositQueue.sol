@@ -4,13 +4,13 @@
 
 pragma solidity 0.8.34;
 
-import {usdcVaultBase} from "../shared/usdcVaultBase.sol";
+import {USDCVaultBase} from "../shared/USDCVaultBase.sol";
 import {IERC20Like} from "../../interfaces/IERC20Like.sol";
 import {WadMath} from "../../libraries/WadMath.sol";
 import {EpochMath} from "../../libraries/EpochMath.sol";
 
 /// @notice Batched junior deposits, filled oldest first.
-abstract contract usdcJuniorDepositQueue is usdcVaultBase {
+abstract contract USDCJuniorDepositQueue is USDCVaultBase {
     using WadMath for uint256;
 
     event Deposit(address indexed controller, address indexed receiver, uint256 assets, uint256 shares);

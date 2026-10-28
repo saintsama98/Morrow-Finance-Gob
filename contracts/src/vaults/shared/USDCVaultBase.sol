@@ -10,7 +10,7 @@ import {SeriesCore} from "../../core/SeriesCore.sol";
 import {WadMath} from "../../libraries/WadMath.sol";
 
 /// @notice Share token and pricing shared by both vaults; assets live in the core.
-abstract contract usdcVaultBase is ERC20, IERC165 {
+abstract contract USDCVaultBase is ERC20, IERC165 {
     using WadMath for uint256;
 
     uint256 internal constant WAD = 1e18;

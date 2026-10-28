@@ -11,8 +11,8 @@ import {SeriesCore} from "../../src/core/SeriesCore.sol";
 import {CreditSeries} from "../../src/series/CreditSeries.sol";
 import {SeriesParams} from "../../src/interfaces/ISeries.sol";
 import {IParking} from "../../src/parking/IParking.sol";
-import {usdcJuniorVault} from "../../src/vaults/junior/usdcJuniorVault.sol";
-import {usdcSeniorVault} from "../../src/vaults/senior/usdcSeniorVault.sol";
+import {USDCJuniorVault} from "../../src/vaults/junior/USDCJuniorVault.sol";
+import {USDCSeniorVault} from "../../src/vaults/senior/USDCSeniorVault.sol";
 import {MockUSDC} from "../mocks/MockUSDC.sol";
 import {CoreStorage} from "../../src/core/modules/CoreStorage.sol";
 
@@ -67,14 +67,14 @@ contract OpenSeriesParamBindingTest is Test {
         governance = registry.GOVERNANCE();
 
         usdc.mint(address(this), 2_000_000e6);
-        usdcJuniorVault jv = registry.juniorVault();
+        USDCJuniorVault jv = registry.juniorVault();
         usdc.approve(address(jv), type(uint256).max);
         uint256 id = jv.requestDeposit(1_000_000e6, address(this), address(this));
         vm.prank(curator);
         jv.closeDepositEpoch();
         vm.prank(curator);
         jv.fulfillDeposit(id, 1_000_000e6);
-        usdcSeniorVault sv = registry.seniorVault();
+        USDCSeniorVault sv = registry.seniorVault();
         usdc.approve(address(sv), type(uint256).max);
         sv.deposit(1_000_000e6, address(this));
     }

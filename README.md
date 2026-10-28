@@ -32,7 +32,7 @@ Governance, gating and some operating parameters are deliberately simple in this
 
 | Layer | Contracts | Role |
 |---|---|---|
-| Vaults | `usdcSeniorVault`, `usdcJuniorVault` (with `usdcVaultBase`) | Share ledgers over the core's books. Senior deposits are synchronous (ERC-4626). Junior deposits and all exits are batched (ERC-7540 requests with ERC-7887 cancels). |
+| Vaults | `USDCSeniorVault`, `USDCJuniorVault` (with `USDCVaultBase`) | Share ledgers over the core's books. Senior deposits are synchronous (ERC-4626). Junior deposits and all exits are batched (ERC-7540 requests with ERC-7887 cancels). |
 | Core | `SeriesCore` | Single custody. Keeps a senior book and a junior book as claims on one parking position, a series registry, capacity and coverage rules, the stress gate, the cross-series backstop and the policy timelock. |
 | Engine | `SeriesFactory`, `CreditSeries` (one per maturity) | Eligibility checks, offers and fills on Midnight, finalize and pricing, collection, settlement, write-off and waterfall payouts. |
 | Parking | `BlueParking`, `MorphoParking`, `IdleParking` behind `IParking` | Holds idle USDC. `BlueParking` lends it directly in one Morpho Blue market whose collateral, threshold and oracle match the series markets. `MorphoParking` wraps an ERC-4626 vault. `IdleParking` holds plain USDC. |

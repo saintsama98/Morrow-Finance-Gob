@@ -4,13 +4,13 @@
 
 pragma solidity 0.8.34;
 
-import {usdcVaultBase} from "../shared/usdcVaultBase.sol";
-import {usdcSeniorRedeemCancels} from "./usdcSeniorRedeemCancels.sol";
+import {USDCVaultBase} from "../shared/USDCVaultBase.sol";
+import {USDCSeniorRedeemCancels} from "./USDCSeniorRedeemCancels.sol";
 import {SeriesCore} from "../../core/SeriesCore.sol";
 
 /// @notice srUSDC: synchronous deposits, batched exits.
-contract usdcSeniorVault is usdcSeniorRedeemCancels {
-    constructor(SeriesCore core_, address usdc_) usdcVaultBase(core_, usdc_, "Morrow Senior USDC", "srUSDC") {}
+contract USDCSeniorVault is USDCSeniorRedeemCancels {
+    constructor(SeriesCore core_, address usdc_) USDCVaultBase(core_, usdc_, "Morrow Senior USDC", "srUSDC") {}
 
     /// @notice ERC-165 interface check.
     function supportsInterface(bytes4 interfaceId) public pure override returns (bool) {
