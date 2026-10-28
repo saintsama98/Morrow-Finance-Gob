@@ -43,6 +43,8 @@ abstract contract coreStorage {
     error ZeroAddress();
     error ParkingIlliquid(uint256 asked, uint256 available);
     error ParkingShortPaid(uint256 asked, uint256 received);
+    error TransferFailed();
+    error ApproveFailed();
 
     event SeriesFunded(address indexed series, uint256 seniorAllocated, uint256 juniorAllocated);
     event ReturnReceived(address indexed series, uint256 toSenior, uint256 toJunior);

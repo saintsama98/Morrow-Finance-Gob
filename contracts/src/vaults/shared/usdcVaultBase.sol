@@ -33,6 +33,7 @@ abstract contract usdcVaultBase is ERC20, IERC165 {
     error NoActiveRequest();
     error PendingCancelation();
     error NotOldestBatch(uint256 oldest);
+    error TransferFailed();
 
     event Withdraw(
         address indexed sender, address indexed receiver, address indexed owner, uint256 assets, uint256 shares

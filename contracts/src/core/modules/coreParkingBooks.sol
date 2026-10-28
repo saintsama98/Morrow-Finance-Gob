@@ -90,7 +90,7 @@ abstract contract coreParkingBooks is coreStorage {
     function _depositToBook(bool isSenior, uint256 assets) internal {
         uint256 before = _parked();
         _settleIdleLoss(before);
-        require(iErc20Like(USDC).approve(address(PARKING), assets), "approve failed");
+        require(iErc20Like(USDC).approve(address(PARKING), assets), ApproveFailed());
         PARKING.deposit(assets);
         uint256 afterDeposit = _parked();
         _addToBook(isSenior, afterDeposit > before ? afterDeposit - before : 0, before);

@@ -23,7 +23,7 @@ abstract contract coreVaultFlows is coreGovernance {
     /// @notice Returns pending junior cash on a cancel.
     function removePendingJunior(uint256 assets, address to) external onlyJuniorVault {
         junior.pendingDeposits -= assets;
-        require(iErc20Like(USDC).transfer(to, assets), "transfer failed");
+        require(iErc20Like(USDC).transfer(to, assets), TransferFailed());
     }
 
     /// @notice Moves filled pending junior cash into the junior book.
@@ -55,7 +55,7 @@ abstract contract coreVaultFlows is coreGovernance {
         _requireVault(isSenior);
         if (isSenior) senior.reservedAssets -= assets;
         else junior.reservedAssets -= assets;
-        require(iErc20Like(USDC).transfer(to, assets), "transfer failed");
+        require(iErc20Like(USDC).transfer(to, assets), TransferFailed());
     }
 
     function _requireVault(bool isSenior) internal view {

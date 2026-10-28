@@ -9,7 +9,7 @@ import {iErc20Like} from "../interfaces/iErc20Like.sol";
 
 /// @notice Parking that holds plain USDC.
 contract idleParking is iParking {
-    error InsufficientBalance();
+    error TransferFailed();
     error ZeroAddress();
 
     iErc20Like public immutable USDC;
@@ -21,14 +21,14 @@ contract idleParking is iParking {
 
     /// @notice Parks assets for the caller.
     function deposit(uint256 assets) external {
-        require(USDC.transferFrom(msg.sender, address(this), assets), InsufficientBalance());
+        require(USDC.transferFrom(msg.sender, address(this), assets), TransferFailed());
         balanceOf[msg.sender] += assets;
     }
 
     /// @notice Withdraws the caller's assets to an address.
     function withdraw(uint256 assets, address to) external {
         balanceOf[msg.sender] -= assets;
-        require(USDC.transfer(to, assets), InsufficientBalance());
+        require(USDC.transfer(to, assets), TransferFailed());
     }
 
     /// @notice Moves part of the caller's position to another account.

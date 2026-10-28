@@ -36,16 +36,6 @@
   [
    "Address State Variable Set Without Checks",
    "contracts/src/core/modules/coreStorage.sol",
-   166
-  ],
-  [
-   "Address State Variable Set Without Checks",
-   "contracts/src/core/modules/coreStorage.sol",
-   167
-  ],
-  [
-   "Address State Variable Set Without Checks",
-   "contracts/src/core/modules/coreStorage.sol",
    168
   ],
   [
@@ -57,6 +47,16 @@
    "Address State Variable Set Without Checks",
    "contracts/src/core/modules/coreStorage.sol",
    170
+  ],
+  [
+   "Address State Variable Set Without Checks",
+   "contracts/src/core/modules/coreStorage.sol",
+   171
+  ],
+  [
+   "Address State Variable Set Without Checks",
+   "contracts/src/core/modules/coreStorage.sol",
+   172
   ],
   [
    "Address State Variable Set Without Checks",
@@ -111,17 +111,7 @@
   [
    "Literal Instead of Constant",
    "contracts/src/core/modules/coreStorage.sol",
-   174
-  ],
-  [
-   "Literal Instead of Constant",
-   "contracts/src/core/modules/coreStorage.sol",
    176
-  ],
-  [
-   "Literal Instead of Constant",
-   "contracts/src/core/modules/coreStorage.sol",
-   177
   ],
   [
    "Literal Instead of Constant",
@@ -136,17 +126,17 @@
   [
    "Literal Instead of Constant",
    "contracts/src/core/modules/coreStorage.sol",
+   180
+  ],
+  [
+   "Literal Instead of Constant",
+   "contracts/src/core/modules/coreStorage.sol",
    181
   ],
   [
    "Literal Instead of Constant",
    "contracts/src/core/modules/coreStorage.sol",
-   186
-  ],
-  [
-   "Literal Instead of Constant",
-   "contracts/src/core/modules/coreStorage.sol",
-   187
+   183
   ],
   [
    "Literal Instead of Constant",
@@ -161,12 +151,22 @@
   [
    "Literal Instead of Constant",
    "contracts/src/core/modules/coreStorage.sol",
+   190
+  ],
+  [
+   "Literal Instead of Constant",
+   "contracts/src/core/modules/coreStorage.sol",
    191
   ],
   [
    "Literal Instead of Constant",
    "contracts/src/core/modules/coreStorage.sol",
-   192
+   193
+  ],
+  [
+   "Literal Instead of Constant",
+   "contracts/src/core/modules/coreStorage.sol",
+   194
   ],
   [
    "Literal Instead of Constant",
@@ -201,17 +201,17 @@
   [
    "Literal Instead of Constant",
    "contracts/src/vaults/shared/usdcVaultBase.sol",
-   84
+   85
   ],
   [
    "Literal Instead of Constant",
    "contracts/src/vaults/shared/usdcVaultBase.sol",
-   89
+   90
   ],
   [
    "Literal Instead of Constant",
    "contracts/src/vaults/shared/usdcVaultBase.sol",
-   104
+   105
   ],
   [
    "Loop Contains `require`/`revert`",
@@ -261,7 +261,7 @@
   [
    "Modifier Invoked Only Once",
    "contracts/src/core/modules/coreStorage.sol",
-   129
+   131
   ],
   [
    "Modifier Invoked Only Once",
