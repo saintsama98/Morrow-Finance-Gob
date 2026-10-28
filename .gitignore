@@ -11,7 +11,10 @@ __pycache__/
 # docs: only the files listed below are published
 docs/*
 !docs/verification.md
-!docs/morrow-finance-gob-arithmatic.md
-!docs/morrow-finance-gob-reference_model.py
-!docs/morrow-finance-gob-stress_model.py
+!docs/arithmetic.md
 crytic-export/
+
+# written by the sim/ models when run from the repository root
+audit_tables.md
+audit_results.json
+stress_tables.md

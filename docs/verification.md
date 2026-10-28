@@ -24,8 +24,8 @@ git submodule update --init --recursive
 forge build
 forge test                                      # unit, scenario, fuzz, formal twins, invariants (fork tests skip)
 BASE_RPC_URL=<base rpc> forge test --match-path "contracts/test/fork/*" --threads 1
-python3 docs/morrow-finance-gob-reference_model.py
-python3 docs/morrow-finance-gob-stress_model.py
+python3 sim/reference_model.py
+python3 sim/stress_model.py
 ```
 
 The default profile runs fuzz tests at 10,000 runs and invariants at 512 runs of depth 128. `memory_limit` is raised to 256 MiB in `foundry.toml` because the round-level crash replays step through every Chainlink round of a month. Commands for the other tools are given in their sections.
@@ -135,7 +135,7 @@ The following are not yet proven symbolically: the exact floor of `mulDivDown`, 
 
 `contracts/test/unit/MathDifferential.t.sol` checks the pricing, waterfall and epoch libraries against Python twins written independently in `sim/`, on 400 deterministic vectors per function. `contracts/test/unit/OfferTreeSdkDifferential.t.sol` checks offer-tree roots against trees of 1 to 33 offers built with the official Midnight SDK.
 
-`docs/morrow-finance-gob-reference_model.py` is an exact integer implementation of the arithmetic. It reproduces every audited figure in the arithmetic document. Across 80,000 random pools from 1 USDC to 100 billion USDC, the cushion never rounds below its exact value, so the senior claim never rounds above it; the excess stays near one base unit.
+`sim/reference_model.py` is an exact integer implementation of the arithmetic. It reproduces every audited figure in the arithmetic document. Across 80,000 random pools from 1 USDC to 100 billion USDC, the cushion never rounds below its exact value, so the senior claim never rounds above it; the excess stays near one base unit.
 
 ## Static analysis
 

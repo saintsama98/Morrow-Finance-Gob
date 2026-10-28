@@ -7,7 +7,7 @@ results against exact rational arithmetic (fractions.Fraction) computed from
 the same stored inputs, so each rounding direction is verified rather than
 assumed.
 
-Run:  python3 reference_model.py
+Run:  python3 sim/reference_model.py
 Output: a console report, audit_results.json, and audit_tables.md
 """
 

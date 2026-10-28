@@ -8,7 +8,7 @@ Consistency rule: in a zero-coupon market every credit unit is one unit of
 borrower debt due at maturity, so total borrower debt in face terms equals
 the market's total credit units.
 
-Run:  python3 stress_model.py      writes stress_tables.md
+Run:  python3 sim/stress_model.py      writes stress_tables.md
 """
 
 import math

@@ -725,8 +725,8 @@ Every parameter default is chosen conservatively and not calibrated. The basis o
 The reference implementation and the stress model use only the Python standard library.
 
 ```
-python3 docs/morrow-finance-gob-reference_model.py
-python3 docs/morrow-finance-gob-stress_model.py
+python3 sim/reference_model.py
+python3 sim/stress_model.py
 ```
 
 The protocol's Solidity libraries are checked against independent Python twins of the same arithmetic in `sim/`, through the differential tests in `contracts/test/unit/MathDifferential.t.sol`.
