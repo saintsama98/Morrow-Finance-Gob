@@ -2,7 +2,7 @@
 
 Dated senior and junior credit tranches on Morpho Midnight, behind two vault tokens.
 
-> This project was developed privately and published once it had been tested against its original design. Its full development history is published on a single `main` branch so reviewers can follow it in one place.
+> This project was developed privately and published once it had been tested against its original design. Its full development history is published on `main` branch so reviewers can follow it in one place.
 
 Gob is the early beta and testing cascade of the protocol, named after the early form of glass: the base material before it is shaped.
 
