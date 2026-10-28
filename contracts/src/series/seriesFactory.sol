@@ -5,14 +5,14 @@
 pragma solidity 0.8.34;
 
 import {Market} from "@morpho-org/midnight/src/interfaces/IMidnight.sol";
-import {iMidnightMinimal} from "../interfaces/iMidnightMinimal.sol";
-import {midnightReader} from "../libraries/midnightReader.sol";
-import {SeriesParams} from "../interfaces/iSeries.sol";
+import {IMidnightMinimal} from "../interfaces/IMidnightMinimal.sol";
+import {MidnightReader} from "../libraries/MidnightReader.sol";
+import {SeriesParams} from "../interfaces/ISeries.sol";
 import {creditSeries} from "./creditSeries.sol";
 
 /// @notice Market eligibility rules, the governance allowlists behind a 48-hour timelock, and series creation.
 contract seriesFactory {
-    using midnightReader for iMidnightMinimal;
+    using MidnightReader for IMidnightMinimal;
 
     error NotGovernance();
     error NotCore();
@@ -34,7 +34,7 @@ contract seriesFactory {
     uint256 internal constant MAX_COLLATERALS_CHECKED = 8;
     uint256 internal constant TIMELOCK = 48 hours;
 
-    iMidnightMinimal public immutable MIDNIGHT;
+    IMidnightMinimal public immutable MIDNIGHT;
     address public immutable SETTER_RATIFIER;
     address public immutable USDC;
     address public governance;
@@ -69,7 +69,7 @@ contract seriesFactory {
     }
 
     constructor(
-        iMidnightMinimal midnight,
+        IMidnightMinimal midnight,
         address setterRatifier,
         address usdc,
         address governance_,

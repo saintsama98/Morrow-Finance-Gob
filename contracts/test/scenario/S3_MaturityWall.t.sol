@@ -6,8 +6,8 @@ pragma solidity 0.8.34;
 
 import {ScenarioBase} from "./ScenarioBase.t.sol";
 import {creditSeries} from "../../src/series/creditSeries.sol";
-import {SeriesState} from "../../src/interfaces/iSeries.sol";
-import {seriesMath} from "../../src/libraries/seriesMath.sol";
+import {SeriesState} from "../../src/interfaces/ISeries.sol";
+import {SeriesMath} from "../../src/libraries/SeriesMath.sol";
 
 contract S3_MaturityWallTest is ScenarioBase {
     address borrowerA = makeAddr("borrowerA");
@@ -48,9 +48,9 @@ contract S3_MaturityWallTest is ScenarioBase {
         assertEq(uint8(series.state()), uint8(SeriesState.SETTLED));
 
         (uint256 expectedXs, uint256 expectedXj, uint256 expectedFee) =
-            seriesMath.waterfall(received, seniorClaim, juniorDeployed, 0.1e18);
-        assertEq(series.paidS(), expectedXs, "cumulative senior payout must match seriesMath.waterfall");
-        assertEq(series.paidJ(), expectedXj, "cumulative junior payout must match seriesMath.waterfall");
+            SeriesMath.waterfall(received, seniorClaim, juniorDeployed, 0.1e18);
+        assertEq(series.paidS(), expectedXs, "cumulative senior payout must match SeriesMath.waterfall");
+        assertEq(series.paidJ(), expectedXj, "cumulative junior payout must match SeriesMath.waterfall");
         assertEq(series.paidS(), seniorClaim, "an overdue auction that recovers in full must leave senior whole");
         assertGt(expectedFee, 0, "a clean maturity-wall resolution should still recognize a positive operator fee");
     }

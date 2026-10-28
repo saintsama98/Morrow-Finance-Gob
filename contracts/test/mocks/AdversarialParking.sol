@@ -6,7 +6,7 @@
 pragma solidity 0.8.34;
 
 import {iParking} from "../../src/parking/iParking.sol";
-import {iErc20Like} from "../../src/interfaces/iErc20Like.sol";
+import {IERC20Like} from "../../src/interfaces/IERC20Like.sol";
 
 interface iCoreSyncLike {
     function syncAll() external;
@@ -21,7 +21,7 @@ contract AdversarialParking is iParking {
         Reentrant
     }
 
-    iErc20Like public immutable USDC;
+    IERC20Like public immutable USDC;
     mapping(address => uint256) public balanceOf;
     Mode public mode;
     uint256 public lieBps = 1_000;
@@ -30,7 +30,7 @@ contract AdversarialParking is iParking {
     uint256 public reentries;
 
     constructor(address usdc) {
-        USDC = iErc20Like(usdc);
+        USDC = IERC20Like(usdc);
     }
 
     function setMode(Mode m) external {

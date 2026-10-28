@@ -9,7 +9,7 @@ import {Market, CollateralParams} from "@morpho-org/midnight/src/interfaces/IMid
 import {IdLib} from "@morpho-org/midnight/src/libraries/IdLib.sol";
 import {MidnightHarness} from "../mocks/MidnightHarness.sol";
 import {seriesFactory} from "../../src/series/seriesFactory.sol";
-import {iMidnightMinimal} from "../../src/interfaces/iMidnightMinimal.sol";
+import {IMidnightMinimal} from "../../src/interfaces/IMidnightMinimal.sol";
 
 contract SeriesFactoryTest is Test, MidnightHarness {
     seriesFactory factory;
@@ -19,7 +19,7 @@ contract SeriesFactoryTest is Test, MidnightHarness {
     function setUp() public {
         _setUpMidnightHarness();
         factory = new seriesFactory(
-            iMidnightMinimal(address(midnight)), address(setterRatifier), address(usdc), governance, 0.86e18, 4
+            IMidnightMinimal(address(midnight)), address(setterRatifier), address(usdc), governance, 0.86e18, 4
         );
 
         vm.startPrank(governance);
@@ -41,7 +41,7 @@ contract SeriesFactoryTest is Test, MidnightHarness {
         address badToken = address(new NoDecimals());
         vm.expectRevert(seriesFactory.DecimalsNotSix.selector);
         new seriesFactory(
-            iMidnightMinimal(address(midnight)), address(setterRatifier), badToken, governance, 0.86e18, 4
+            IMidnightMinimal(address(midnight)), address(setterRatifier), badToken, governance, 0.86e18, 4
         );
     }
 
@@ -150,7 +150,7 @@ contract SeriesFactoryTest is Test, MidnightHarness {
 
     function _factory915() internal returns (seriesFactory f) {
         f = new seriesFactory(
-            iMidnightMinimal(address(midnight)), address(setterRatifier), address(usdc), governance, 0.915e18, 4
+            IMidnightMinimal(address(midnight)), address(setterRatifier), address(usdc), governance, 0.915e18, 4
         );
         vm.startPrank(governance);
         f.proposeCollateralAllowed(cbBTC, true);

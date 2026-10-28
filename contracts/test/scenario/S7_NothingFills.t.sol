@@ -6,7 +6,7 @@ pragma solidity 0.8.34;
 
 import {ScenarioBase} from "./ScenarioBase.t.sol";
 import {creditSeries} from "../../src/series/creditSeries.sol";
-import {SeriesState} from "../../src/interfaces/iSeries.sol";
+import {SeriesState} from "../../src/interfaces/ISeries.sol";
 
 contract S7_NothingFillsTest is ScenarioBase {
     address seniorDepositor = makeAddr("seniorDepositor");

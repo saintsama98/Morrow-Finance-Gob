@@ -5,12 +5,12 @@
 pragma solidity 0.8.34;
 
 import {usdcSeniorDeposits} from "./usdcSeniorDeposits.sol";
-import {wadMath} from "../../libraries/wadMath.sol";
-import {epochMath} from "../../libraries/epochMath.sol";
+import {WadMath} from "../../libraries/WadMath.sol";
+import {EpochMath} from "../../libraries/EpochMath.sol";
 
 /// @notice Batched senior exits, filled oldest first from idle cash.
 abstract contract usdcSeniorRedeemQueue is usdcSeniorDeposits {
-    using wadMath for uint256;
+    using WadMath for uint256;
 
     event EpochClosed(uint256 indexed epochId, uint256 ppsCloseWad);
 
@@ -127,10 +127,10 @@ abstract contract usdcSeniorRedeemQueue is usdcSeniorDeposits {
         if (liquid < available) available = liquid;
         uint256 cappedAssets = assetsToUse < available ? assetsToUse : available;
 
-        uint256 priceWad = epochMath.redemptionPriceWad(e.ppsCloseWad, pricePerShareWad());
-        uint256 sharesNow = epochMath.sharesFillable(e.remainingFillable, cappedAssets, priceWad);
+        uint256 priceWad = EpochMath.redemptionPriceWad(e.ppsCloseWad, pricePerShareWad());
+        uint256 sharesNow = EpochMath.sharesFillable(e.remainingFillable, cappedAssets, priceWad);
         if (sharesNow == 0) return;
-        uint256 assetsNow = epochMath.assetsForShares(sharesNow, priceWad);
+        uint256 assetsNow = EpochMath.assetsForShares(sharesNow, priceWad);
 
         e.remainingFillable -= sharesNow;
         e.sharesFulfilled += sharesNow;

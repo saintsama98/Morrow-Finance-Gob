@@ -16,7 +16,7 @@ import {SeriesRegistry} from "../invariant/handlers/SeriesRegistry.sol";
 import {SeriesRegistryMorphoParking} from "../invariant/handlers/SeriesRegistryMorphoParking.sol";
 import {MockUSDC} from "../mocks/MockUSDC.sol";
 import {creditSeries} from "../../src/series/creditSeries.sol";
-import {wadMath} from "../../src/libraries/wadMath.sol";
+import {WadMath} from "../../src/libraries/WadMath.sol";
 
 interface iVenueKnobs {
     function accrueBps(uint256 bps) external;
@@ -31,7 +31,7 @@ interface iParkingView {
 }
 
 abstract contract MorphoScenarioBase is ScenarioBase {
-    using wadMath for uint256;
+    using WadMath for uint256;
 
     iVenueKnobs vault;
     iParkingView mparking;

@@ -6,8 +6,8 @@ pragma solidity 0.8.34;
 
 import {Market} from "@morpho-org/midnight/src/interfaces/IMidnight.sol";
 import {ISetterRatifier} from "@morpho-org/midnight/src/ratifiers/interfaces/ISetterRatifier.sol";
-import {iMidnightMinimal} from "../../interfaces/iMidnightMinimal.sol";
-import {SeriesParams, SeriesState} from "../../interfaces/iSeries.sol";
+import {IMidnightMinimal} from "../../interfaces/IMidnightMinimal.sol";
+import {SeriesParams, SeriesState} from "../../interfaces/ISeries.sol";
 import {iParking} from "../../parking/iParking.sol";
 
 /// @notice Storage, immutables, events and errors of a series.
@@ -68,7 +68,7 @@ abstract contract seriesStorage {
     event FeeClaimed(uint256 amount);
     event BufferUpdated(uint256 indexed i, uint256 credit, uint256 faceNetAtT, int256 buffer, uint256 lossAtT);
 
-    iMidnightMinimal public immutable MIDNIGHT;
+    IMidnightMinimal public immutable MIDNIGHT;
     ISetterRatifier public immutable SETTER_RATIFIER;
     address public immutable USDC;
     address public immutable CORE;
@@ -148,7 +148,7 @@ abstract contract seriesStorage {
     }
 
     constructor(
-        iMidnightMinimal midnight,
+        IMidnightMinimal midnight,
         address setterRatifier,
         address usdc,
         address core,

@@ -1,4 +1,4 @@
-# Morrow Finance: exact integer twins of the Solidity math libraries (wadMath, premiumCurve, seriesMath, epochMath).
+# Morrow Finance: exact integer twins of the Solidity math libraries (WadMath, PremiumCurve, SeriesMath, EpochMath).
 # @author adiii.eth
 
 WAD = 10**18

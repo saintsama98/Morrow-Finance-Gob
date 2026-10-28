@@ -18,8 +18,8 @@ import {StubVault} from "../mocks/StubVault.sol";
 import {seriesFactory} from "../../src/series/seriesFactory.sol";
 import {seriesCore} from "../../src/core/seriesCore.sol";
 import {creditSeries} from "../../src/series/creditSeries.sol";
-import {SeriesParams, SeriesState} from "../../src/interfaces/iSeries.sol";
-import {iMidnightMinimal} from "../../src/interfaces/iMidnightMinimal.sol";
+import {SeriesParams, SeriesState} from "../../src/interfaces/ISeries.sol";
+import {IMidnightMinimal} from "../../src/interfaces/IMidnightMinimal.sol";
 import {iParking} from "../../src/parking/iParking.sol";
 import {idleParking} from "../../src/parking/idleParking.sol";
 import {coreStorage} from "../../src/core/modules/coreStorage.sol";
@@ -52,7 +52,7 @@ contract SeriesCoreTest is Test, MidnightHarness {
         parking = new idleParking(address(usdc));
 
         factory = new seriesFactory(
-            iMidnightMinimal(address(midnight)), address(setterRatifier), address(usdc), governance, 0.86e18, 4
+            IMidnightMinimal(address(midnight)), address(setterRatifier), address(usdc), governance, 0.86e18, 4
         );
 
         core = new seriesCore(

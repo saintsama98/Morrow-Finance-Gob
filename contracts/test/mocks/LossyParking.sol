@@ -6,7 +6,7 @@ pragma solidity 0.8.34;
 
 import {iParking} from "../../src/parking/iParking.sol";
 
-interface IERC20Like {
+interface ILossyERC20 {
     function transfer(address to, uint256 amount) external returns (bool);
     function transferFrom(address from, address to, uint256 amount) external returns (bool);
 }
@@ -14,11 +14,11 @@ interface IERC20Like {
 contract LossyParking is iParking {
     error InsufficientBalance();
 
-    IERC20Like public immutable USDC;
+    ILossyERC20 public immutable USDC;
     mapping(address account => uint256) public balanceOf;
 
     constructor(address usdc) {
-        USDC = IERC20Like(usdc);
+        USDC = ILossyERC20(usdc);
     }
 
     function deposit(uint256 assets) external {

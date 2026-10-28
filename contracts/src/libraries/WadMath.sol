@@ -5,7 +5,7 @@
 pragma solidity 0.8.34;
 
 /// @notice Full-precision multiply-then-divide with explicit rounding.
-library wadMath {
+library WadMath {
     uint256 internal constant WAD = 1e18;
 
     error DivisionByZero();

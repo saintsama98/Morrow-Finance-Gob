@@ -12,7 +12,7 @@ import {seriesFactory} from "../../src/series/seriesFactory.sol";
 import {seriesCore} from "../../src/core/seriesCore.sol";
 import {usdcSeniorVault} from "../../src/vaults/senior/usdcSeniorVault.sol";
 import {usdcJuniorVault} from "../../src/vaults/junior/usdcJuniorVault.sol";
-import {iMidnightMinimal} from "../../src/interfaces/iMidnightMinimal.sol";
+import {IMidnightMinimal} from "../../src/interfaces/IMidnightMinimal.sol";
 
 interface IHevm {
     function warp(uint256) external;
@@ -60,7 +60,7 @@ contract MorrowCrytic {
         venue = new MockMorphoVault(usdc);
         parking = new morphoParking(address(usdc), address(venue), 0.1e18);
         factory =
-            new seriesFactory(iMidnightMinimal(address(0x1)), address(0x2), address(usdc), address(this), 0.86e18, 4);
+            new seriesFactory(IMidnightMinimal(address(0x1)), address(0x2), address(usdc), address(this), 0.86e18, 4);
         curator = new CryticActor();
         core = new seriesCore(
             address(usdc),

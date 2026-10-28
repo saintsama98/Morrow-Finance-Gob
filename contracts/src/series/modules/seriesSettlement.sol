@@ -7,10 +7,10 @@ pragma solidity 0.8.34;
 import {Market} from "@morpho-org/midnight/src/interfaces/IMidnight.sol";
 import {ERC20Lib} from "@morpho-org/midnight/src/periphery/libraries/ERC20Lib.sol";
 import {seriesFunding} from "./seriesFunding.sol";
-import {iSeriesCoreMinimal} from "../../interfaces/iSeriesCoreMinimal.sol";
-import {iErc20Like} from "../../interfaces/iErc20Like.sol";
-import {SeriesState} from "../../interfaces/iSeries.sol";
-import {seriesMath} from "../../libraries/seriesMath.sol";
+import {ISeriesCoreMinimal} from "../../interfaces/ISeriesCoreMinimal.sol";
+import {IERC20Like} from "../../interfaces/IERC20Like.sol";
+import {SeriesState} from "../../interfaces/ISeries.sol";
+import {SeriesMath} from "../../libraries/SeriesMath.sol";
 
 /// @notice Settlement, write-off and the waterfall reruns that pay recoveries.
 abstract contract seriesSettlement is seriesFunding {
@@ -37,9 +37,9 @@ abstract contract seriesSettlement is seriesFunding {
         uint256 units = uint256(credit) < uint256(withdrawableNow) ? uint256(credit) : uint256(withdrawableNow);
         if (units == 0) return 0;
 
-        uint256 balBefore = iErc20Like(USDC).balanceOf(address(this));
+        uint256 balBefore = IERC20Like(USDC).balanceOf(address(this));
         MIDNIGHT.withdraw(m, units, address(this), address(this));
-        received = iErc20Like(USDC).balanceOf(address(this)) - balBefore;
+        received = IERC20Like(USDC).balanceOf(address(this)) - balBefore;
         require(received == units, TransferMismatch());
 
         collected[i] += received;
@@ -92,7 +92,7 @@ abstract contract seriesSettlement is seriesFunding {
 
     function _proceeds() internal view returns (uint256) {
         return
-            iErc20Like(USDC).balanceOf(address(this)) + PARKING.totalAssets(address(this)) + paidS + paidJ + feeClaimed;
+            IERC20Like(USDC).balanceOf(address(this)) + PARKING.totalAssets(address(this)) + paidS + paidJ + feeClaimed;
     }
 
     function _rerunWaterfall() internal {
@@ -103,9 +103,9 @@ abstract contract seriesSettlement is seriesFunding {
         uint256 fee;
 
         if (passThrough) {
-            (xs, xj) = seriesMath.waterfallPassThrough(p, seniorDeployed, totalFilled);
+            (xs, xj) = SeriesMath.waterfallPassThrough(p, seniorDeployed, totalFilled);
         } else {
-            (xs, xj, fee) = seriesMath.waterfall(p, seniorClaim, juniorDeployed, THETA_WAD);
+            (xs, xj, fee) = SeriesMath.waterfall(p, seniorClaim, juniorDeployed, THETA_WAD);
         }
 
         uint256 dSenior = xs > paidS ? xs - paidS : 0;
@@ -120,6 +120,6 @@ abstract contract seriesSettlement is seriesFunding {
 
         uint256 total = dSenior + dJunior;
         if (total > 0) PARKING.transferPosition(CORE, total);
-        iSeriesCoreMinimal(CORE).receivePayout(dSenior, dJunior);
+        ISeriesCoreMinimal(CORE).receivePayout(dSenior, dJunior);
     }
 }

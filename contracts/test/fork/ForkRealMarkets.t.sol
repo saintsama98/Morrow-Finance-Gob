@@ -8,8 +8,8 @@ import {seriesFactory} from "../../src/series/seriesFactory.sol";
 import {Market} from "@morpho-org/midnight/src/interfaces/IMidnight.sol";
 import {ForkBase, iChainlinkFeed} from "./ForkBase.t.sol";
 import {creditSeries} from "../../src/series/creditSeries.sol";
-import {SeriesState} from "../../src/interfaces/iSeries.sol";
-import {iErc20Like} from "../../src/interfaces/iErc20Like.sol";
+import {SeriesState} from "../../src/interfaces/ISeries.sol";
+import {IERC20Like} from "../../src/interfaces/IERC20Like.sol";
 
 contract ForkRealMarketsTest is ForkBase {
     bytes32 internal constant CB86_OCT_ID = 0x43d6120738c57b2bc5835901f8250fdf7fc8054efbb006c6ccba61ec898e5ed9;
@@ -209,13 +209,13 @@ contract ForkRealMarketsTest is ForkBase {
         uint256 debt = midnight.debt(id, bob);
         _fund(USDC, keeper, debt);
         vm.startPrank(keeper);
-        iErc20Like(USDC).approve(MIDNIGHT, debt);
+        IERC20Like(USDC).approve(MIDNIGHT, debt);
         midnight.liquidate(m, 1, 0, debt / 2, bob, true, keeper, address(0), "");
         midnight.liquidate(m, 0, 0, midnight.debt(id, bob), bob, true, keeper, address(0), "");
         vm.stopPrank();
         assertEq(midnight.debt(id, bob), 0, "A6: overdue auctions across both legs clear the debt");
-        assertGt(iErc20Like(CBBTC).balanceOf(keeper), 0, "A6: cbBTC leg seized");
-        assertGt(iErc20Like(WETH).balanceOf(keeper), 0, "A6: WETH leg seized");
+        assertGt(IERC20Like(CBBTC).balanceOf(keeper), 0, "A6: cbBTC leg seized");
+        assertGt(IERC20Like(WETH).balanceOf(keeper), 0, "A6: WETH leg seized");
         _collectAll(s);
         vm.prank(keeper);
         s.settle();

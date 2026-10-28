@@ -6,8 +6,8 @@ pragma solidity 0.8.34;
 
 import {ScenarioBase} from "./ScenarioBase.t.sol";
 import {creditSeries} from "../../src/series/creditSeries.sol";
-import {SeriesState} from "../../src/interfaces/iSeries.sol";
-import {seriesMath} from "../../src/libraries/seriesMath.sol";
+import {SeriesState} from "../../src/interfaces/ISeries.sol";
+import {SeriesMath} from "../../src/libraries/SeriesMath.sol";
 
 contract S0_BaselineTest is ScenarioBase {
     address borrowerA = makeAddr("borrowerA");
@@ -75,9 +75,9 @@ contract S0_BaselineTest is ScenarioBase {
         assertEq(uint8(series.state()), uint8(SeriesState.SETTLED));
 
         (uint256 expectedXs, uint256 expectedXj, uint256 expectedFee) =
-            seriesMath.waterfall(received, seniorClaim, juniorDeployed, 0.1e18);
-        assertEq(series.paidS(), expectedXs, "cumulative senior payout must match seriesMath.waterfall");
-        assertEq(series.paidJ(), expectedXj, "cumulative junior payout must match seriesMath.waterfall");
+            SeriesMath.waterfall(received, seniorClaim, juniorDeployed, 0.1e18);
+        assertEq(series.paidS(), expectedXs, "cumulative senior payout must match SeriesMath.waterfall");
+        assertEq(series.paidJ(), expectedXj, "cumulative junior payout must match SeriesMath.waterfall");
         assertLe(series.paidS(), seniorClaim, "senior payout must never exceed its frozen claim");
         assertGt(expectedFee, 0, "a clean no-loss settlement should recognize a positive operator fee");
     }

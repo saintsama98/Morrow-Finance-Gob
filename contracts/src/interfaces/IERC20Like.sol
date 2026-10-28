@@ -5,7 +5,7 @@
 pragma solidity 0.8.34;
 
 /// @notice Minimal ERC-20.
-interface iErc20Like {
+interface IERC20Like {
     /// @notice Token balance of an account.
     function balanceOf(address account) external view returns (uint256);
     /// @notice Transfers tokens from the caller.

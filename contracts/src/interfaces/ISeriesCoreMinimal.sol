@@ -5,7 +5,7 @@
 pragma solidity 0.8.34;
 
 /// @notice The part of the core a series calls.
-interface iSeriesCoreMinimal {
+interface ISeriesCoreMinimal {
     /// @notice Credits undeployed cash returned by a series.
     function receiveReturn(uint256 toSenior, uint256 toJunior) external;
 

@@ -6,10 +6,10 @@ pragma solidity 0.8.34;
 
 import {ScenarioBase} from "./ScenarioBase.t.sol";
 import {creditSeries} from "../../src/series/creditSeries.sol";
-import {wadMath} from "../../src/libraries/wadMath.sol";
+import {WadMath} from "../../src/libraries/WadMath.sol";
 
 contract S5_UnderFillTest is ScenarioBase {
-    using wadMath for uint256;
+    using WadMath for uint256;
 
     address borrower = makeAddr("borrower");
     address seniorDepositor = makeAddr("seniorDepositor");

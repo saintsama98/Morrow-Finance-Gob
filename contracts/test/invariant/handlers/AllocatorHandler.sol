@@ -16,7 +16,7 @@ import {ORACLE_PRICE_SCALE} from "@morpho-org/midnight/src/libraries/ConstantsLi
 import {SeriesRegistry} from "./SeriesRegistry.sol";
 import {MockUSDC} from "../../mocks/MockUSDC.sol";
 import {creditSeries} from "../../../src/series/creditSeries.sol";
-import {SeriesParams, SeriesState} from "../../../src/interfaces/iSeries.sol";
+import {SeriesParams, SeriesState} from "../../../src/interfaces/ISeries.sol";
 import {iParking} from "../../../src/parking/iParking.sol";
 
 contract AllocatorHandler is Test {

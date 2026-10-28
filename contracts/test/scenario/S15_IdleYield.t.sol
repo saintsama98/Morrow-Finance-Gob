@@ -6,11 +6,11 @@ pragma solidity 0.8.34;
 
 import {MorphoScenarioBase} from "./MorphoScenarioBase.t.sol";
 import {creditSeries} from "../../src/series/creditSeries.sol";
-import {seriesMath} from "../../src/libraries/seriesMath.sol";
-import {wadMath} from "../../src/libraries/wadMath.sol";
+import {SeriesMath} from "../../src/libraries/SeriesMath.sol";
+import {WadMath} from "../../src/libraries/WadMath.sol";
 
 contract S15_IdleYieldTest is MorphoScenarioBase {
-    using wadMath for uint256;
+    using WadMath for uint256;
 
     address borrower = makeAddr("borrower");
     address seniorDepositor = makeAddr("seniorDepositor");
@@ -90,7 +90,7 @@ contract S15_IdleYieldTest is MorphoScenarioBase {
         series.settle();
 
         (uint256 xs, uint256 xj, uint256 fee) =
-            seriesMath.waterfall(proceeds, series.seniorClaim(), series.juniorDeployed(), 0.1e18);
+            SeriesMath.waterfall(proceeds, series.seniorClaim(), series.juniorDeployed(), 0.1e18);
         assertEq(series.paidS(), xs, "senior paid per the waterfall on proceeds including parking yield");
         assertEq(series.paidJ(), xj, "junior paid the residual");
         assertEq(series.feeAccounted(), fee);

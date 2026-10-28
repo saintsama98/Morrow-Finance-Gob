@@ -10,8 +10,8 @@ import {Market} from "@morpho-org/midnight/src/interfaces/IMidnight.sol";
 import {StressBase} from "./StressBase.t.sol";
 import {creditSeries} from "../../src/series/creditSeries.sol";
 import {seriesFactory} from "../../src/series/seriesFactory.sol";
-import {SeriesState} from "../../src/interfaces/iSeries.sol";
-import {iErc20Like} from "../../src/interfaces/iErc20Like.sol";
+import {SeriesState} from "../../src/interfaces/ISeries.sol";
+import {IERC20Like} from "../../src/interfaces/IERC20Like.sol";
 
 contract ForkTrancheMechanicsTest is StressBase {
     uint256 internal constant ISOLATED_RCF = 3_000_000_001;
@@ -40,7 +40,7 @@ contract ForkTrancheMechanicsTest is StressBase {
     function _juniorJoin(address who, uint256 assets) internal returns (uint256 shares) {
         _fund(USDC, who, assets);
         vm.startPrank(who);
-        iErc20Like(USDC).approve(address(juniorVault), assets);
+        IERC20Like(USDC).approve(address(juniorVault), assets);
         uint256 id = juniorVault.requestDeposit(assets, who, who);
         vm.stopPrank();
         vm.startPrank(CURATOR);
@@ -189,7 +189,7 @@ contract ForkTrancheMechanicsTest is StressBase {
         address who = makeAddr("lateSenior");
         _fund(USDC, who, assets);
         vm.startPrank(who);
-        iErc20Like(USDC).approve(address(seniorVault), assets);
+        IERC20Like(USDC).approve(address(seniorVault), assets);
         (ok,) = address(seniorVault).call(abi.encodeWithSignature("deposit(uint256,address)", assets, who));
         vm.stopPrank();
     }

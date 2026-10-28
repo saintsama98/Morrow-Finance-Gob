@@ -10,8 +10,8 @@ import {Market} from "@morpho-org/midnight/src/interfaces/IMidnight.sol";
 import {ORACLE_PRICE_SCALE} from "@morpho-org/midnight/src/libraries/ConstantsLib.sol";
 import {ForkBase, iChainlinkFeed, iPriceOracle} from "./ForkBase.t.sol";
 import {creditSeries} from "../../src/series/creditSeries.sol";
-import {SeriesState} from "../../src/interfaces/iSeries.sol";
-import {iErc20Like} from "../../src/interfaces/iErc20Like.sol";
+import {SeriesState} from "../../src/interfaces/ISeries.sol";
+import {IERC20Like} from "../../src/interfaces/IERC20Like.sol";
 
 abstract contract StressBase is ForkBase {
     enum Liquidator {
@@ -62,7 +62,7 @@ abstract contract StressBase is ForkBase {
         (, ethBase,,,) = iChainlinkFeed(ETH_USD_FEED).latestRoundData();
         _fund(USDC, keeper, 20_000_000e6);
         vm.prank(keeper);
-        iErc20Like(USDC).approve(MIDNIGHT, type(uint256).max);
+        IERC20Like(USDC).approve(MIDNIGHT, type(uint256).max);
     }
 
     function _pushFeed(address feed, int256 base, uint256 ratio, uint256 overlay) internal {
@@ -113,8 +113,8 @@ abstract contract StressBase is ForkBase {
         bytes32 id = mktIds[borrowerMkt[k]];
         address b = borrowers[k];
         address token = m.collateralParams[0].token;
-        uint256 usdcBefore = iErc20Like(USDC).balanceOf(keeper);
-        uint256 collBefore = iErc20Like(token).balanceOf(keeper);
+        uint256 usdcBefore = IERC20Like(USDC).balanceOf(keeper);
+        uint256 collBefore = IERC20Like(token).balanceOf(keeper);
         uint256 snap = vm.snapshotState();
 
         uint256 posted = midnight.collateral(id, b, 0);
@@ -134,8 +134,8 @@ abstract contract StressBase is ForkBase {
         }
 
         if (liqMode == Liquidator.ProfitCapacity || liqMode == Liquidator.Cascade) {
-            uint256 paid = usdcBefore - iErc20Like(USDC).balanceOf(keeper);
-            uint256 seizedValue = _realValue(m, iErc20Like(token).balanceOf(keeper) - collBefore);
+            uint256 paid = usdcBefore - IERC20Like(USDC).balanceOf(keeper);
+            uint256 seizedValue = _realValue(m, IERC20Like(token).balanceOf(keeper) - collBefore);
             uint256 slip = seizedValue * 1e4 / depthUsd;
             uint256 realized = seizedValue * (1e4 - (slip > 5000 ? 5000 : slip)) / 1e4;
             if (realized < paid) {
@@ -272,8 +272,8 @@ abstract contract StressBase is ForkBase {
 
     function _auction(Market memory m, bytes32 id, address b) internal returns (bool ok) {
         address token = m.collateralParams[0].token;
-        uint256 usdcBefore = iErc20Like(USDC).balanceOf(keeper);
-        uint256 collBefore = iErc20Like(token).balanceOf(keeper);
+        uint256 usdcBefore = IERC20Like(USDC).balanceOf(keeper);
+        uint256 collBefore = IERC20Like(token).balanceOf(keeper);
         uint256 snap = vm.snapshotState();
         uint256 posted = midnight.collateral(id, b, 0);
         vm.prank(keeper);
@@ -288,8 +288,8 @@ abstract contract StressBase is ForkBase {
             return false;
         }
         if (liqMode == Liquidator.ProfitCapacity || liqMode == Liquidator.Cascade) {
-            uint256 paid = usdcBefore - iErc20Like(USDC).balanceOf(keeper);
-            uint256 seizedValue = _realValue(m, iErc20Like(token).balanceOf(keeper) - collBefore);
+            uint256 paid = usdcBefore - IERC20Like(USDC).balanceOf(keeper);
+            uint256 seizedValue = _realValue(m, IERC20Like(token).balanceOf(keeper) - collBefore);
             uint256 slip = seizedValue * 1e4 / depthUsd;
             if (seizedValue * (1e4 - (slip > 5000 ? 5000 : slip)) / 1e4 < paid) {
                 vm.revertToState(snap);

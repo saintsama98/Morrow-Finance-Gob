@@ -5,13 +5,13 @@
 pragma solidity 0.8.34;
 
 import {iParking} from "./iParking.sol";
-import {iErc20Like} from "../interfaces/iErc20Like.sol";
-import {iErc4626Like} from "../interfaces/iErc4626Like.sol";
-import {wadMath} from "../libraries/wadMath.sol";
+import {IERC20Like} from "../interfaces/IERC20Like.sol";
+import {IERC4626Like} from "../interfaces/IERC4626Like.sol";
+import {WadMath} from "../libraries/WadMath.sol";
 
 /// @notice Parking that lends idle cash through an ERC-4626 vault, with a raw USDC buffer.
 contract morphoParking is iParking {
-    using wadMath for uint256;
+    using WadMath for uint256;
 
     error ZeroAddress();
     error AssetMismatch();
@@ -32,8 +32,8 @@ contract morphoParking is iParking {
 
     uint256 public constant DUST_ASSETS = 100;
 
-    iErc20Like public immutable USDC;
-    iErc4626Like public immutable VAULT;
+    IERC20Like public immutable USDC;
+    IERC4626Like public immutable VAULT;
     uint256 public immutable BUFFER_WAD;
 
     mapping(address account => uint256) public sharesOf;
@@ -50,10 +50,10 @@ contract morphoParking is iParking {
 
     constructor(address usdc, address vault, uint256 bufferWad) {
         require(usdc != address(0) && vault != address(0), ZeroAddress());
-        require(iErc4626Like(vault).asset() == usdc, AssetMismatch());
+        require(IERC4626Like(vault).asset() == usdc, AssetMismatch());
         require(bufferWad <= WAD, InvalidBuffer());
-        USDC = iErc20Like(usdc);
-        VAULT = iErc4626Like(vault);
+        USDC = IERC20Like(usdc);
+        VAULT = IERC4626Like(vault);
         BUFFER_WAD = bufferWad;
     }
 

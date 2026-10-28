@@ -4,11 +4,11 @@
 
 pragma solidity 0.8.34;
 
-import {wadMath} from "./wadMath.sol";
+import {WadMath} from "./WadMath.sol";
 
 /// @notice Pricing, marks and the waterfall of a series.
-library seriesMath {
-    using wadMath for uint256;
+library SeriesMath {
+    using WadMath for uint256;
 
     uint256 internal constant WAD = 1e18;
 

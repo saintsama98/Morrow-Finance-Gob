@@ -6,13 +6,13 @@ pragma solidity 0.8.34;
 
 import {coreParkingBooks} from "./coreParkingBooks.sol";
 import {creditSeries} from "../../series/creditSeries.sol";
-import {SeriesState} from "../../interfaces/iSeries.sol";
-import {iExitQueue} from "../../interfaces/iExitQueue.sol";
-import {wadMath} from "../../libraries/wadMath.sol";
+import {SeriesState} from "../../interfaces/ISeries.sol";
+import {IExitQueue} from "../../interfaces/IExitQueue.sol";
+import {WadMath} from "../../libraries/WadMath.sol";
 
 /// @notice Book values, capacity, the stress gate and exit limits.
 abstract contract coreValuation is coreParkingBooks {
-    using wadMath for uint256;
+    using WadMath for uint256;
 
     /// @notice Number of live series.
     function liveSeriesCount() external view returns (uint256) {
@@ -81,7 +81,7 @@ abstract contract coreValuation is coreParkingBooks {
     /// @notice Assets waiting in one vault's closed exit batches.
     function queuedExits(bool isSenior) public view returns (uint256) {
         address vault = isSenior ? seniorVault : juniorVault;
-        return vault == address(0) ? 0 : iExitQueue(vault).queuedExitAssets();
+        return vault == address(0) ? 0 : IExitQueue(vault).queuedExitAssets();
     }
 
     /// @notice Idle cash a new series may use: above the floor and after queued exits.

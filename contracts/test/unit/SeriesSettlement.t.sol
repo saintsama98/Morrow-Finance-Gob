@@ -16,11 +16,11 @@ import {MockUSDC} from "../mocks/MockUSDC.sol";
 import {StubCore} from "../mocks/StubCore.sol";
 import {seriesFactory} from "../../src/series/seriesFactory.sol";
 import {creditSeries} from "../../src/series/creditSeries.sol";
-import {SeriesParams, SeriesState} from "../../src/interfaces/iSeries.sol";
-import {iMidnightMinimal} from "../../src/interfaces/iMidnightMinimal.sol";
+import {SeriesParams, SeriesState} from "../../src/interfaces/ISeries.sol";
+import {IMidnightMinimal} from "../../src/interfaces/IMidnightMinimal.sol";
 import {iParking} from "../../src/parking/iParking.sol";
 import {idleParking} from "../../src/parking/idleParking.sol";
-import {seriesMath} from "../../src/libraries/seriesMath.sol";
+import {SeriesMath} from "../../src/libraries/SeriesMath.sol";
 import {seriesStorage} from "../../src/series/modules/seriesStorage.sol";
 
 contract SeriesSettlementTest is Test, MidnightHarness {
@@ -45,7 +45,7 @@ contract SeriesSettlementTest is Test, MidnightHarness {
 
         core = new StubCore(address(usdc), sentinel);
         factory = new seriesFactory(
-            iMidnightMinimal(address(midnight)), address(setterRatifier), address(usdc), address(this), 0.86e18, 4
+            IMidnightMinimal(address(midnight)), address(setterRatifier), address(usdc), address(this), 0.86e18, 4
         );
         factory.setCore(address(core));
 
@@ -168,9 +168,9 @@ contract SeriesSettlementTest is Test, MidnightHarness {
         assertEq(uint8(series.state()), uint8(SeriesState.SETTLED));
 
         (uint256 expectedXs, uint256 expectedXj, uint256 expectedFee) =
-            seriesMath.waterfall(units, seniorClaim, juniorDeployed, 0.1e18);
-        assertEq(core.lastPayoutToSenior(), expectedXs, "senior payout must match seriesMath.waterfall");
-        assertEq(core.lastPayoutToJunior(), expectedXj, "junior payout must match seriesMath.waterfall");
+            SeriesMath.waterfall(units, seniorClaim, juniorDeployed, 0.1e18);
+        assertEq(core.lastPayoutToSenior(), expectedXs, "senior payout must match SeriesMath.waterfall");
+        assertEq(core.lastPayoutToJunior(), expectedXj, "junior payout must match SeriesMath.waterfall");
         assertGt(expectedFee, 0, "no-loss case should recognize a positive operator fee");
 
         series.claimFee();
@@ -186,7 +186,7 @@ contract SeriesSettlementTest is Test, MidnightHarness {
         (uint256 navS, uint256 navJ, uint256 feeAccrued) = series.navs();
 
         (uint256 expectedXs, uint256 expectedXj, uint256 expectedFee) =
-            seriesMath.waterfall(units, series.seniorClaim(), series.juniorDeployed(), 0.1e18);
+            SeriesMath.waterfall(units, series.seniorClaim(), series.juniorDeployed(), 0.1e18);
 
         assertEq(navS, expectedXs, "navS must converge to the waterfall's XS at maturity");
         assertEq(navJ, expectedXj, "navJ must converge to the waterfall's XJ at maturity");

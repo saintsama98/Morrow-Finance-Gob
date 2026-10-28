@@ -12,7 +12,7 @@ import {DeployHandler} from "./handlers/DeployHandler.sol";
 import {MidnightChaosHandler} from "./handlers/MidnightChaosHandler.sol";
 import {SettleHandler} from "./handlers/SettleHandler.sol";
 import {creditSeries} from "../../src/series/creditSeries.sol";
-import {SeriesState} from "../../src/interfaces/iSeries.sol";
+import {SeriesState} from "../../src/interfaces/ISeries.sol";
 
 contract SeriesInvariantsTest is Test {
     SeriesRegistry registry;

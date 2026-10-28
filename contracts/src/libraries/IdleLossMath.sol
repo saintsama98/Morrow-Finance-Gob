@@ -4,11 +4,11 @@
 
 pragma solidity 0.8.34;
 
-import {wadMath} from "./wadMath.sol";
+import {WadMath} from "./WadMath.sol";
 
 /// @notice Junior-first allocation of a fall in the value of parked claims.
-library idleLossMath {
-    using wadMath for uint256;
+library IdleLossMath {
+    using WadMath for uint256;
 
     uint256 internal constant PRICE_SCALE = 1e36;
 

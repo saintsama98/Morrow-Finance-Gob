@@ -10,13 +10,13 @@ import {HashLib} from "@morpho-org/midnight/src/ratifiers/libraries/HashLib.sol"
 import {TickLib} from "@morpho-org/midnight/src/libraries/TickLib.sol";
 import {ERC20Lib} from "@morpho-org/midnight/src/periphery/libraries/ERC20Lib.sol";
 import {seriesMarks} from "./seriesMarks.sol";
-import {iBuyCallback} from "../../interfaces/iBuyCallback.sol";
-import {SeriesState} from "../../interfaces/iSeries.sol";
-import {wadMath} from "../../libraries/wadMath.sol";
+import {IBuyCallback} from "../../interfaces/IBuyCallback.sol";
+import {SeriesState} from "../../interfaces/ISeries.sol";
+import {WadMath} from "../../libraries/WadMath.sol";
 
 /// @notice Offers and fills on Midnight while the series is deploying.
-abstract contract seriesDeployment is seriesMarks, iBuyCallback {
-    using wadMath for uint256;
+abstract contract seriesDeployment is seriesMarks, IBuyCallback {
+    using WadMath for uint256;
 
     /// @notice Highest tick the series will buy at in one market.
     function tickMaxFor(uint256 i) external view returns (uint256) {
@@ -86,7 +86,7 @@ abstract contract seriesDeployment is seriesMarks, iBuyCallback {
         uint256 i = abi.decode(data, (uint256));
         require(id == _marketIds[i], MarketMismatch(_marketIds[i], id));
 
-        uint256 priceWad = buyerAssets.mulDivUp(wadMath.WAD, units);
+        uint256 priceWad = buyerAssets.mulDivUp(WadMath.WAD, units);
         require(priceWad <= _priceMax(i), PriceFloorBreached(i, priceWad, _priceMax(i)));
 
         uint256 kAlloc = seniorAllocated + juniorAllocated;
@@ -119,7 +119,7 @@ abstract contract seriesDeployment is seriesMarks, iBuyCallback {
         uint256 ttm = T > block.timestamp ? T - block.timestamp : 0;
         uint256 fee = MIDNIGHT.settlementFee(id, ttm);
         uint256 price = TickLib.tickToPrice(offer.tick);
-        uint256 maxAssets = units.mulDivUp(price + fee, wadMath.WAD);
+        uint256 maxAssets = units.mulDivUp(price + fee, WadMath.WAD);
 
         uint256 kAlloc = seniorAllocated + juniorAllocated;
         require(filled[i] + maxAssets <= _marketCapAssets[i], CapExceeded(i));
@@ -134,7 +134,7 @@ abstract contract seriesDeployment is seriesMarks, iBuyCallback {
 
         require(uint256(creditAfter) - uint256(creditBefore) == units, UnitsMismatch());
 
-        uint256 priceWad = buyerAssets.mulDivUp(wadMath.WAD, units);
+        uint256 priceWad = buyerAssets.mulDivUp(WadMath.WAD, units);
         require(priceWad <= _priceMax(i), PriceFloorBreached(i, priceWad, _priceMax(i)));
 
         if (maxAssets > buyerAssets) {
@@ -166,7 +166,7 @@ abstract contract seriesDeployment is seriesMarks, iBuyCallback {
     }
 
     function _priceMax(uint256 i) internal view returns (uint256) {
-        return wadMath.WAD.mulDivDown(wadMath.WAD, wadMath.WAD + _rateFloorWad[i]);
+        return WadMath.WAD.mulDivDown(WadMath.WAD, WadMath.WAD + _rateFloorWad[i]);
     }
 
     function _tickMax(uint256 i) internal view returns (uint256 tickMax) {

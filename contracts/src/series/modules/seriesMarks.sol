@@ -6,13 +6,13 @@ pragma solidity 0.8.34;
 
 import {Market} from "@morpho-org/midnight/src/interfaces/IMidnight.sol";
 import {seriesStorage} from "./seriesStorage.sol";
-import {SeriesState} from "../../interfaces/iSeries.sol";
-import {wadMath} from "../../libraries/wadMath.sol";
-import {seriesMath} from "../../libraries/seriesMath.sol";
+import {SeriesState} from "../../interfaces/ISeries.sol";
+import {WadMath} from "../../libraries/WadMath.sol";
+import {SeriesMath} from "../../libraries/SeriesMath.sol";
 
 /// @notice Marks of a series against Midnight credit and its loss factor.
 abstract contract seriesMarks is seriesStorage {
-    using wadMath for uint256;
+    using WadMath for uint256;
 
     /// @notice Writes accrual for one market and emits the series' buffer.
     function sync(uint256 i) external {
@@ -70,7 +70,7 @@ abstract contract seriesMarks is seriesStorage {
             if (kAlloc == 0) return (0, 0, 0);
             uint256 value = PARKING.totalAssets(address(this)) + totalFilled;
             uint256 aWad = juniorAllocated.wDivDown(kAlloc);
-            navS = value.mulDivDown(wadMath.WAD - aWad, wadMath.WAD);
+            navS = value.mulDivDown(WadMath.WAD - aWad, WadMath.WAD);
             navJ = value - navS;
             return (navS, navJ, 0);
         }
@@ -90,11 +90,11 @@ abstract contract seriesMarks is seriesStorage {
                 : 0;
             uint256 grossV = totalFilled + accretion;
             uint256 v = grossV > faceLoss ? grossV - faceLoss : 0;
-            (navS, navJ) = seriesMath.navPassThrough(v, seniorDeployed, totalFilled);
+            (navS, navJ) = SeriesMath.navPassThrough(v, seniorDeployed, totalFilled);
             return (navS, navJ, 0);
         }
 
-        return seriesMath.nav(
+        return SeriesMath.nav(
             elapsed,
             tau,
             totalFilled,

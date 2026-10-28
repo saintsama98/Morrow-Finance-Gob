@@ -7,13 +7,13 @@ pragma solidity 0.8.34;
 import {Market} from "@morpho-org/midnight/src/interfaces/IMidnight.sol";
 import {coreVaultFlows} from "./coreVaultFlows.sol";
 import {creditSeries} from "../../series/creditSeries.sol";
-import {SeriesParams, SeriesState} from "../../interfaces/iSeries.sol";
-import {iMidnightMinimal} from "../../interfaces/iMidnightMinimal.sol";
-import {wadMath} from "../../libraries/wadMath.sol";
+import {SeriesParams, SeriesState} from "../../interfaces/ISeries.sol";
+import {IMidnightMinimal} from "../../interfaces/IMidnightMinimal.sol";
+import {WadMath} from "../../libraries/WadMath.sol";
 
 /// @notice Opening series, receiving their cash back, syncing marks and pruning settled series.
 abstract contract coreSeriesLifecycle is coreVaultFlows {
-    using wadMath for uint256;
+    using WadMath for uint256;
 
     /// @notice Opens a series with senior and junior allocations within policy.
     function openSeries(SeriesParams calldata p, uint256 S, uint256 J)
@@ -143,7 +143,7 @@ abstract contract coreSeriesLifecycle is coreVaultFlows {
     }
 
     function _maturityOfFirstMarket(bytes32 marketId) internal view returns (uint256) {
-        Market memory market = iMidnightMinimal(address(FACTORY.MIDNIGHT())).toMarket(marketId);
+        Market memory market = IMidnightMinimal(address(FACTORY.MIDNIGHT())).toMarket(marketId);
         return market.maturity;
     }
 

@@ -9,7 +9,7 @@ import {Market} from "@morpho-org/midnight/src/interfaces/IMidnight.sol";
 import {SeriesRegistry} from "../invariant/handlers/SeriesRegistry.sol";
 import {seriesCore} from "../../src/core/seriesCore.sol";
 import {creditSeries} from "../../src/series/creditSeries.sol";
-import {SeriesParams} from "../../src/interfaces/iSeries.sol";
+import {SeriesParams} from "../../src/interfaces/ISeries.sol";
 import {iParking} from "../../src/parking/iParking.sol";
 import {usdcJuniorVault} from "../../src/vaults/junior/usdcJuniorVault.sol";
 import {usdcSeniorVault} from "../../src/vaults/senior/usdcSeniorVault.sol";

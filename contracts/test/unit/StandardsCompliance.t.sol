@@ -10,7 +10,7 @@ import {seriesFactory} from "../../src/series/seriesFactory.sol";
 import {seriesCore} from "../../src/core/seriesCore.sol";
 import {usdcSeniorVault} from "../../src/vaults/senior/usdcSeniorVault.sol";
 import {usdcJuniorVault} from "../../src/vaults/junior/usdcJuniorVault.sol";
-import {iMidnightMinimal} from "../../src/interfaces/iMidnightMinimal.sol";
+import {IMidnightMinimal} from "../../src/interfaces/IMidnightMinimal.sol";
 import {iParking} from "../../src/parking/iParking.sol";
 import {idleParking} from "../../src/parking/idleParking.sol";
 import {usdcVaultBase} from "../../src/vaults/shared/usdcVaultBase.sol";
@@ -35,7 +35,7 @@ contract StandardsComplianceTest is Test {
     function setUp() public {
         usdc = new MockUSDC();
         parking = new idleParking(address(usdc));
-        factory = new seriesFactory(iMidnightMinimal(address(0x1)), address(0x2), address(usdc), governance, 0.86e18, 4);
+        factory = new seriesFactory(IMidnightMinimal(address(0x1)), address(0x2), address(usdc), governance, 0.86e18, 4);
         core = new seriesCore(
             address(usdc), factory, iParking(address(parking)), governance, allocator, curator, sentinel
         );

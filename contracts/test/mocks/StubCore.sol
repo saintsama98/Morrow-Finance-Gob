@@ -4,7 +4,7 @@
 
 pragma solidity 0.8.34;
 
-import {SeriesParams} from "../../src/interfaces/iSeries.sol";
+import {SeriesParams} from "../../src/interfaces/ISeries.sol";
 import {seriesFactory} from "../../src/series/seriesFactory.sol";
 
 interface IERC20Mintable {

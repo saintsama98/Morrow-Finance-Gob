@@ -7,7 +7,7 @@ pragma solidity 0.8.34;
 import {Market, Offer, CollateralParams} from "@morpho-org/midnight/src/interfaces/IMidnight.sol";
 
 /// @notice The part of Midnight the protocol calls.
-interface iMidnightMinimal {
+interface IMidnightMinimal {
     /// @notice Takes an offer.
     function take(
         Offer memory offer,

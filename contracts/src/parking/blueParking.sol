@@ -9,8 +9,8 @@ import {MarketParamsLib} from "@morpho-org/morpho-blue/src/libraries/MarketParam
 import {SharesMathLib} from "@morpho-org/morpho-blue/src/libraries/SharesMathLib.sol";
 import {MorphoBalancesLib} from "@morpho-org/morpho-blue/src/libraries/periphery/MorphoBalancesLib.sol";
 import {iParking} from "./iParking.sol";
-import {iErc20Like} from "../interfaces/iErc20Like.sol";
-import {wadMath} from "../libraries/wadMath.sol";
+import {IERC20Like} from "../interfaces/IERC20Like.sol";
+import {WadMath} from "../libraries/WadMath.sol";
 
 /// @notice The part of the series factory the Blue adapter reads.
 interface iParkingFactoryLike {
@@ -38,7 +38,7 @@ interface iParkingCoreLike {
 
 /// @notice Parking that lends idle cash directly in one Morpho Blue market, with a raw USDC buffer.
 contract blueParking is iParking {
-    using wadMath for uint256;
+    using WadMath for uint256;
     using MarketParamsLib for MarketParams;
     using SharesMathLib for uint256;
     using MorphoBalancesLib for IMorpho;
@@ -66,7 +66,7 @@ contract blueParking is iParking {
 
     uint256 public constant DUST_ASSETS = 100;
 
-    iErc20Like public immutable USDC;
+    IERC20Like public immutable USDC;
     IMorpho public immutable MORPHO;
     iParkingFactoryLike public immutable FACTORY;
     Id public immutable MARKET_ID;
@@ -108,7 +108,7 @@ contract blueParking is iParking {
         Id id = params.id();
         require(IMorpho(morpho).market(id).lastUpdate != 0, MarketNotCreated());
 
-        USDC = iErc20Like(usdc);
+        USDC = IERC20Like(usdc);
         MORPHO = IMorpho(morpho);
         FACTORY = iParkingFactoryLike(factory);
         MARKET_ID = id;

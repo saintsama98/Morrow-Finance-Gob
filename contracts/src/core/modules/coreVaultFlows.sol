@@ -5,7 +5,7 @@
 pragma solidity 0.8.34;
 
 import {coreGovernance} from "./coreGovernance.sol";
-import {iErc20Like} from "../../interfaces/iErc20Like.sol";
+import {IERC20Like} from "../../interfaces/IERC20Like.sol";
 
 /// @notice Cash movements between the vaults and the books.
 abstract contract coreVaultFlows is coreGovernance {
@@ -23,7 +23,7 @@ abstract contract coreVaultFlows is coreGovernance {
     /// @notice Returns pending junior cash on a cancel.
     function removePendingJunior(uint256 assets, address to) external onlyJuniorVault {
         junior.pendingDeposits -= assets;
-        require(iErc20Like(USDC).transfer(to, assets), TransferFailed());
+        require(IERC20Like(USDC).transfer(to, assets), TransferFailed());
     }
 
     /// @notice Moves filled pending junior cash into the junior book.
@@ -44,9 +44,9 @@ abstract contract coreVaultFlows is coreGovernance {
             _removeFromBooks(0, assets);
             junior.reservedAssets += assets;
         }
-        uint256 balBefore = iErc20Like(USDC).balanceOf(address(this));
+        uint256 balBefore = IERC20Like(USDC).balanceOf(address(this));
         PARKING.withdraw(assets, address(this));
-        uint256 received = iErc20Like(USDC).balanceOf(address(this)) - balBefore;
+        uint256 received = IERC20Like(USDC).balanceOf(address(this)) - balBefore;
         require(received == assets, ParkingShortPaid(assets, received));
     }
 
@@ -55,7 +55,7 @@ abstract contract coreVaultFlows is coreGovernance {
         _requireVault(isSenior);
         if (isSenior) senior.reservedAssets -= assets;
         else junior.reservedAssets -= assets;
-        require(iErc20Like(USDC).transfer(to, assets), TransferFailed());
+        require(IERC20Like(USDC).transfer(to, assets), TransferFailed());
     }
 
     function _requireVault(bool isSenior) internal view {

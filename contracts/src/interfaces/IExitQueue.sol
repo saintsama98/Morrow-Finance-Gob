@@ -5,7 +5,7 @@
 pragma solidity 0.8.34;
 
 /// @notice Exit demand a vault has queued.
-interface iExitQueue {
+interface IExitQueue {
     /// @notice Assets waiting in closed exit batches.
     function queuedExitAssets() external view returns (uint256);
 }

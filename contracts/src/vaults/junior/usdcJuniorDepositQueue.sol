@@ -5,13 +5,13 @@
 pragma solidity 0.8.34;
 
 import {usdcVaultBase} from "../shared/usdcVaultBase.sol";
-import {iErc20Like} from "../../interfaces/iErc20Like.sol";
-import {wadMath} from "../../libraries/wadMath.sol";
-import {epochMath} from "../../libraries/epochMath.sol";
+import {IERC20Like} from "../../interfaces/IERC20Like.sol";
+import {WadMath} from "../../libraries/WadMath.sol";
+import {EpochMath} from "../../libraries/EpochMath.sol";
 
 /// @notice Batched junior deposits, filled oldest first.
 abstract contract usdcJuniorDepositQueue is usdcVaultBase {
-    using wadMath for uint256;
+    using WadMath for uint256;
 
     event Deposit(address indexed controller, address indexed receiver, uint256 assets, uint256 shares);
     event DepositRequest(
@@ -76,7 +76,7 @@ abstract contract usdcJuniorDepositQueue is usdcVaultBase {
         require(msg.sender == controller || isOperator[controller][msg.sender], NotControllerOrOperator());
 
         requestId = openDepositEpochId;
-        require(iErc20Like(USDC).transferFrom(owner, address(CORE), assets), TransferFailed());
+        require(IERC20Like(USDC).transferFrom(owner, address(CORE), assets), TransferFailed());
         CORE.addPendingJunior(assets);
         requestedAssets[requestId][controller] += assets;
         depositEpochs[requestId].totalAssetsRequested += assets;
@@ -126,8 +126,8 @@ abstract contract usdcJuniorDepositQueue is usdcVaultBase {
         uint256 assetsNow = assetsToInvest < e.remainingFillable ? assetsToInvest : e.remainingFillable;
         if (assetsNow == 0) return;
 
-        uint256 priceWad = epochMath.depositPriceWad(e.ppsCloseWad, pricePerShareWad());
-        uint256 sharesNow = epochMath.sharesForAssets(assetsNow, priceWad);
+        uint256 priceWad = EpochMath.depositPriceWad(e.ppsCloseWad, pricePerShareWad());
+        uint256 sharesNow = EpochMath.sharesForAssets(assetsNow, priceWad);
 
         e.remainingFillable -= assetsNow;
         e.assetsFulfilled += assetsNow;

@@ -5,7 +5,7 @@
 pragma solidity 0.8.34;
 
 /// @notice Minimal ERC-4626.
-interface iErc4626Like {
+interface IERC4626Like {
     /// @notice Underlying asset.
     function asset() external view returns (address);
     /// @notice Share balance of an account.

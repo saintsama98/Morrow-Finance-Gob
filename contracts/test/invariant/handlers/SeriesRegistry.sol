@@ -15,8 +15,8 @@ import {MockOracle} from "../../mocks/MockOracle.sol";
 import {StubCore} from "../../mocks/StubCore.sol";
 import {seriesFactory} from "../../../src/series/seriesFactory.sol";
 import {creditSeries} from "../../../src/series/creditSeries.sol";
-import {SeriesParams} from "../../../src/interfaces/iSeries.sol";
-import {iMidnightMinimal} from "../../../src/interfaces/iMidnightMinimal.sol";
+import {SeriesParams} from "../../../src/interfaces/ISeries.sol";
+import {IMidnightMinimal} from "../../../src/interfaces/IMidnightMinimal.sol";
 import {iParking} from "../../../src/parking/iParking.sol";
 import {idleParking} from "../../../src/parking/idleParking.sol";
 import {seriesCore} from "../../../src/core/seriesCore.sol";
@@ -97,13 +97,13 @@ contract SeriesRegistry is Test {
         collateralToken = address(new MockUSDC());
 
         factory = new seriesFactory(
-            iMidnightMinimal(address(midnight)), address(setterRatifier), address(usdc), address(this), 0.86e18, 4
+            IMidnightMinimal(address(midnight)), address(setterRatifier), address(usdc), address(this), 0.86e18, 4
         );
         core = new StubCore(address(usdc), SENTINEL);
         factory.setCore(address(core));
 
         realFactory = new seriesFactory(
-            iMidnightMinimal(address(midnight)), address(setterRatifier), address(usdc), address(this), 0.86e18, 4
+            IMidnightMinimal(address(midnight)), address(setterRatifier), address(usdc), address(this), 0.86e18, 4
         );
 
         factory.proposeCollateralAllowed(collateralToken, true);

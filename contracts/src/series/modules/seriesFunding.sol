@@ -6,16 +6,16 @@ pragma solidity 0.8.34;
 
 import {ERC20Lib} from "@morpho-org/midnight/src/periphery/libraries/ERC20Lib.sol";
 import {seriesDeployment} from "./seriesDeployment.sol";
-import {iSeriesCoreMinimal} from "../../interfaces/iSeriesCoreMinimal.sol";
-import {iErc20Like} from "../../interfaces/iErc20Like.sol";
-import {SeriesState} from "../../interfaces/iSeries.sol";
-import {wadMath} from "../../libraries/wadMath.sol";
-import {premiumCurve} from "../../libraries/premiumCurve.sol";
-import {seriesMath} from "../../libraries/seriesMath.sol";
+import {ISeriesCoreMinimal} from "../../interfaces/ISeriesCoreMinimal.sol";
+import {IERC20Like} from "../../interfaces/IERC20Like.sol";
+import {SeriesState} from "../../interfaces/ISeries.sol";
+import {WadMath} from "../../libraries/WadMath.sol";
+import {PremiumCurve} from "../../libraries/PremiumCurve.sol";
+import {SeriesMath} from "../../libraries/SeriesMath.sol";
 
 /// @notice Funding, cancellation and finalize of a series.
 abstract contract seriesFunding is seriesDeployment {
-    using wadMath for uint256;
+    using WadMath for uint256;
 
     /// @notice Records the senior and junior allocations moved in by the core.
     function initialize(uint256 seniorAllocated_, uint256 juniorAllocated_) external inState(SeriesState.DEPLOYING) {
@@ -39,7 +39,7 @@ abstract contract seriesFunding is seriesDeployment {
 
     /// @notice Cancels a series with no fills; allocator or sentinel.
     function cancel() external nonReentrant inState(SeriesState.DEPLOYING) {
-        require(msg.sender == ALLOCATOR || msg.sender == iSeriesCoreMinimal(CORE).sentinel(), NotCoreOrSentinel());
+        require(msg.sender == ALLOCATOR || msg.sender == ISeriesCoreMinimal(CORE).sentinel(), NotCoreOrSentinel());
         require(totalFilled == 0, AlreadyFilled());
 
         state = SeriesState.CANCELED;
@@ -73,9 +73,9 @@ abstract contract seriesFunding is seriesDeployment {
         uint256 aWad = juniorAllocated.wDivDown(kAlloc);
         juniorShareWad = aWad;
         utilizationWad = COV_WAD.wDivUp(aWad);
-        premiumWad = premiumCurve.pi(utilizationWad, U_T_WAD, PI0_WAD, PIT_WAD, PI1_WAD);
+        premiumWad = PremiumCurve.pi(utilizationWad, U_T_WAD, PI0_WAD, PIT_WAD, PI1_WAD);
 
-        seriesMath.PricingResult memory r = seriesMath.price(kD, aWad, fNet, premiumWad);
+        SeriesMath.PricingResult memory r = SeriesMath.price(kD, aWad, fNet, premiumWad);
         seniorDeployed = r.seniorDeployed;
         juniorDeployed = r.juniorDeployed;
         poolRateWad = r.poolRateWad;
@@ -95,11 +95,11 @@ abstract contract seriesFunding is seriesDeployment {
         uint256 extraJ;
         if (balance >= undeployed) {
             uint256 extra = balance - undeployed;
-            extraS = extra.mulDivDown(wadMath.WAD - aWad, wadMath.WAD);
+            extraS = extra.mulDivDown(WadMath.WAD - aWad, WadMath.WAD);
             extraJ = extra - extraS;
         } else {
             uint256 shortfall = undeployed - balance;
-            uint256 shortfallS = shortfall.mulDivDown(wadMath.WAD - aWad, wadMath.WAD);
+            uint256 shortfallS = shortfall.mulDivDown(WadMath.WAD - aWad, WadMath.WAD);
             returnS -= shortfallS;
             returnJ -= (shortfall - shortfallS);
         }
@@ -107,7 +107,7 @@ abstract contract seriesFunding is seriesDeployment {
         uint256 totalToSenior = returnS + extraS;
         uint256 totalToJunior = returnJ + extraJ;
         if (totalToSenior + totalToJunior > 0) PARKING.transferPosition(CORE, totalToSenior + totalToJunior);
-        iSeriesCoreMinimal(CORE).receiveReturn(totalToSenior, totalToJunior);
+        ISeriesCoreMinimal(CORE).receiveReturn(totalToSenior, totalToJunior);
 
         totalFilled = kD;
         tFinalize = block.timestamp;
@@ -137,17 +137,17 @@ abstract contract seriesFunding is seriesDeployment {
 
         uint256 kAlloc = seniorAllocated + juniorAllocated;
         uint256 aWad = kAlloc == 0 ? 0 : juniorAllocated.wDivDown(kAlloc);
-        uint256 toSenior = balance.mulDivDown(wadMath.WAD - aWad, wadMath.WAD);
+        uint256 toSenior = balance.mulDivDown(WadMath.WAD - aWad, WadMath.WAD);
         uint256 toJunior = balance - toSenior;
 
         if (balance > 0) PARKING.transferPosition(CORE, balance);
-        iSeriesCoreMinimal(CORE).receiveReturn(toSenior, toJunior);
+        ISeriesCoreMinimal(CORE).receiveReturn(toSenior, toJunior);
 
         emit Canceled(toSenior, toJunior);
     }
 
     function _sweepRaw() internal {
-        uint256 raw = iErc20Like(USDC).balanceOf(address(this));
+        uint256 raw = IERC20Like(USDC).balanceOf(address(this));
         if (raw == 0) return;
         ERC20Lib.safeApprove(USDC, address(PARKING), raw);
         PARKING.deposit(raw);

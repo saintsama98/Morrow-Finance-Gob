@@ -5,7 +5,7 @@
 pragma solidity 0.8.34;
 
 import {ScenarioBase} from "./ScenarioBase.t.sol";
-import {epochMath} from "../../src/libraries/epochMath.sol";
+import {EpochMath} from "../../src/libraries/EpochMath.sol";
 
 contract S11_RedemptionDemandExceedsIdleTest is ScenarioBase {
     address juniorDepositor = makeAddr("juniorDepositor");
@@ -44,8 +44,8 @@ contract S11_RedemptionDemandExceedsIdleTest is ScenarioBase {
         assertGt(sharesFulfilled1, 0, "round 1 must fill something");
         assertLt(sharesFulfilled1, totalRequested, "round 1 must be a genuine partial fill, not a full one");
 
-        uint256 entitledA1 = epochMath.claimableShares(sharesA, sharesFulfilled1, totalRequested, 0);
-        uint256 entitledB1 = epochMath.claimableShares(sharesB, sharesFulfilled1, totalRequested, 0);
+        uint256 entitledA1 = EpochMath.claimableShares(sharesA, sharesFulfilled1, totalRequested, 0);
+        uint256 entitledB1 = EpochMath.claimableShares(sharesB, sharesFulfilled1, totalRequested, 0);
         assertEq(
             seniorVault.claimableRedeemRequest(requestId, seniorA),
             entitledA1,
@@ -66,8 +66,8 @@ contract S11_RedemptionDemandExceedsIdleTest is ScenarioBase {
         (,, uint256 sharesFulfilled2,,,) = seniorVault.epochs(requestId);
         assertEq(sharesFulfilled2, totalRequested, "round 2 must complete the fill entirely");
 
-        uint256 entitledA2 = epochMath.claimableShares(sharesA, sharesFulfilled2, totalRequested, 0);
-        uint256 entitledB2 = epochMath.claimableShares(sharesB, sharesFulfilled2, totalRequested, 0);
+        uint256 entitledA2 = EpochMath.claimableShares(sharesA, sharesFulfilled2, totalRequested, 0);
+        uint256 entitledB2 = EpochMath.claimableShares(sharesB, sharesFulfilled2, totalRequested, 0);
         assertEq(entitledA2, sharesA, "A must be entitled to its full request once the epoch fully fills");
         assertEq(entitledB2, sharesB, "B must be entitled to its full request once the epoch fully fills");
         assertEq(

@@ -5,10 +5,10 @@
 pragma solidity 0.8.34;
 
 import {Test} from "forge-std/Test.sol";
-import {wadMath} from "../../src/libraries/wadMath.sol";
+import {WadMath} from "../../src/libraries/WadMath.sol";
 
 contract EpochDetachMathTest is Test {
-    using wadMath for uint256;
+    using WadMath for uint256;
 
     function _isFloorDiv(uint256 q, uint256 x, uint256 y, uint256 d) internal pure returns (bool) {
         unchecked {

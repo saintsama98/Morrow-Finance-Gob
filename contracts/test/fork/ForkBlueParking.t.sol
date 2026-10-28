@@ -15,8 +15,8 @@ import {seriesCore} from "../../src/core/seriesCore.sol";
 import {usdcSeniorVault} from "../../src/vaults/senior/usdcSeniorVault.sol";
 import {usdcJuniorVault} from "../../src/vaults/junior/usdcJuniorVault.sol";
 import {blueParking} from "../../src/parking/blueParking.sol";
-import {iMidnightMinimal} from "../../src/interfaces/iMidnightMinimal.sol";
-import {iErc20Like} from "../../src/interfaces/iErc20Like.sol";
+import {IMidnightMinimal} from "../../src/interfaces/IMidnightMinimal.sol";
+import {IERC20Like} from "../../src/interfaces/IERC20Like.sol";
 
 interface iBlueOracle {
     function price() external view returns (uint256);
@@ -44,7 +44,7 @@ contract ForkBlueParkingTest is ForkBase {
         vm.createSelectFork(url, _pinnedBlock());
         forkStartTs = block.timestamp;
 
-        factory = new seriesFactory(iMidnightMinimal(MIDNIGHT), SETTER_RATIFIER, USDC, address(this), _maxLltv(), 4);
+        factory = new seriesFactory(IMidnightMinimal(MIDNIGHT), SETTER_RATIFIER, USDC, address(this), _maxLltv(), 4);
         factory.proposeCollateralAllowed(CBBTC, true);
         factory.proposeOracleAllowed(CBBTC, CBBTC_ORACLE, true);
         vm.warp(block.timestamp + 48 hours);
@@ -66,7 +66,7 @@ contract ForkBlueParkingTest is ForkBase {
     }
 
     function _fund(address token, address to, uint256 amount) internal override {
-        deal(token, to, iErc20Like(token).balanceOf(to) + amount);
+        deal(token, to, IERC20Like(token).balanceOf(to) + amount);
     }
 
     function _assertValuationMatchesBlue(string memory when) internal {
@@ -159,7 +159,7 @@ contract ForkBlueParkingTest is ForkBase {
         vm.prank(SENTINEL);
         blueAdapter.exitToCash();
         assertEq(blueAdapter.blueShares(), 0);
-        assertApproxEqAbs(iErc20Like(USDC).balanceOf(address(blueAdapter)), pool, 1);
+        assertApproxEqAbs(IERC20Like(USDC).balanceOf(address(blueAdapter)), pool, 1);
         _checkStructure();
     }
 
@@ -178,7 +178,7 @@ contract ForkBlueParkingTest is ForkBase {
         uint256 collateral = assets * 1e36 / price * 1e18 / params.lltv * headroomPct / 100 + 1;
         deal(CBBTC, who, collateral);
         vm.startPrank(who);
-        iErc20Like(CBBTC).approve(BLUE, collateral);
+        IERC20Like(CBBTC).approve(BLUE, collateral);
         IMorpho(BLUE).supplyCollateral(params, collateral, who, "");
         IMorpho(BLUE).borrow(params, assets, 0, who, who);
         vm.stopPrank();
@@ -196,7 +196,7 @@ contract ForkBlueParkingTest is ForkBase {
         uint256 owed = shares.toAssetsUp(m.totalBorrowAssets, m.totalBorrowShares);
         deal(USDC, squeezer, owed + 1);
         vm.startPrank(squeezer);
-        iErc20Like(USDC).approve(BLUE, owed + 1);
+        IERC20Like(USDC).approve(BLUE, owed + 1);
         IMorpho(BLUE).repay(params, 0, shares, squeezer, "");
         vm.stopPrank();
         assertGt(_blueFree(), 1_000_000e6, "liquidity is back after the repayment");
@@ -209,7 +209,7 @@ contract ForkBlueParkingTest is ForkBase {
         _postCollateral(borrower, market, 0, _collateralFor(market, 0, 400_000e6, 80));
 
         _squeeze();
-        uint256 raw = iErc20Like(USDC).balanceOf(address(blueAdapter));
+        uint256 raw = IERC20Like(USDC).balanceOf(address(blueAdapter));
         assertEq(core.parkingLiquidity() <= raw, true, "only the raw slice is withdrawable");
         assertGt(raw, 50_000e6, "the raw slice survives the squeeze");
 
@@ -305,7 +305,7 @@ contract ForkBlueParkingTest is ForkBase {
         vm.mockCall(params.oracle, abi.encodeWithSelector(iBlueOracle.price.selector), abi.encode(price * 4 / 10));
         deal(USDC, blueLiquidator, size);
         vm.startPrank(blueLiquidator);
-        iErc20Like(USDC).approve(BLUE, size);
+        IERC20Like(USDC).approve(BLUE, size);
         IMorpho(BLUE).liquidate(params, victim, collateral, 0, "");
         vm.stopPrank();
         vm.clearMockedCalls();

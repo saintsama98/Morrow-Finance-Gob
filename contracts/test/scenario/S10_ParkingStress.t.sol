@@ -10,7 +10,7 @@ import {SeriesRegistry} from "../invariant/handlers/SeriesRegistry.sol";
 import {LossyParking} from "../mocks/LossyParking.sol";
 import {ScenarioBase} from "./ScenarioBase.t.sol";
 import {creditSeries} from "../../src/series/creditSeries.sol";
-import {wadMath} from "../../src/libraries/wadMath.sol";
+import {WadMath} from "../../src/libraries/WadMath.sol";
 
 contract SeriesRegistryLossyParking is SeriesRegistry {
     function _deployParking() internal override returns (iParking) {
@@ -19,7 +19,7 @@ contract SeriesRegistryLossyParking is SeriesRegistry {
 }
 
 contract S10_ParkingStressTest is ScenarioBase {
-    using wadMath for uint256;
+    using WadMath for uint256;
 
     address borrower = makeAddr("borrower");
     address seniorDepositor = makeAddr("seniorDepositor");

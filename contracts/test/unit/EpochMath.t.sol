@@ -1,32 +1,32 @@
 // SPDX-License-Identifier: BUSL-1.1
-// Morrow Finance: unit and fuzz tests for epochMath's pro-rata epoch fulfillment.
+// Morrow Finance: unit and fuzz tests for EpochMath's pro-rata epoch fulfillment.
 // @author adiii.eth
 
 pragma solidity 0.8.34;
 
 import {Test} from "forge-std/Test.sol";
-import {epochMath} from "../../src/libraries/epochMath.sol";
-import {wadMath} from "../../src/libraries/wadMath.sol";
+import {EpochMath} from "../../src/libraries/EpochMath.sol";
+import {WadMath} from "../../src/libraries/WadMath.sol";
 
 contract EpochMathTest is Test {
-    using wadMath for uint256;
+    using WadMath for uint256;
 
     uint256 constant WAD = 1e18;
 
     function test_redemptionPrice_minRule() public pure {
-        assertEq(epochMath.redemptionPriceWad(1.1e18, 1.0e18), 1.0e18, "must pick the lower price");
-        assertEq(epochMath.redemptionPriceWad(0.9e18, 1.0e18), 0.9e18, "must pick the lower price");
-        assertEq(epochMath.redemptionPriceWad(1.0e18, 1.0e18), 1.0e18);
+        assertEq(EpochMath.redemptionPriceWad(1.1e18, 1.0e18), 1.0e18, "must pick the lower price");
+        assertEq(EpochMath.redemptionPriceWad(0.9e18, 1.0e18), 0.9e18, "must pick the lower price");
+        assertEq(EpochMath.redemptionPriceWad(1.0e18, 1.0e18), 1.0e18);
     }
 
     function test_depositPrice_maxRule() public pure {
-        assertEq(epochMath.depositPriceWad(1.1e18, 1.0e18), 1.1e18, "must pick the higher price");
-        assertEq(epochMath.depositPriceWad(0.9e18, 1.0e18), 1.0e18, "must pick the higher price");
+        assertEq(EpochMath.depositPriceWad(1.1e18, 1.0e18), 1.1e18, "must pick the higher price");
+        assertEq(EpochMath.depositPriceWad(0.9e18, 1.0e18), 1.0e18, "must pick the higher price");
     }
 
     function testFuzz_minMaxRules_alwaysBetweenInputs(uint256 a, uint256 b) public pure {
-        uint256 lo = epochMath.redemptionPriceWad(a, b);
-        uint256 hi = epochMath.depositPriceWad(a, b);
+        uint256 lo = EpochMath.redemptionPriceWad(a, b);
+        uint256 hi = EpochMath.depositPriceWad(a, b);
         assertLe(lo, hi);
         assertTrue(lo == a || lo == b);
         assertTrue(hi == a || hi == b);
@@ -37,8 +37,8 @@ contract EpochMathTest is Test {
         uint256 available = 1_000_000e6;
         uint256 remaining = 2_000_000e18;
 
-        uint256 shares = epochMath.sharesFillable(remaining, available, price);
-        uint256 assets = epochMath.assetsForShares(shares, price);
+        uint256 shares = EpochMath.sharesFillable(remaining, available, price);
+        uint256 assets = EpochMath.assetsForShares(shares, price);
 
         assertLe(assets, available, "must never draw more assets than were available");
         assertLt(shares, remaining, "should be capped by available assets, not the full request");
@@ -49,7 +49,7 @@ contract EpochMathTest is Test {
         uint256 available = 1_000_000e6 * 1e12;
         uint256 remaining = 500e18;
 
-        uint256 shares = epochMath.sharesFillable(remaining, available, price);
+        uint256 shares = EpochMath.sharesFillable(remaining, available, price);
         assertEq(shares, remaining, "should be capped by the remaining request, not assets");
     }
 
@@ -64,7 +64,7 @@ contract EpochMathTest is Test {
 
         uint256 sumClaimable;
         for (uint256 i = 0; i < 10; i++) {
-            uint256 claimable = epochMath.claimableShares(requests[i], totalShares, totalShares, 0);
+            uint256 claimable = EpochMath.claimableShares(requests[i], totalShares, totalShares, 0);
             assertEq(claimable, requests[i], "full fill: claimable must equal the exact request, no rounding");
             sumClaimable += claimable;
         }
@@ -85,7 +85,7 @@ contract EpochMathTest is Test {
 
         uint256 sumClaimable;
         for (uint256 i = 0; i < 20; i++) {
-            sumClaimable += epochMath.claimableShares(requests[i], sharesFulfilled, totalShares, 0);
+            sumClaimable += EpochMath.claimableShares(requests[i], sharesFulfilled, totalShares, 0);
         }
 
         assertLe(sumClaimable, sharesFulfilled, "sum of claimable must never exceed sharesFulfilled");
@@ -107,7 +107,7 @@ contract EpochMathTest is Test {
 
         uint256 sumClaimable;
         for (uint256 i = 0; i < 15; i++) {
-            sumClaimable += epochMath.claimableAssets(requests[i], assetsFulfilled, totalShares, 0);
+            sumClaimable += EpochMath.claimableAssets(requests[i], assetsFulfilled, totalShares, 0);
         }
 
         assertLe(sumClaimable, assetsFulfilled, "sum of claimable assets must never exceed assetsFulfilled");
@@ -125,8 +125,8 @@ contract EpochMathTest is Test {
         uint256 sharesFulfilled1 = totalShares.mulDivDown(fill1Bps, 10_000);
         uint256 sharesFulfilled2 = totalShares.mulDivDown(fill2Bps, 10_000);
 
-        uint256 claim1 = epochMath.claimableShares(requested, sharesFulfilled1, totalShares, 0);
-        uint256 claim2 = epochMath.claimableShares(requested, sharesFulfilled2, totalShares, claim1);
+        uint256 claim1 = EpochMath.claimableShares(requested, sharesFulfilled1, totalShares, 0);
+        uint256 claim2 = EpochMath.claimableShares(requested, sharesFulfilled2, totalShares, claim1);
 
         assertLe(claim1 + claim2, requested, "cumulative claims must never exceed the original request");
         assertLe(claim1, claim2 + claim1, "second-round claim must not go backwards");

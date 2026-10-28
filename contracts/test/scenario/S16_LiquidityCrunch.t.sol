@@ -9,7 +9,7 @@ import {Midnight} from "@morpho-org/midnight/src/Midnight.sol";
 import {MorphoScenarioBase} from "./MorphoScenarioBase.t.sol";
 import {creditSeries} from "../../src/series/creditSeries.sol";
 import {morphoParking} from "../../src/parking/morphoParking.sol";
-import {SeriesState} from "../../src/interfaces/iSeries.sol";
+import {SeriesState} from "../../src/interfaces/ISeries.sol";
 
 contract S16_LiquidityCrunchTest is MorphoScenarioBase {
     address borrower = makeAddr("borrower");

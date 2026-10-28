@@ -5,7 +5,7 @@
 pragma solidity 0.8.34;
 
 import {usdcVaultBase} from "../shared/usdcVaultBase.sol";
-import {iErc20Like} from "../../interfaces/iErc20Like.sol";
+import {IERC20Like} from "../../interfaces/IERC20Like.sol";
 
 /// @notice Synchronous ERC-4626 deposits, limited by senior capacity and the stress gate.
 abstract contract usdcSeniorDeposits is usdcVaultBase {
@@ -48,7 +48,7 @@ abstract contract usdcSeniorDeposits is usdcVaultBase {
         shares = convertToShares(assets);
         require(shares > 0, ZeroShares());
 
-        require(iErc20Like(USDC).transferFrom(msg.sender, address(CORE), assets), TransferFailed());
+        require(IERC20Like(USDC).transferFrom(msg.sender, address(CORE), assets), TransferFailed());
         CORE.depositFor(true, assets);
 
         _mint(receiver, shares);
@@ -66,7 +66,7 @@ abstract contract usdcSeniorDeposits is usdcVaultBase {
         require(assets > 0, ZeroAssets());
         require(CORE.seniorAssets() + assets <= CORE.seniorCapacity(), CapacityExceeded());
 
-        require(iErc20Like(USDC).transferFrom(msg.sender, address(CORE), assets), TransferFailed());
+        require(IERC20Like(USDC).transferFrom(msg.sender, address(CORE), assets), TransferFailed());
         CORE.depositFor(true, assets);
 
         _mint(receiver, shares);

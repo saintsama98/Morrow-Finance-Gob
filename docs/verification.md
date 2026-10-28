@@ -106,7 +106,7 @@ echidna contracts/test/crytic/MorrowCrytic.sol --contract MorrowCrytic --config 
 
 ## Symbolic execution (Halmos)
 
-Halmos ran on the math libraries (`wadMath`, `premiumCurve`, `seriesMath`, `epochMath`), whose logic is unchanged in the current code. The run was made on a separate machine. Its harnesses are not yet in this repository; the targets included here are `contracts/test/formal/EpochDetachMath.t.sol` and `contracts/test/formal/IdleLossMath.t.sol`. Every proven property has a reachability companion that produced a counterexample, which shows the proven paths are not vacuous.
+Halmos ran on the math libraries (`WadMath`, `PremiumCurve`, `SeriesMath`, `EpochMath`), whose logic is unchanged in the current code. The run was made on a separate machine. Its harnesses are not yet in this repository; the targets included here are `contracts/test/formal/EpochDetachMath.t.sol` and `contracts/test/formal/IdleLossMath.t.sol`. Every proven property has a reachability companion that produced a counterexample, which shows the proven paths are not vacuous.
 
 | Target | Property | Result |
 |---|---|---|

@@ -9,7 +9,7 @@ import {console} from "forge-std/console.sol";
 import {Market} from "@morpho-org/midnight/src/interfaces/IMidnight.sol";
 import {StressBase} from "./StressBase.t.sol";
 import {creditSeries} from "../../src/series/creditSeries.sol";
-import {SeriesState} from "../../src/interfaces/iSeries.sol";
+import {SeriesState} from "../../src/interfaces/ISeries.sol";
 
 contract ForkDefaultGridTest is StressBase {
     uint256 internal constant N = 10;

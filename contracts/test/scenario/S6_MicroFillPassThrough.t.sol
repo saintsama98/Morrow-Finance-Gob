@@ -6,8 +6,8 @@ pragma solidity 0.8.34;
 
 import {ScenarioBase} from "./ScenarioBase.t.sol";
 import {creditSeries} from "../../src/series/creditSeries.sol";
-import {SeriesState} from "../../src/interfaces/iSeries.sol";
-import {seriesMath} from "../../src/libraries/seriesMath.sol";
+import {SeriesState} from "../../src/interfaces/ISeries.sol";
+import {SeriesMath} from "../../src/libraries/SeriesMath.sol";
 
 contract S6_MicroFillPassThroughTest is ScenarioBase {
     address borrower = makeAddr("borrower");
@@ -45,9 +45,9 @@ contract S6_MicroFillPassThroughTest is ScenarioBase {
         assertEq(uint8(series.state()), uint8(SeriesState.SETTLED));
 
         (uint256 expectedXs, uint256 expectedXj) =
-            seriesMath.waterfallPassThrough(received, seniorDeployed, totalFilled);
-        assertEq(series.paidS(), expectedXs, "senior's pass-through payout must match seriesMath.waterfallPassThrough");
-        assertEq(series.paidJ(), expectedXj, "junior's pass-through payout must match seriesMath.waterfallPassThrough");
+            SeriesMath.waterfallPassThrough(received, seniorDeployed, totalFilled);
+        assertEq(series.paidS(), expectedXs, "senior's pass-through payout must match SeriesMath.waterfallPassThrough");
+        assertEq(series.paidJ(), expectedXj, "junior's pass-through payout must match SeriesMath.waterfallPassThrough");
         assertEq(series.feeAccounted(), 0, "pass-through mode charges no operator fee at all");
         assertGt(received, totalFilled, "sanity: interest must have accrued so the pass-through split is non-trivial");
     }

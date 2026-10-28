@@ -7,7 +7,7 @@ pragma solidity 0.8.34;
 import {Test} from "forge-std/Test.sol";
 import {SeriesRegistry} from "./SeriesRegistry.sol";
 import {creditSeries} from "../../../src/series/creditSeries.sol";
-import {SeriesState} from "../../../src/interfaces/iSeries.sol";
+import {SeriesState} from "../../../src/interfaces/ISeries.sol";
 
 contract SettleHandler is Test {
     SeriesRegistry public registry;

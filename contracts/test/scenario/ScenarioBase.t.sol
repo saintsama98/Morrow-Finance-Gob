@@ -15,15 +15,15 @@ import {ORACLE_PRICE_SCALE} from "@morpho-org/midnight/src/libraries/ConstantsLi
 import {SeriesRegistry} from "../invariant/handlers/SeriesRegistry.sol";
 import {MockUSDC} from "../mocks/MockUSDC.sol";
 import {creditSeries} from "../../src/series/creditSeries.sol";
-import {SeriesParams} from "../../src/interfaces/iSeries.sol";
+import {SeriesParams} from "../../src/interfaces/ISeries.sol";
 import {seriesCore} from "../../src/core/seriesCore.sol";
 import {usdcSeniorVault} from "../../src/vaults/senior/usdcSeniorVault.sol";
 import {usdcJuniorVault} from "../../src/vaults/junior/usdcJuniorVault.sol";
 import {iParking} from "../../src/parking/iParking.sol";
-import {wadMath} from "../../src/libraries/wadMath.sol";
+import {WadMath} from "../../src/libraries/WadMath.sol";
 
 abstract contract ScenarioBase is Test {
-    using wadMath for uint256;
+    using WadMath for uint256;
 
     uint256 internal constant WAD = 1e18;
 

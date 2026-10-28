@@ -33,7 +33,7 @@ enum SeriesState {
 }
 
 /// @notice The part of a series the core calls.
-interface iSeries {
+interface ISeries {
     /// @notice Lifecycle state.
     function state() external view returns (SeriesState);
     /// @notice Whether the series settles pro rata instead of through the waterfall.

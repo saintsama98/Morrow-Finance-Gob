@@ -7,11 +7,11 @@ pragma solidity 0.8.34;
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {seriesCore} from "../../core/seriesCore.sol";
-import {wadMath} from "../../libraries/wadMath.sol";
+import {WadMath} from "../../libraries/WadMath.sol";
 
 /// @notice Share token and pricing shared by both vaults; assets live in the core.
 abstract contract usdcVaultBase is ERC20, IERC165 {
-    using wadMath for uint256;
+    using WadMath for uint256;
 
     uint256 internal constant WAD = 1e18;
     uint8 internal constant DECIMALS_OFFSET = 12;

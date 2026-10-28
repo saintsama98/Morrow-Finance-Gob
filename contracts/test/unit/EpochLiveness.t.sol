@@ -8,7 +8,7 @@ pragma solidity 0.8.34;
 import {ScenarioBase} from "../scenario/ScenarioBase.t.sol";
 import {usdcVaultBase} from "../../src/vaults/shared/usdcVaultBase.sol";
 import {coreStorage} from "../../src/core/modules/coreStorage.sol";
-import {SeriesParams} from "../../src/interfaces/iSeries.sol";
+import {SeriesParams} from "../../src/interfaces/ISeries.sol";
 import {iParking} from "../../src/parking/iParking.sol";
 import {Market} from "@morpho-org/midnight/src/interfaces/IMidnight.sol";
 

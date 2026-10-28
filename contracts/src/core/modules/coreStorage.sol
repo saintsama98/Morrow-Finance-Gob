@@ -6,11 +6,11 @@ pragma solidity 0.8.34;
 
 import {seriesFactory} from "../../series/seriesFactory.sol";
 import {iParking} from "../../parking/iParking.sol";
-import {wadMath} from "../../libraries/wadMath.sol";
+import {WadMath} from "../../libraries/WadMath.sol";
 
 /// @notice Storage, policy defaults, events and errors of the core.
 abstract contract coreStorage {
-    using wadMath for uint256;
+    using WadMath for uint256;
 
     uint256 internal constant WAD = 1e18;
     uint256 internal constant VIRTUAL_CLAIMS = 1e6;

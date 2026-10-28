@@ -5,13 +5,13 @@
 pragma solidity 0.8.34;
 
 import {coreStorage} from "./coreStorage.sol";
-import {iErc20Like} from "../../interfaces/iErc20Like.sol";
-import {wadMath} from "../../libraries/wadMath.sol";
-import {idleLossMath} from "../../libraries/idleLossMath.sol";
+import {IERC20Like} from "../../interfaces/IERC20Like.sol";
+import {WadMath} from "../../libraries/WadMath.sol";
+import {IdleLossMath} from "../../libraries/IdleLossMath.sol";
 
 /// @notice Each book's claim on the single parking position, with idle losses allocated junior first.
 abstract contract coreParkingBooks is coreStorage {
-    using wadMath for uint256;
+    using WadMath for uint256;
 
     /// @notice Idle cash of one book, after junior-first loss allocation.
     function idle(bool isSenior) public view returns (uint256) {
@@ -30,7 +30,7 @@ abstract contract coreParkingBooks is coreStorage {
     }
 
     function _claimPrice(uint256 parked) internal view returns (uint256) {
-        return idleLossMath.claimPrice(parked, totalParkingClaims + VIRTUAL_CLAIMS);
+        return IdleLossMath.claimPrice(parked, totalParkingClaims + VIRTUAL_CLAIMS);
     }
 
     function _effectiveClaims(uint256 parked)
@@ -38,7 +38,7 @@ abstract contract coreParkingBooks is coreStorage {
         view
         returns (uint256 seniorClaims, uint256 juniorClaims, uint256 seniorLoss)
     {
-        return idleLossMath.effectiveClaims(
+        return IdleLossMath.effectiveClaims(
             senior.parkingClaims, junior.parkingClaims, totalParkingClaims + VIRTUAL_CLAIMS, parked, claimPriceMark
         );
     }
@@ -90,7 +90,7 @@ abstract contract coreParkingBooks is coreStorage {
     function _depositToBook(bool isSenior, uint256 assets) internal {
         uint256 before = _parked();
         _settleIdleLoss(before);
-        require(iErc20Like(USDC).approve(address(PARKING), assets), ApproveFailed());
+        require(IERC20Like(USDC).approve(address(PARKING), assets), ApproveFailed());
         PARKING.deposit(assets);
         uint256 afterDeposit = _parked();
         _addToBook(isSenior, afterDeposit > before ? afterDeposit - before : 0, before);

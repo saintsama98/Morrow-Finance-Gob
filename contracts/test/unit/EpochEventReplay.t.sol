@@ -6,10 +6,10 @@ pragma solidity 0.8.34;
 
 import {Vm} from "forge-std/Test.sol";
 import {ScenarioBase} from "../scenario/ScenarioBase.t.sol";
-import {wadMath} from "../../src/libraries/wadMath.sol";
+import {WadMath} from "../../src/libraries/WadMath.sol";
 
 contract EpochEventReplayTest is ScenarioBase {
-    using wadMath for uint256;
+    using WadMath for uint256;
 
     struct Batch {
         uint256 total;

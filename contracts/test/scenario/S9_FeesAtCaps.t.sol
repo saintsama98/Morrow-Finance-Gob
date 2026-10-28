@@ -6,8 +6,8 @@ pragma solidity 0.8.34;
 
 import {ScenarioBase} from "./ScenarioBase.t.sol";
 import {creditSeries} from "../../src/series/creditSeries.sol";
-import {SeriesState} from "../../src/interfaces/iSeries.sol";
-import {seriesMath} from "../../src/libraries/seriesMath.sol";
+import {SeriesState} from "../../src/interfaces/ISeries.sol";
+import {SeriesMath} from "../../src/libraries/SeriesMath.sol";
 
 contract S9_FeesAtCapsTest is ScenarioBase {
     address borrower = makeAddr("borrower");
@@ -57,11 +57,11 @@ contract S9_FeesAtCapsTest is ScenarioBase {
         assertEq(uint8(series.state()), uint8(SeriesState.SETTLED));
 
         (uint256 expectedXs, uint256 expectedXj, uint256 expectedFee) =
-            seriesMath.waterfall(received, seniorClaim, juniorDeployed, 0.2e18);
+            SeriesMath.waterfall(received, seniorClaim, juniorDeployed, 0.2e18);
         assertGt(expectedFee, 0, "sanity: a 0.20e18 theta on a clean settlement must recognize a positive fee");
-        assertEq(series.paidS(), expectedXs, "senior payout must match seriesMath.waterfall at the 0.20e18 cap");
-        assertEq(series.paidJ(), expectedXj, "junior payout must match seriesMath.waterfall at the 0.20e18 cap");
-        assertEq(series.feeAccounted(), expectedFee, "recognized fee must match seriesMath.waterfall exactly");
+        assertEq(series.paidS(), expectedXs, "senior payout must match SeriesMath.waterfall at the 0.20e18 cap");
+        assertEq(series.paidJ(), expectedXj, "junior payout must match SeriesMath.waterfall at the 0.20e18 cap");
+        assertEq(series.feeAccounted(), expectedFee, "recognized fee must match SeriesMath.waterfall exactly");
 
         assertEq(
             series.paidS() + series.paidJ() + series.feeAccounted(),

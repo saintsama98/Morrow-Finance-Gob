@@ -14,7 +14,7 @@ import {ORACLE_PRICE_SCALE} from "@morpho-org/midnight/src/libraries/ConstantsLi
 import {SeriesRegistry} from "./SeriesRegistry.sol";
 import {MockUSDC} from "../../mocks/MockUSDC.sol";
 import {creditSeries} from "../../../src/series/creditSeries.sol";
-import {SeriesState} from "../../../src/interfaces/iSeries.sol";
+import {SeriesState} from "../../../src/interfaces/ISeries.sol";
 
 contract DeployHandler is Test {
     using UtilsLib for uint256;

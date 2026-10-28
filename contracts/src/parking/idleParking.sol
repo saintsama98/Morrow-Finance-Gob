@@ -5,18 +5,18 @@
 pragma solidity 0.8.34;
 
 import {iParking} from "./iParking.sol";
-import {iErc20Like} from "../interfaces/iErc20Like.sol";
+import {IERC20Like} from "../interfaces/IERC20Like.sol";
 
 /// @notice Parking that holds plain USDC.
 contract idleParking is iParking {
     error TransferFailed();
     error ZeroAddress();
 
-    iErc20Like public immutable USDC;
+    IERC20Like public immutable USDC;
     mapping(address account => uint256) public balanceOf;
 
     constructor(address usdc) {
-        USDC = iErc20Like(usdc);
+        USDC = IERC20Like(usdc);
     }
 
     /// @notice Parks assets for the caller.
