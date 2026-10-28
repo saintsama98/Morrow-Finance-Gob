@@ -4,11 +4,11 @@
 
 pragma solidity 0.8.34;
 
-import {coreGovernance} from "./coreGovernance.sol";
+import {CoreGovernance} from "./CoreGovernance.sol";
 import {IERC20Like} from "../../interfaces/IERC20Like.sol";
 
 /// @notice Cash movements between the vaults and the books.
-abstract contract coreVaultFlows is coreGovernance {
+abstract contract CoreVaultFlows is CoreGovernance {
     /// @notice Parks a vault deposit and credits it to that vault's book.
     function depositFor(bool isSenior, uint256 assets) external {
         _requireVault(isSenior);

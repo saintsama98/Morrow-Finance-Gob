@@ -8,12 +8,12 @@ pragma solidity 0.8.34;
 import {console} from "forge-std/console.sol";
 import {ScenarioBase} from "../scenario/ScenarioBase.t.sol";
 import {SeriesRegistry} from "../invariant/handlers/SeriesRegistry.sol";
-import {iParking} from "../../src/parking/iParking.sol";
+import {IParking} from "../../src/parking/IParking.sol";
 import {AdversarialParking} from "../mocks/AdversarialParking.sol";
-import {coreStorage} from "../../src/core/modules/coreStorage.sol";
+import {CoreStorage} from "../../src/core/modules/CoreStorage.sol";
 
 contract SeriesRegistryAdversarialParking is SeriesRegistry {
-    function _deployParking() internal override returns (iParking) {
+    function _deployParking() internal override returns (IParking) {
         return new AdversarialParking(address(usdc));
     }
 }
@@ -73,7 +73,7 @@ contract AdversarialParkingTest is ScenarioBase {
         uint256 bookBefore = core.seniorAssets();
         vm.startPrank(registry.CURATOR());
         seniorVault.closeEpoch();
-        vm.expectRevert(abi.encodeWithSelector(coreStorage.ParkingShortPaid.selector, 500_000e6, 450_000e6));
+        vm.expectRevert(abi.encodeWithSelector(CoreStorage.ParkingShortPaid.selector, 500_000e6, 450_000e6));
         seniorVault.fulfill(id, type(uint128).max);
         vm.stopPrank();
         (, uint256 reserved,) = core.senior();

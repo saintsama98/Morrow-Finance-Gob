@@ -5,15 +5,15 @@
 pragma solidity 0.8.34;
 
 import {Test, Vm} from "forge-std/Test.sol";
-import {iParking} from "../../src/parking/iParking.sol";
+import {IParking} from "../../src/parking/IParking.sol";
 import {SeriesRegistry} from "../invariant/handlers/SeriesRegistry.sol";
 import {LossyParking} from "../mocks/LossyParking.sol";
 import {ScenarioBase} from "./ScenarioBase.t.sol";
-import {creditSeries} from "../../src/series/creditSeries.sol";
+import {CreditSeries} from "../../src/series/CreditSeries.sol";
 import {WadMath} from "../../src/libraries/WadMath.sol";
 
 contract SeriesRegistryLossyParking is SeriesRegistry {
-    function _deployParking() internal override returns (iParking) {
+    function _deployParking() internal override returns (IParking) {
         return new LossyParking(address(usdc));
     }
 }
@@ -40,7 +40,7 @@ contract S10_ParkingStressTest is ScenarioBase {
         uint256 maturity = block.timestamp + 90 days;
         (address seriesAddr,) = _openSeries(700_000e6, 150_000e6, maturity);
         _registerAndFill(seriesAddr, maturity, 150_000e6, borrower);
-        creditSeries series = creditSeries(seriesAddr);
+        CreditSeries series = CreditSeries(seriesAddr);
 
         LossyParking lossyParking = LossyParking(address(registry.parking()));
         uint256 parkedBeforeLoss = lossyParking.totalAssets(seriesAddr);

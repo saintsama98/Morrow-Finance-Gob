@@ -4,13 +4,13 @@
 
 pragma solidity 0.8.34;
 
-import {coreStorage} from "./coreStorage.sol";
+import {CoreStorage} from "./CoreStorage.sol";
 import {IERC20Like} from "../../interfaces/IERC20Like.sol";
 import {WadMath} from "../../libraries/WadMath.sol";
 import {IdleLossMath} from "../../libraries/IdleLossMath.sol";
 
 /// @notice Each book's claim on the single parking position, with idle losses allocated junior first.
-abstract contract coreParkingBooks is coreStorage {
+abstract contract CoreParkingBooks is CoreStorage {
     using WadMath for uint256;
 
     /// @notice Idle cash of one book, after junior-first loss allocation.

@@ -4,10 +4,10 @@
 
 pragma solidity 0.8.34;
 
-import {coreValuation} from "./coreValuation.sol";
+import {CoreValuation} from "./CoreValuation.sol";
 
 /// @notice Role wiring, the timelocked policy path and the instant risk-reducing moves.
-abstract contract coreGovernance is coreValuation {
+abstract contract CoreGovernance is CoreValuation {
     /// @notice Wires the senior and junior vaults; callable once.
     function setVaults(address seniorVault_, address juniorVault_) external onlyGovernance {
         require(!vaultsSet, VaultsAlreadySet());

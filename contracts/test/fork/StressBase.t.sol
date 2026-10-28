@@ -9,7 +9,7 @@ import {console} from "forge-std/console.sol";
 import {Market} from "@morpho-org/midnight/src/interfaces/IMidnight.sol";
 import {ORACLE_PRICE_SCALE} from "@morpho-org/midnight/src/libraries/ConstantsLib.sol";
 import {ForkBase, iChainlinkFeed, iPriceOracle} from "./ForkBase.t.sol";
-import {creditSeries} from "../../src/series/creditSeries.sol";
+import {CreditSeries} from "../../src/series/CreditSeries.sol";
 import {SeriesState} from "../../src/interfaces/ISeries.sol";
 import {IERC20Like} from "../../src/interfaces/IERC20Like.sol";
 
@@ -33,7 +33,7 @@ abstract contract StressBase is ForkBase {
     uint256 internal depthUsd = 50_000_000e6;
     uint256 internal lastLiqAt;
 
-    creditSeries[] internal seriesSet;
+    CreditSeries[] internal seriesSet;
     Market[] internal mkts;
     bytes32[] internal mktIds;
     address[] internal borrowers;
@@ -86,7 +86,7 @@ abstract contract StressBase is ForkBase {
         _pushFeed(ETH_USD_FEED, ethBase, ethRatio, ethOverlay);
     }
 
-    function _addBorrowers(creditSeries s, uint256 mi, uint256 i, uint256 units, uint256[] memory healths) internal {
+    function _addBorrowers(CreditSeries s, uint256 mi, uint256 i, uint256 units, uint256[] memory healths) internal {
         for (uint256 h = 0; h < healths.length; h++) {
             address b = makeAddr(
                 string.concat("b-", vm.toString(address(s)), "-", vm.toString(i), "-", vm.toString(healths[h]))
@@ -175,7 +175,7 @@ abstract contract StressBase is ForkBase {
 
     function _trackJuniorFirst() internal {
         for (uint256 k = 0; k < seriesSet.length; k++) {
-            creditSeries s = seriesSet[k];
+            CreditSeries s = seriesSet[k];
             if (uint8(s.state()) == uint8(SeriesState.SETTLED) || uint8(s.state()) == uint8(SeriesState.CANCELED)) {
                 continue;
             }
@@ -256,7 +256,7 @@ abstract contract StressBase is ForkBase {
         }
         vm.warp(latestT + 7 days);
         for (uint256 k = 0; k < seriesSet.length; k++) {
-            creditSeries s = seriesSet[k];
+            CreditSeries s = seriesSet[k];
             if (uint8(s.state()) != uint8(SeriesState.SETTLING)) continue;
             _collectAll(s);
             bool all = true;
@@ -307,7 +307,7 @@ abstract contract StressBase is ForkBase {
         console.log("  defaults at maturity / auction liquidations:", defaultsAtMaturity, auctionLiquidations);
         console.log("  senior NAV drops while junior > 0:", navSDropsWithJuniorLeft);
         for (uint256 k = 0; k < seriesSet.length; k++) {
-            creditSeries s = seriesSet[k];
+            CreditSeries s = seriesSet[k];
             console.log("  series", k);
             console.log("    senior claim / paid:", s.seniorClaim(), s.paidS());
             console.log("    junior deployed / paid:", s.juniorDeployed(), s.paidJ());
@@ -317,7 +317,7 @@ abstract contract StressBase is ForkBase {
 
     function _assertSeniority() internal view {
         for (uint256 k = 0; k < seriesSet.length; k++) {
-            creditSeries s = seriesSet[k];
+            CreditSeries s = seriesSet[k];
             if (uint8(s.state()) != uint8(SeriesState.SETTLED)) continue;
             uint256 p = _proceeds(s);
             uint256 claim = s.seniorClaim();

@@ -5,7 +5,7 @@
 pragma solidity 0.8.34;
 
 import {ScenarioBase} from "./ScenarioBase.t.sol";
-import {creditSeries} from "../../src/series/creditSeries.sol";
+import {CreditSeries} from "../../src/series/CreditSeries.sol";
 import {WadMath} from "../../src/libraries/WadMath.sol";
 
 contract S5_UnderFillTest is ScenarioBase {
@@ -27,7 +27,7 @@ contract S5_UnderFillTest is ScenarioBase {
         (uint256 seniorIdleBefore, uint256 juniorIdleBefore) = (core.idle(true), core.idle(false));
 
         (address seriesAddr,) = _openSeries(S, J, block.timestamp + 30 days);
-        creditSeries series = creditSeries(seriesAddr);
+        CreditSeries series = CreditSeries(seriesAddr);
 
         uint256 fillUnits = kAlloc.mulDivDown(30, 100);
         _registerAndFill(seriesAddr, block.timestamp + 30 days, fillUnits, borrower);

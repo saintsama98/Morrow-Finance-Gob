@@ -6,7 +6,7 @@ pragma solidity 0.8.34;
 
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
-import {seriesCore} from "../../core/seriesCore.sol";
+import {SeriesCore} from "../../core/SeriesCore.sol";
 import {WadMath} from "../../libraries/WadMath.sol";
 
 /// @notice Share token and pricing shared by both vaults; assets live in the core.
@@ -48,7 +48,7 @@ abstract contract usdcVaultBase is ERC20, IERC165 {
         address indexed controller, address indexed receiver, uint256 indexed requestId, uint256 shares
     );
 
-    seriesCore public immutable CORE;
+    SeriesCore public immutable CORE;
     address public immutable USDC;
 
     mapping(address controller => mapping(address operator => bool)) public isOperator;
@@ -58,7 +58,7 @@ abstract contract usdcVaultBase is ERC20, IERC165 {
         _;
     }
 
-    constructor(seriesCore core_, address usdc_, string memory name_, string memory symbol_) ERC20(name_, symbol_) {
+    constructor(SeriesCore core_, address usdc_, string memory name_, string memory symbol_) ERC20(name_, symbol_) {
         CORE = core_;
         USDC = usdc_;
     }

@@ -5,7 +5,7 @@
 pragma solidity 0.8.34;
 
 /// @notice Where idle cash waits between series; one account per core and per series.
-interface iParking {
+interface IParking {
     /// @notice Parks assets for the caller.
     function deposit(uint256 assets) external;
 

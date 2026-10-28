@@ -5,7 +5,7 @@
 pragma solidity 0.8.34;
 
 import {MorphoScenarioBase} from "./MorphoScenarioBase.t.sol";
-import {creditSeries} from "../../src/series/creditSeries.sol";
+import {CreditSeries} from "../../src/series/CreditSeries.sol";
 import {SeriesMath} from "../../src/libraries/SeriesMath.sol";
 import {WadMath} from "../../src/libraries/WadMath.sol";
 
@@ -47,7 +47,7 @@ contract S15_IdleYieldTest is MorphoScenarioBase {
         uint256 maturity = block.timestamp + 90 days;
         (address seriesAddr,) = _openSeries(700_000e6, 150_000e6, maturity);
         _registerAndFill(seriesAddr, maturity, 150_000e6, borrower);
-        creditSeries series = creditSeries(seriesAddr);
+        CreditSeries series = CreditSeries(seriesAddr);
 
         vault.accrueBps(300);
         uint256 balanceAtFinalize = mparking.totalAssets(seriesAddr);
@@ -76,7 +76,7 @@ contract S15_IdleYieldTest is MorphoScenarioBase {
         (address seriesAddr,) = _openSeries(700_000e6, 150_000e6, maturity);
         _registerAndFill(seriesAddr, maturity, 800_000e6, borrower);
         _finalize(seriesAddr);
-        creditSeries series = creditSeries(seriesAddr);
+        CreditSeries series = CreditSeries(seriesAddr);
 
         vm.warp(maturity + 1);
         series.startSettlement();

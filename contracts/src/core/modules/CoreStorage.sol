@@ -4,12 +4,12 @@
 
 pragma solidity 0.8.34;
 
-import {seriesFactory} from "../../series/seriesFactory.sol";
-import {iParking} from "../../parking/iParking.sol";
+import {SeriesFactory} from "../../series/SeriesFactory.sol";
+import {IParking} from "../../parking/IParking.sol";
 import {WadMath} from "../../libraries/WadMath.sol";
 
 /// @notice Storage, policy defaults, events and errors of the core.
-abstract contract coreStorage {
+abstract contract CoreStorage {
     using WadMath for uint256;
 
     uint256 internal constant WAD = 1e18;
@@ -101,8 +101,8 @@ abstract contract coreStorage {
     }
 
     address public immutable USDC;
-    seriesFactory public immutable FACTORY;
-    iParking public immutable PARKING;
+    SeriesFactory public immutable FACTORY;
+    IParking public immutable PARKING;
 
     address public governance;
     address public allocator;
@@ -155,8 +155,8 @@ abstract contract coreStorage {
 
     constructor(
         address usdc,
-        seriesFactory factory,
-        iParking parking,
+        SeriesFactory factory,
+        IParking parking,
         address governance_,
         address allocator_,
         address curator_,

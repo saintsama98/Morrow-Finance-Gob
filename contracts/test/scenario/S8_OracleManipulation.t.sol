@@ -5,7 +5,7 @@
 pragma solidity 0.8.34;
 
 import {ScenarioBase} from "./ScenarioBase.t.sol";
-import {creditSeries} from "../../src/series/creditSeries.sol";
+import {CreditSeries} from "../../src/series/CreditSeries.sol";
 
 contract S8_OracleManipulationTest is ScenarioBase {
     address borrower = makeAddr("borrower");
@@ -20,7 +20,7 @@ contract S8_OracleManipulationTest is ScenarioBase {
         (address seriesAddr,) = _openSeries(700_000e6, 300_000e6, maturity);
         _registerAndFill(seriesAddr, maturity, 800_000e6, borrower);
         _finalize(seriesAddr);
-        creditSeries series = creditSeries(seriesAddr);
+        CreditSeries series = CreditSeries(seriesAddr);
 
         uint256 seniorPriceBefore = seniorVault.pricePerShareWad();
         uint256 juniorPriceBefore = juniorVault.pricePerShareWad();

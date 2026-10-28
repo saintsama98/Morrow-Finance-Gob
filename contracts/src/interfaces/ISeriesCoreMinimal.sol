@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-// Morrow Finance: the minimal slice of seriesCore that a creditSeries contract needs to call.
+// Morrow Finance: the minimal slice of SeriesCore that a CreditSeries contract needs to call.
 // @author adiii.eth
 
 pragma solidity 0.8.34;

@@ -5,7 +5,7 @@
 
 pragma solidity 0.8.34;
 
-import {iParking} from "../../src/parking/iParking.sol";
+import {IParking} from "../../src/parking/IParking.sol";
 import {IERC20Like} from "../../src/interfaces/IERC20Like.sol";
 
 interface iCoreSyncLike {
@@ -13,7 +13,7 @@ interface iCoreSyncLike {
     function pruneSeries() external;
 }
 
-contract AdversarialParking is iParking {
+contract AdversarialParking is IParking {
     enum Mode {
         Honest,
         Lying,

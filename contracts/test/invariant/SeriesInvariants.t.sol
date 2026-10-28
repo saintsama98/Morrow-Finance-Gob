@@ -11,7 +11,7 @@ import {AllocatorHandler} from "./handlers/AllocatorHandler.sol";
 import {DeployHandler} from "./handlers/DeployHandler.sol";
 import {MidnightChaosHandler} from "./handlers/MidnightChaosHandler.sol";
 import {SettleHandler} from "./handlers/SettleHandler.sol";
-import {creditSeries} from "../../src/series/creditSeries.sol";
+import {CreditSeries} from "../../src/series/CreditSeries.sol";
 import {SeriesState} from "../../src/interfaces/ISeries.sol";
 
 contract SeriesInvariantsTest is Test {
@@ -73,7 +73,7 @@ contract SeriesInvariantsTest is Test {
         uint256 count = registry.activeSeriesCount();
         for (uint256 k = 0; k < count; k++) {
             address seriesAddr = registry.activeSeries(k);
-            creditSeries series = creditSeries(seriesAddr);
+            CreditSeries series = CreditSeries(seriesAddr);
             if (
                 uint8(series.state()) == uint8(SeriesState.DEPLOYING)
                     || uint8(series.state()) == uint8(SeriesState.LOCKED)
@@ -94,7 +94,7 @@ contract SeriesInvariantsTest is Test {
         uint256 count = registry.activeSeriesCount();
         for (uint256 k = 0; k < count; k++) {
             address seriesAddr = registry.activeSeries(k);
-            creditSeries series = creditSeries(seriesAddr);
+            CreditSeries series = CreditSeries(seriesAddr);
             if (series.writtenOff(0)) {
                 assertGe(
                     series.tSettled(), series.T() + series.D_WRITE_OFF(), "write-off must not happen before T + D_wo"
@@ -107,7 +107,7 @@ contract SeriesInvariantsTest is Test {
         uint256 count = registry.activeSeriesCount();
         for (uint256 k = 0; k < count; k++) {
             address seriesAddr = registry.activeSeries(k);
-            creditSeries series = creditSeries(seriesAddr);
+            CreditSeries series = CreditSeries(seriesAddr);
             uint8 current = uint8(series.state());
 
             if (registry.ghost_seenState(seriesAddr)) {
@@ -127,7 +127,7 @@ contract SeriesInvariantsTest is Test {
         uint256 count = registry.activeSeriesCount();
         for (uint256 k = 0; k < count; k++) {
             address seriesAddr = registry.activeSeries(k);
-            creditSeries series = creditSeries(seriesAddr);
+            CreditSeries series = CreditSeries(seriesAddr);
             if (!registry.ghost_seenState(seriesAddr)) continue;
             if (uint8(series.state()) == uint8(SeriesState.DEPLOYING)) continue;
 
@@ -141,7 +141,7 @@ contract SeriesInvariantsTest is Test {
         uint256 count = registry.activeSeriesCount();
         for (uint256 k = 0; k < count; k++) {
             address seriesAddr = registry.activeSeries(k);
-            creditSeries series = creditSeries(seriesAddr);
+            CreditSeries series = CreditSeries(seriesAddr);
 
             (uint256 navS, uint256 navJ, uint256 fee) = series.navs();
             (uint256 navSSynced, uint256 navJSynced, uint256 feeSynced) = series.navsSynced();
@@ -157,7 +157,7 @@ contract SeriesInvariantsTest is Test {
         uint256 count = registry.activeSeriesCount();
         for (uint256 k = 0; k < count; k++) {
             address seriesAddr = registry.activeSeries(k);
-            creditSeries series = creditSeries(seriesAddr);
+            CreditSeries series = CreditSeries(seriesAddr);
             bytes32 marketId = _marketIdOf(seriesAddr);
 
             vm.recordLogs();
@@ -192,7 +192,7 @@ contract SeriesInvariantsTest is Test {
         uint256 count = registry.activeSeriesCount();
         for (uint256 k = 0; k < count; k++) {
             address seriesAddr = registry.activeSeries(k);
-            creditSeries series = creditSeries(seriesAddr);
+            CreditSeries series = CreditSeries(seriesAddr);
             if (uint8(series.state()) != uint8(SeriesState.SETTLED)) continue;
 
             uint256 proceeds = _proceedsOf(series);
@@ -216,7 +216,7 @@ contract SeriesInvariantsTest is Test {
         uint256 count = registry.activeSeriesCount();
         for (uint256 k = 0; k < count; k++) {
             address seriesAddr = registry.activeSeries(k);
-            creditSeries series = creditSeries(seriesAddr);
+            CreditSeries series = CreditSeries(seriesAddr);
             uint8 st = uint8(series.state());
             if (st == uint8(SeriesState.DEPLOYING) || st == uint8(SeriesState.CANCELED)) continue;
 
@@ -226,7 +226,7 @@ contract SeriesInvariantsTest is Test {
         }
     }
 
-    function _proceedsOf(creditSeries series) internal view returns (uint256) {
+    function _proceedsOf(CreditSeries series) internal view returns (uint256) {
         return registry.usdc().balanceOf(address(series)) + registry.parking().totalAssets(address(series))
             + series.paidS() + series.paidJ() + series.feeClaimed();
     }

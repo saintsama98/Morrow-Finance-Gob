@@ -6,10 +6,10 @@ pragma solidity 0.8.34;
 
 import {MockUSDC} from "../mocks/MockUSDC.sol";
 import {MockMorphoVault} from "../mocks/MockMorphoVault.sol";
-import {morphoParking} from "../../src/parking/morphoParking.sol";
-import {iParking} from "../../src/parking/iParking.sol";
-import {seriesFactory} from "../../src/series/seriesFactory.sol";
-import {seriesCore} from "../../src/core/seriesCore.sol";
+import {MorphoParking} from "../../src/parking/MorphoParking.sol";
+import {IParking} from "../../src/parking/IParking.sol";
+import {SeriesFactory} from "../../src/series/SeriesFactory.sol";
+import {SeriesCore} from "../../src/core/SeriesCore.sol";
 import {usdcSeniorVault} from "../../src/vaults/senior/usdcSeniorVault.sol";
 import {usdcJuniorVault} from "../../src/vaults/junior/usdcJuniorVault.sol";
 import {IMidnightMinimal} from "../../src/interfaces/IMidnightMinimal.sol";
@@ -38,9 +38,9 @@ contract MorrowCrytic {
 
     MockUSDC public usdc;
     MockMorphoVault public venue;
-    morphoParking public parking;
-    seriesFactory public factory;
-    seriesCore public core;
+    MorphoParking public parking;
+    SeriesFactory public factory;
+    SeriesCore public core;
     usdcSeniorVault public sv;
     usdcJuniorVault public jv;
 
@@ -58,14 +58,14 @@ contract MorrowCrytic {
     constructor() {
         usdc = new MockUSDC();
         venue = new MockMorphoVault(usdc);
-        parking = new morphoParking(address(usdc), address(venue), 0.1e18);
+        parking = new MorphoParking(address(usdc), address(venue), 0.1e18);
         factory =
-            new seriesFactory(IMidnightMinimal(address(0x1)), address(0x2), address(usdc), address(this), 0.86e18, 4);
+            new SeriesFactory(IMidnightMinimal(address(0x1)), address(0x2), address(usdc), address(this), 0.86e18, 4);
         curator = new CryticActor();
-        core = new seriesCore(
+        core = new SeriesCore(
             address(usdc),
             factory,
-            iParking(address(parking)),
+            IParking(address(parking)),
             address(this),
             address(0xA110C),
             address(curator),

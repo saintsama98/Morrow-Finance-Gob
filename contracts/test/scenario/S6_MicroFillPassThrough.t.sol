@@ -5,7 +5,7 @@
 pragma solidity 0.8.34;
 
 import {ScenarioBase} from "./ScenarioBase.t.sol";
-import {creditSeries} from "../../src/series/creditSeries.sol";
+import {CreditSeries} from "../../src/series/CreditSeries.sol";
 import {SeriesState} from "../../src/interfaces/ISeries.sol";
 import {SeriesMath} from "../../src/libraries/SeriesMath.sol";
 
@@ -22,7 +22,7 @@ contract S6_MicroFillPassThroughTest is ScenarioBase {
         (address seriesAddr,) = _openSeries(100_000e6, 20_000e6, maturity);
         _registerAndFill(seriesAddr, maturity, 30_000e6, borrower);
         _finalize(seriesAddr);
-        creditSeries series = creditSeries(seriesAddr);
+        CreditSeries series = CreditSeries(seriesAddr);
 
         assertTrue(series.passThrough(), "a fill below kMin must set the pass-through flag at finalize");
         uint256 seniorDeployed = series.seniorDeployed();

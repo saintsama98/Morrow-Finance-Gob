@@ -5,7 +5,7 @@
 pragma solidity 0.8.34;
 
 import {ScenarioBase} from "./ScenarioBase.t.sol";
-import {creditSeries} from "../../src/series/creditSeries.sol";
+import {CreditSeries} from "../../src/series/CreditSeries.sol";
 import {SeriesState} from "../../src/interfaces/ISeries.sol";
 
 contract S18_KeeperOnlyLifecycleTest is ScenarioBase {
@@ -15,7 +15,7 @@ contract S18_KeeperOnlyLifecycleTest is ScenarioBase {
     address borrower = makeAddr("borrower");
 
     uint256 maturity;
-    creditSeries series;
+    CreditSeries series;
     bytes32 marketId;
 
     function _fundedSeries() internal returns (uint256 seniorShares, uint256 juniorShares) {
@@ -23,7 +23,7 @@ contract S18_KeeperOnlyLifecycleTest is ScenarioBase {
         seniorShares = _seniorDeposit(alice, 1_000_000e6);
         maturity = block.timestamp + 30 days;
         (address seriesAddr, bytes32 id) = _openSeries(400_000e6, 100_000e6, maturity);
-        series = creditSeries(seriesAddr);
+        series = CreditSeries(seriesAddr);
         marketId = id;
         _registerAndFill(seriesAddr, maturity, 300_000e6, borrower);
     }

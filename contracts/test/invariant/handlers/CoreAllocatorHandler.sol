@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-// Morrow Finance: invariant-suite handler that opens series through the REAL seriesCore, not the stub.
+// Morrow Finance: invariant-suite handler that opens series through the REAL SeriesCore, not the stub.
 // @author adiii.eth
 
 pragma solidity 0.8.34;
@@ -14,10 +14,10 @@ import {ORACLE_PRICE_SCALE} from "@morpho-org/midnight/src/libraries/ConstantsLi
 
 import {SeriesRegistry} from "./SeriesRegistry.sol";
 import {MockUSDC} from "../../mocks/MockUSDC.sol";
-import {creditSeries} from "../../../src/series/creditSeries.sol";
+import {CreditSeries} from "../../../src/series/CreditSeries.sol";
 import {SeriesParams} from "../../../src/interfaces/ISeries.sol";
-import {iParking} from "../../../src/parking/iParking.sol";
-import {seriesCore} from "../../../src/core/seriesCore.sol";
+import {IParking} from "../../../src/parking/IParking.sol";
+import {SeriesCore} from "../../../src/core/SeriesCore.sol";
 
 contract CoreAllocatorHandler is Test {
     using UtilsLib for uint256;
@@ -68,11 +68,11 @@ contract CoreAllocatorHandler is Test {
             thetaWad: 0.1e18,
             feeRecipient: registry.FEE_RECIPIENT(),
             allocator: registry.ALLOCATOR(),
-            parking: iParking(address(registry.parking())),
+            parking: IParking(address(registry.parking())),
             offchainAttestationHash: bytes32(0)
         });
 
-        seriesCore realCoreRef = registry.realCore();
+        SeriesCore realCoreRef = registry.realCore();
         vm.prank(registry.ALLOCATOR());
         try realCoreRef.openSeries(p, S, J) returns (address seriesAddr) {
             registry.recordCall(this.openSeries.selector, false);
@@ -92,7 +92,7 @@ contract CoreAllocatorHandler is Test {
     function _registerAndFillAtomically(address seriesAddr, bytes32 marketId, uint256 maturity, uint256 kAlloc)
         internal
     {
-        creditSeries series = creditSeries(seriesAddr);
+        CreditSeries series = CreditSeries(seriesAddr);
         uint256 tick = series.tickMaxFor(0);
         uint256 price = TickLib.tickToPrice(tick);
         if (price == 0) return;

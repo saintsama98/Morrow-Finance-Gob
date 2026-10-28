@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: BUSL-1.1
-// Morrow Finance: minimal stand-in core, letting creditSeries be tested end to end before the real core exists.
+// Morrow Finance: minimal stand-in core, letting CreditSeries be tested end to end before the real core exists.
 // @author adiii.eth
 
 pragma solidity 0.8.34;
 
 import {SeriesParams} from "../../src/interfaces/ISeries.sol";
-import {seriesFactory} from "../../src/series/seriesFactory.sol";
+import {SeriesFactory} from "../../src/series/SeriesFactory.sol";
 
 interface IERC20Mintable {
     function transfer(address to, uint256 amount) external returns (bool);
@@ -33,7 +33,7 @@ contract StubCore {
         sentinel = sentinel_;
     }
 
-    function createAndFund(seriesFactory factory, SeriesParams calldata p, uint256 seniorAmount, uint256 juniorAmount)
+    function createAndFund(SeriesFactory factory, SeriesParams calldata p, uint256 seniorAmount, uint256 juniorAmount)
         external
         returns (address series)
     {

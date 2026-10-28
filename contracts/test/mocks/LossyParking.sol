@@ -4,14 +4,14 @@
 
 pragma solidity 0.8.34;
 
-import {iParking} from "../../src/parking/iParking.sol";
+import {IParking} from "../../src/parking/IParking.sol";
 
 interface ILossyERC20 {
     function transfer(address to, uint256 amount) external returns (bool);
     function transferFrom(address from, address to, uint256 amount) external returns (bool);
 }
 
-contract LossyParking is iParking {
+contract LossyParking is IParking {
     error InsufficientBalance();
 
     ILossyERC20 public immutable USDC;

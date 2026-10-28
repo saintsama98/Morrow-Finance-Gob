@@ -8,8 +8,8 @@ pragma solidity 0.8.34;
 import {console} from "forge-std/console.sol";
 import {Market} from "@morpho-org/midnight/src/interfaces/IMidnight.sol";
 import {StressBase} from "./StressBase.t.sol";
-import {creditSeries} from "../../src/series/creditSeries.sol";
-import {seriesFactory} from "../../src/series/seriesFactory.sol";
+import {CreditSeries} from "../../src/series/CreditSeries.sol";
+import {SeriesFactory} from "../../src/series/SeriesFactory.sol";
 import {SeriesState} from "../../src/interfaces/ISeries.sol";
 import {IERC20Like} from "../../src/interfaces/IERC20Like.sol";
 
@@ -20,7 +20,7 @@ contract ForkTrancheMechanicsTest is StressBase {
 
     function _isolatedSeries(uint256 seniorBook, uint256 juniorBook, uint256 S, uint256 J, uint256 n, uint256 units)
         internal
-        returns (creditSeries s)
+        returns (CreditSeries s)
     {
         _fundBooks(seniorBook, juniorBook);
         mkts.push(_cbMarket(0.86e18, OCT_30, ISOLATED_RCF));
@@ -74,7 +74,7 @@ contract ForkTrancheMechanicsTest is StressBase {
 
     function test_juniorFrontRunsUnrealizedLoss_operatorFillVsPermissionlessFill() public {
         vm.pauseGasMetering();
-        creditSeries s = _isolatedSeries(1_500_000e6, 500_000e6, 400_000e6, 100_000e6, 10, 30_000e6);
+        CreditSeries s = _isolatedSeries(1_500_000e6, 500_000e6, 400_000e6, 100_000e6, 10, 30_000e6);
         uint256 insiderShares = _juniorJoin(insider, 100_000e6);
         uint256 snap = vm.snapshotState();
 
@@ -123,7 +123,7 @@ contract ForkTrancheMechanicsTest is StressBase {
 
     function test_flowsAcrossLossStages_andRecoveryTimingGame() public {
         vm.pauseGasMetering();
-        creditSeries s = _isolatedSeries(1_500_000e6, 500_000e6, 400_000e6, 100_000e6, 10, 30_000e6);
+        CreditSeries s = _isolatedSeries(1_500_000e6, 500_000e6, 400_000e6, 100_000e6, 10, 30_000e6);
         string[4] memory stages = ["unrealized crash", "realized loss", "written off", "recovered"];
         for (uint256 st = 0; st < 4; st++) {
             if (st == 0) _setBtc(0.5e18);
@@ -204,7 +204,7 @@ contract ForkTrancheMechanicsTest is StressBase {
         core.executePolicyChange(keccak256("minIdleJuniorWad"));
         core.executePolicyChange(keccak256("maxPerMaturityWindowWad"));
 
-        creditSeries s = _isolatedSeries(400_010e6, 100_010e6, 380_000e6, 100_000e6, 12, 40_000e6);
+        CreditSeries s = _isolatedSeries(400_010e6, 100_010e6, 380_000e6, 100_000e6, 12, 40_000e6);
         _crashAndRealize(12, 0);
         vm.warp(s.T());
         vm.prank(keeper);
@@ -244,7 +244,7 @@ contract ForkTrancheMechanicsTest is StressBase {
 
     function test_exitBatchSpanningWriteOff_paysPostLossPrice() public {
         vm.pauseGasMetering();
-        creditSeries s = _isolatedSeries(1_500_000e6, 500_000e6, 400_000e6, 100_000e6, 10, 30_000e6);
+        CreditSeries s = _isolatedSeries(1_500_000e6, 500_000e6, 400_000e6, 100_000e6, 10, 30_000e6);
         uint256 shares = seniorVault.balanceOf(alice) / 10;
         vm.prank(alice);
         uint256 rid = seniorVault.requestRedeem(shares, alice, alice);
@@ -315,7 +315,7 @@ contract ForkTrancheMechanicsTest is StressBase {
             midnight.touchMarket(xMs[k]);
             bytes32[] memory one = new bytes32[](1);
             one[0] = xIds[k];
-            vm.expectPartialRevert(seriesFactory.IneligibleMarket.selector);
+            vm.expectPartialRevert(SeriesFactory.IneligibleMarket.selector);
             factory.checkEligibility(one);
         }
         console.log("O2 above-ceiling markets rejected:", xIds.length);
@@ -325,14 +325,14 @@ contract ForkTrancheMechanicsTest is StressBase {
             midnight.touchMarket(mMs[k]);
             bytes32[] memory one = new bytes32[](1);
             one[0] = mIds[k];
-            vm.expectPartialRevert(seriesFactory.IneligibleMarket.selector);
+            vm.expectPartialRevert(SeriesFactory.IneligibleMarket.selector);
             factory.checkEligibility(one);
         }
         console.log("O1 cbBTC market priced by a cbETH oracle rejected:", mIds.length);
     }
 
     function _depegRun(uint256 depegBps, Liquidator mode, string memory label) internal {
-        creditSeries s = _isolatedSeries(1_500_000e6, 500_000e6, 400_000e6, 100_000e6, 10, 30_000e6);
+        CreditSeries s = _isolatedSeries(1_500_000e6, 500_000e6, 400_000e6, 100_000e6, 10, 30_000e6);
         s;
         cbbtcDepegBps = depegBps;
         _setLiquidator(mode, 0);
@@ -365,7 +365,7 @@ contract ForkTrancheMechanicsTest is StressBase {
         vm.pauseGasMetering();
         _fundBooks(1_500_000e6, 500_000e6);
         mkts.push(_cbMarket(0.86e18, OCT_30, 3_000_000_000));
-        (creditSeries s, bytes32 id) = _openSingle(mkts[0], 400_000e6, 100_000e6);
+        (CreditSeries s, bytes32 id) = _openSingle(mkts[0], 400_000e6, 100_000e6);
         seriesSet.push(s);
         mktIds.push(id);
         uint256[] memory healths = new uint256[](10);

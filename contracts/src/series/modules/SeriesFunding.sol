@@ -5,7 +5,7 @@
 pragma solidity 0.8.34;
 
 import {ERC20Lib} from "@morpho-org/midnight/src/periphery/libraries/ERC20Lib.sol";
-import {seriesDeployment} from "./seriesDeployment.sol";
+import {SeriesDeployment} from "./SeriesDeployment.sol";
 import {ISeriesCoreMinimal} from "../../interfaces/ISeriesCoreMinimal.sol";
 import {IERC20Like} from "../../interfaces/IERC20Like.sol";
 import {SeriesState} from "../../interfaces/ISeries.sol";
@@ -14,7 +14,7 @@ import {PremiumCurve} from "../../libraries/PremiumCurve.sol";
 import {SeriesMath} from "../../libraries/SeriesMath.sol";
 
 /// @notice Funding, cancellation and finalize of a series.
-abstract contract seriesFunding is seriesDeployment {
+abstract contract SeriesFunding is SeriesDeployment {
     using WadMath for uint256;
 
     /// @notice Records the senior and junior allocations moved in by the core.

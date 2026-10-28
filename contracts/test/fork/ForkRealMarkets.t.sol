@@ -4,10 +4,10 @@
 
 pragma solidity 0.8.34;
 
-import {seriesFactory} from "../../src/series/seriesFactory.sol";
+import {SeriesFactory} from "../../src/series/SeriesFactory.sol";
 import {Market} from "@morpho-org/midnight/src/interfaces/IMidnight.sol";
 import {ForkBase, iChainlinkFeed} from "./ForkBase.t.sol";
-import {creditSeries} from "../../src/series/creditSeries.sol";
+import {CreditSeries} from "../../src/series/CreditSeries.sol";
 import {SeriesState} from "../../src/interfaces/ISeries.sol";
 import {IERC20Like} from "../../src/interfaces/IERC20Like.sol";
 
@@ -31,7 +31,7 @@ contract ForkRealMarketsTest is ForkBase {
         return _weMarket(0.77e18, OCT_30, 2_000_000_000);
     }
 
-    function _settleClean(creditSeries s, Market[] memory ms, bytes32[] memory ids, address[] memory borrowers)
+    function _settleClean(CreditSeries s, Market[] memory ms, bytes32[] memory ids, address[] memory borrowers)
         internal
     {
         _toSettling(s);
@@ -57,7 +57,7 @@ contract ForkRealMarketsTest is ForkBase {
     function test_A1_standardSeries_realMarket_repaidAndBothExitsPaid() public {
         _fundBooks(1_000_000e6, 400_000e6);
         Market memory m = _cb86(OCT_30);
-        (creditSeries s, bytes32 id) = _openSingle(m, 400_000e6, 100_000e6);
+        (CreditSeries s, bytes32 id) = _openSingle(m, 400_000e6, 100_000e6);
         _borrow(s, 0, m, 300_000e6, bob, 80);
         _checkStructure();
         _finalizeByKeeper(s);
@@ -85,7 +85,7 @@ contract ForkRealMarketsTest is ForkBase {
         uint256 lastPps = seniorVault.pricePerShareWad();
         for (uint256 r = 0; r < 3; r++) {
             Market memory m = _cb86(maturities[r]);
-            (creditSeries s, bytes32 id) = _openSingle(m, 300_000e6, 75_000e6);
+            (CreditSeries s, bytes32 id) = _openSingle(m, 300_000e6, 75_000e6);
             assertEq(core.liveSeriesCount(), 1, "A2: exactly one live rung");
             address borrower = makeAddr(string.concat("rung", vm.toString(r)));
             _borrow(s, 0, m, 250_000e6, borrower, 80);
@@ -119,7 +119,7 @@ contract ForkRealMarketsTest is ForkBase {
     function test_A3_basket_twoCollateralFamilies_bothRepaid() public {
         _fundBooks(1_000_000e6, 400_000e6);
         (Market[] memory ms, uint256[] memory caps) = _basket();
-        (creditSeries s, bytes32[] memory ids) = _openSeries(ms, caps, 400_000e6, 100_000e6);
+        (CreditSeries s, bytes32[] memory ids) = _openSeries(ms, caps, 400_000e6, 100_000e6);
         _borrow(s, 0, ms[0], 150_000e6, bob, 80);
         _borrow(s, 1, ms[1], 150_000e6, carol, 80);
         assertEq(s.unitsBought(0), 150_000e6, "A3: cbBTC leg filled");
@@ -144,7 +144,7 @@ contract ForkRealMarketsTest is ForkBase {
         assertEq(s.paidS(), s.seniorClaim(), "A3: senior whole across the basket");
     }
 
-    creditSeries internal pdSeries;
+    CreditSeries internal pdSeries;
     bytes32[] internal pdIds;
 
     function _partialDefault() internal {
@@ -165,7 +165,7 @@ contract ForkRealMarketsTest is ForkBase {
 
     function test_A4_basket_oneMarketDefaults_writeOffRoutesLossJuniorFirst() public {
         _partialDefault();
-        creditSeries s = pdSeries;
+        CreditSeries s = pdSeries;
         _checkStructure();
         assertFalse(s.writtenOff(0), "A4: repaid market is not written off");
         assertTrue(s.writtenOff(1), "A4: defaulted market is written off");
@@ -177,7 +177,7 @@ contract ForkRealMarketsTest is ForkBase {
 
     function test_A5_recoveryAfterWriteOff_rerunsWaterfallAndReopensGate() public {
         _partialDefault();
-        creditSeries s = pdSeries;
+        CreditSeries s = pdSeries;
         uint256 seniorBefore = s.paidS();
         uint256 juniorBefore = s.paidJ();
 
@@ -196,7 +196,7 @@ contract ForkRealMarketsTest is ForkBase {
     function test_A6_twoCollateralMarket_borrowerPostsBoth_overdueLiquidationOnOne() public {
         _fundBooks(1_000_000e6, 400_000e6);
         Market memory m = _wecbMarket(OCT_30);
-        (creditSeries s, bytes32 id) = _openSingle(m, 400_000e6, 100_000e6);
+        (CreditSeries s, bytes32 id) = _openSingle(m, 400_000e6, 100_000e6);
         uint256 units = 200_000e6;
         _postCollateral(bob, m, 0, _collateralFor(m, 0, units / 2, 70));
         _postCollateral(bob, m, 1, _collateralFor(m, 1, units / 2, 70));
@@ -231,7 +231,7 @@ contract ForkRealMarketsTest is ForkBase {
         bytes32 aboveId = midnight.touchMarket(above);
         bytes32[] memory one = new bytes32[](1);
         one[0] = aboveId;
-        vm.expectRevert(abi.encodeWithSelector(seriesFactory.IneligibleMarket.selector, aboveId, uint8(7)));
+        vm.expectRevert(abi.encodeWithSelector(SeriesFactory.IneligibleMarket.selector, aboveId, uint8(7)));
         factory.checkEligibility(one);
 
         Market[] memory ms = new Market[](2);
@@ -240,7 +240,7 @@ contract ForkRealMarketsTest is ForkBase {
         uint256[] memory caps = new uint256[](2);
         caps[0] = 150_000e6;
         caps[1] = 150_000e6;
-        (creditSeries s, bytes32[] memory ids) = _openSeries(ms, caps, 240_000e6, 60_000e6);
+        (CreditSeries s, bytes32[] memory ids) = _openSeries(ms, caps, 240_000e6, 60_000e6);
         _borrow(s, 0, low, 100_000e6, bob, 90);
         _borrow(s, 1, high, 100_000e6, carol, 99);
         assertTrue(midnight.isHealthy(high, ids[1], carol), "A7: 0.86 borrower just inside health");
@@ -258,7 +258,7 @@ contract ForkRealMarketsTest is ForkBase {
     function test_A8_passThrough_belowKMin_paysProRata() public {
         _fundBooks(1_000_000e6, 400_000e6);
         Market memory m = _cb86(OCT_30);
-        (creditSeries s, bytes32 id) = _openSingle(m, 400_000e6, 100_000e6);
+        (CreditSeries s, bytes32 id) = _openSingle(m, 400_000e6, 100_000e6);
         _borrow(s, 0, m, 30_000e6, bob, 80);
         _finalizeByKeeper(s);
         assertTrue(s.passThrough(), "A8: below kMin runs pass-through");
@@ -278,7 +278,7 @@ contract ForkRealMarketsTest is ForkBase {
         _fundBooks(1_000_000e6, 400_000e6);
         uint256 seniorBefore = core.seniorAssets();
         uint256 juniorBefore = core.juniorAssets();
-        (creditSeries s,) = _openSingle(_cb86(OCT_30), 400_000e6, 100_000e6);
+        (CreditSeries s,) = _openSingle(_cb86(OCT_30), 400_000e6, 100_000e6);
         _finalizeByKeeper(s);
         assertEq(uint8(s.state()), uint8(SeriesState.CANCELED), "A9: no fill cancels at finalize");
         assertEq(core.liveSeriesCount(), 0, "A9: canceled series left the live set");

@@ -8,7 +8,7 @@ import {Test} from "forge-std/Test.sol";
 import {SeriesRegistry} from "./SeriesRegistry.sol";
 import {usdcSeniorVault} from "../../../src/vaults/senior/usdcSeniorVault.sol";
 import {usdcJuniorVault} from "../../../src/vaults/junior/usdcJuniorVault.sol";
-import {seriesCore} from "../../../src/core/seriesCore.sol";
+import {SeriesCore} from "../../../src/core/SeriesCore.sol";
 
 contract EpochHandler is Test {
     SeriesRegistry public registry;
@@ -122,7 +122,7 @@ contract EpochHandler is Test {
         uint256 epochId = _pickEpoch(epochSeed, jv.nextRedeemEpochToFill(), openId);
         uint256 assets = _fillSize(assetsSeed);
 
-        seriesCore core = registry.realCore();
+        SeriesCore core = registry.realCore();
         (, uint256 before,,,,) = jv.redeemEpochs(epochId);
         vm.prank(registry.CURATOR());
         try jv.fulfillRedeem(epochId, assets) {

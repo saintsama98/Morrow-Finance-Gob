@@ -13,7 +13,7 @@ import {ORACLE_PRICE_SCALE} from "@morpho-org/midnight/src/libraries/ConstantsLi
 
 import {SeriesRegistry} from "./SeriesRegistry.sol";
 import {MockUSDC} from "../../mocks/MockUSDC.sol";
-import {creditSeries} from "../../../src/series/creditSeries.sol";
+import {CreditSeries} from "../../../src/series/CreditSeries.sol";
 import {SeriesState} from "../../../src/interfaces/ISeries.sol";
 
 contract DeployHandler is Test {
@@ -30,7 +30,7 @@ contract DeployHandler is Test {
         (address seriesAddr,) = registry.pickActiveWithOffer(seriesSeed, true);
         if (seriesAddr == address(0)) return;
 
-        creditSeries series = creditSeries(seriesAddr);
+        CreditSeries series = CreditSeries(seriesAddr);
         if (uint8(series.state()) != uint8(SeriesState.DEPLOYING)) return;
         if (block.timestamp > series.T_DEPLOY_END()) return;
 

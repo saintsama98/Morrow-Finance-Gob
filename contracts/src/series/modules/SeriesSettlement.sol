@@ -6,14 +6,14 @@ pragma solidity 0.8.34;
 
 import {Market} from "@morpho-org/midnight/src/interfaces/IMidnight.sol";
 import {ERC20Lib} from "@morpho-org/midnight/src/periphery/libraries/ERC20Lib.sol";
-import {seriesFunding} from "./seriesFunding.sol";
+import {SeriesFunding} from "./SeriesFunding.sol";
 import {ISeriesCoreMinimal} from "../../interfaces/ISeriesCoreMinimal.sol";
 import {IERC20Like} from "../../interfaces/IERC20Like.sol";
 import {SeriesState} from "../../interfaces/ISeries.sol";
 import {SeriesMath} from "../../libraries/SeriesMath.sol";
 
 /// @notice Settlement, write-off and the waterfall reruns that pay recoveries.
-abstract contract seriesSettlement is seriesFunding {
+abstract contract SeriesSettlement is SeriesFunding {
     /// @notice Moves a series to settling after maturity; anyone may call.
     function startSettlement() external inState(SeriesState.LOCKED) {
         require(block.timestamp >= T, TooEarly(block.timestamp));

@@ -8,10 +8,10 @@ import {Market} from "@morpho-org/midnight/src/interfaces/IMidnight.sol";
 import {IMidnightMinimal} from "../interfaces/IMidnightMinimal.sol";
 import {MidnightReader} from "../libraries/MidnightReader.sol";
 import {SeriesParams} from "../interfaces/ISeries.sol";
-import {creditSeries} from "./creditSeries.sol";
+import {CreditSeries} from "./CreditSeries.sol";
 
 /// @notice Market eligibility rules, the governance allowlists behind a 48-hour timelock, and series creation.
-contract seriesFactory {
+contract SeriesFactory {
     using MidnightReader for IMidnightMinimal;
 
     error NotGovernance();
@@ -202,7 +202,7 @@ contract seriesFactory {
 
         Market[] memory markets = checkEligibility(p.marketIds);
 
-        series = address(new creditSeries(MIDNIGHT, SETTER_RATIFIER, USDC, core, markets, p));
+        series = address(new CreditSeries(MIDNIGHT, SETTER_RATIFIER, USDC, core, markets, p));
     }
 
     /// @notice Returns the markets if every one passes the rules, else reverts with the failed rule.

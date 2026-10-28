@@ -5,13 +5,13 @@
 pragma solidity 0.8.34;
 
 import {Market} from "@morpho-org/midnight/src/interfaces/IMidnight.sol";
-import {seriesStorage} from "./seriesStorage.sol";
+import {SeriesStorage} from "./SeriesStorage.sol";
 import {SeriesState} from "../../interfaces/ISeries.sol";
 import {WadMath} from "../../libraries/WadMath.sol";
 import {SeriesMath} from "../../libraries/SeriesMath.sol";
 
 /// @notice Marks of a series against Midnight credit and its loss factor.
-abstract contract seriesMarks is seriesStorage {
+abstract contract SeriesMarks is SeriesStorage {
     using WadMath for uint256;
 
     /// @notice Writes accrual for one market and emits the series' buffer.

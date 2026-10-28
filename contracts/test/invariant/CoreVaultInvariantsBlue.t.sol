@@ -8,8 +8,8 @@ import {CoreVaultInvariantsTest} from "./CoreVaultInvariants.t.sol";
 import {SeriesRegistry} from "./handlers/SeriesRegistry.sol";
 import {SeriesRegistryBlueParking} from "./handlers/SeriesRegistryBlueParking.sol";
 import {BlueParkingChaosHandler} from "./handlers/BlueParkingChaosHandler.sol";
-import {blueParking} from "../../src/parking/blueParking.sol";
-import {seriesCore} from "../../src/core/seriesCore.sol";
+import {BlueParking} from "../../src/parking/BlueParking.sol";
+import {SeriesCore} from "../../src/core/SeriesCore.sol";
 
 contract CoreVaultInvariantsBlueTest is CoreVaultInvariantsTest {
     BlueParkingChaosHandler blueChaosHandler;
@@ -23,13 +23,13 @@ contract CoreVaultInvariantsBlueTest is CoreVaultInvariantsTest {
         targetContract(address(blueChaosHandler));
     }
 
-    function _parking() internal view returns (blueParking) {
+    function _parking() internal view returns (BlueParking) {
         return SeriesRegistryBlueParking(address(registry)).blueParkingAdapter();
     }
 
     function invariant_parkingShareLedgerIsExact() public view {
-        blueParking parking = _parking();
-        seriesCore core = registry.realCore();
+        BlueParking parking = _parking();
+        SeriesCore core = registry.realCore();
         uint256 sum = parking.sharesOf(address(core));
         uint256 n = registry.everSeriesCount();
         for (uint256 i = 0; i < n; i++) {
@@ -39,8 +39,8 @@ contract CoreVaultInvariantsBlueTest is CoreVaultInvariantsTest {
     }
 
     function invariant_parkingAccountsNeverExceedPool() public view {
-        blueParking parking = _parking();
-        seriesCore core = registry.realCore();
+        BlueParking parking = _parking();
+        SeriesCore core = registry.realCore();
         uint256 claimed = parking.totalAssets(address(core));
         uint256 n = registry.everSeriesCount();
         for (uint256 i = 0; i < n; i++) {
@@ -51,7 +51,7 @@ contract CoreVaultInvariantsBlueTest is CoreVaultInvariantsTest {
 
     function invariant_blueSharesBackedByTheMarketPosition() public view {
         SeriesRegistryBlueParking r = SeriesRegistryBlueParking(address(registry));
-        blueParking parking = _parking();
+        BlueParking parking = _parking();
         assertLe(
             parking.blueShares(),
             r.blue().supplyShares(parking.MARKET_ID(), address(parking)),

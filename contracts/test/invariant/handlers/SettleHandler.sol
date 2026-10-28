@@ -6,7 +6,7 @@ pragma solidity 0.8.34;
 
 import {Test} from "forge-std/Test.sol";
 import {SeriesRegistry} from "./SeriesRegistry.sol";
-import {creditSeries} from "../../../src/series/creditSeries.sol";
+import {CreditSeries} from "../../../src/series/CreditSeries.sol";
 import {SeriesState} from "../../../src/interfaces/ISeries.sol";
 
 contract SettleHandler is Test {
@@ -19,7 +19,7 @@ contract SettleHandler is Test {
     function startSettlement(uint256 seriesSeed) external {
         (address seriesAddr,) = registry.pickActive(seriesSeed);
         if (seriesAddr == address(0)) return;
-        creditSeries series = creditSeries(seriesAddr);
+        CreditSeries series = CreditSeries(seriesAddr);
         if (uint8(series.state()) != uint8(SeriesState.LOCKED)) return;
 
         (bool ok,) = seriesAddr.call(abi.encodeWithSelector(series.startSettlement.selector));
@@ -29,7 +29,7 @@ contract SettleHandler is Test {
     function collect(uint256 seriesSeed) external {
         (address seriesAddr,) = registry.pickActive(seriesSeed);
         if (seriesAddr == address(0)) return;
-        creditSeries series = creditSeries(seriesAddr);
+        CreditSeries series = CreditSeries(seriesAddr);
         uint8 st = uint8(series.state());
         if (st != uint8(SeriesState.LOCKED) && st != uint8(SeriesState.SETTLING) && st != uint8(SeriesState.SETTLED)) {
             return;
@@ -42,7 +42,7 @@ contract SettleHandler is Test {
     function settle(uint256 seriesSeed) external {
         (address seriesAddr,) = registry.pickActive(seriesSeed);
         if (seriesAddr == address(0)) return;
-        creditSeries series = creditSeries(seriesAddr);
+        CreditSeries series = CreditSeries(seriesAddr);
         if (uint8(series.state()) != uint8(SeriesState.SETTLING)) return;
         if (!series.resolved(0)) return;
 
@@ -53,7 +53,7 @@ contract SettleHandler is Test {
     function writeOff(uint256 seriesSeed) external {
         (address seriesAddr,) = registry.pickActive(seriesSeed);
         if (seriesAddr == address(0)) return;
-        creditSeries series = creditSeries(seriesAddr);
+        CreditSeries series = CreditSeries(seriesAddr);
         if (uint8(series.state()) != uint8(SeriesState.SETTLING)) return;
 
         (bool ok,) = seriesAddr.call(abi.encodeWithSelector(series.writeOff.selector));
@@ -63,7 +63,7 @@ contract SettleHandler is Test {
     function claimFee(uint256 seriesSeed) external {
         (address seriesAddr,) = registry.pickActive(seriesSeed);
         if (seriesAddr == address(0)) return;
-        creditSeries series = creditSeries(seriesAddr);
+        CreditSeries series = CreditSeries(seriesAddr);
 
         (bool ok,) = seriesAddr.call(abi.encodeWithSelector(series.claimFee.selector));
         registry.recordCall(this.claimFee.selector, !ok);

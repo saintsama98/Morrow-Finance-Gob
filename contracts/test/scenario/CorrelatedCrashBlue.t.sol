@@ -8,7 +8,7 @@ import {console} from "forge-std/console.sol";
 import {MorphoScenarioBase} from "./MorphoScenarioBase.t.sol";
 import {SeriesRegistry} from "../invariant/handlers/SeriesRegistry.sol";
 import {SeriesRegistryBlueParking} from "../invariant/handlers/SeriesRegistryBlueParking.sol";
-import {creditSeries} from "../../src/series/creditSeries.sol";
+import {CreditSeries} from "../../src/series/CreditSeries.sol";
 
 contract CorrelatedCrashBlueTest is MorphoScenarioBase {
     address borrower = makeAddr("borrower");
@@ -34,7 +34,7 @@ contract CorrelatedCrashBlueTest is MorphoScenarioBase {
         (address seriesAddr,) = _openSeries(700_000e6, 150_000e6, maturity);
         _registerAndFill(seriesAddr, maturity, 800_000e6, borrower);
         _finalize(seriesAddr);
-        creditSeries series = creditSeries(seriesAddr);
+        CreditSeries series = CreditSeries(seriesAddr);
 
         vm.warp(vm.getBlockTimestamp() + 20 days);
         core.syncAll();

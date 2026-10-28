@@ -12,15 +12,15 @@ import {TickLib} from "@morpho-org/midnight/src/libraries/TickLib.sol";
 import {IdLib} from "@morpho-org/midnight/src/libraries/IdLib.sol";
 import {ORACLE_PRICE_SCALE} from "@morpho-org/midnight/src/libraries/ConstantsLib.sol";
 
-import {seriesFactory} from "../../src/series/seriesFactory.sol";
-import {creditSeries} from "../../src/series/creditSeries.sol";
-import {seriesCore} from "../../src/core/seriesCore.sol";
+import {SeriesFactory} from "../../src/series/SeriesFactory.sol";
+import {CreditSeries} from "../../src/series/CreditSeries.sol";
+import {SeriesCore} from "../../src/core/SeriesCore.sol";
 import {usdcSeniorVault} from "../../src/vaults/senior/usdcSeniorVault.sol";
 import {usdcJuniorVault} from "../../src/vaults/junior/usdcJuniorVault.sol";
-import {idleParking} from "../../src/parking/idleParking.sol";
-import {blueParking} from "../../src/parking/blueParking.sol";
+import {IdleParking} from "../../src/parking/IdleParking.sol";
+import {BlueParking} from "../../src/parking/BlueParking.sol";
 import {IMorpho, MarketParams, Id} from "@morpho-org/morpho-blue/src/interfaces/IMorpho.sol";
-import {iParking} from "../../src/parking/iParking.sol";
+import {IParking} from "../../src/parking/IParking.sol";
 import {IMidnightMinimal} from "../../src/interfaces/IMidnightMinimal.sol";
 import {IERC20Like} from "../../src/interfaces/IERC20Like.sol";
 import {SeriesParams, SeriesState} from "../../src/interfaces/ISeries.sol";
@@ -62,17 +62,17 @@ abstract contract ForkBase is Test {
     address internal constant FEE_RECIPIENT = address(0xFEE);
 
     IMidnight internal midnight = IMidnight(MIDNIGHT);
-    seriesFactory internal factory;
-    seriesCore internal core;
+    SeriesFactory internal factory;
+    SeriesCore internal core;
     usdcSeniorVault internal seniorVault;
     usdcJuniorVault internal juniorVault;
-    iParking internal parking;
+    IParking internal parking;
 
     address internal keeper = makeAddr("keeper");
     address internal alice = makeAddr("alice");
     address internal juniorLender = makeAddr("juniorLender");
 
-    creditSeries[] internal tracked;
+    CreditSeries[] internal tracked;
     uint256 internal forkStartTs;
 
     function _pinnedBlock() internal pure virtual returns (uint256) {
@@ -99,15 +99,15 @@ abstract contract ForkBase is Test {
         vm.createSelectFork(url, _pinnedBlock());
         forkStartTs = block.timestamp;
 
-        factory = new seriesFactory(IMidnightMinimal(MIDNIGHT), SETTER_RATIFIER, USDC, address(this), _maxLltv(), 4);
+        factory = new SeriesFactory(IMidnightMinimal(MIDNIGHT), SETTER_RATIFIER, USDC, address(this), _maxLltv(), 4);
         if (_useBlueParking()) {
             _allowlist();
             MarketParams memory params = IMorpho(MORPHO_BLUE).idToMarketParams(Id.wrap(BLUE_CBBTC_USDC_86));
-            parking = new blueParking(USDC, MORPHO_BLUE, address(factory), params, 0.05e18);
+            parking = new BlueParking(USDC, MORPHO_BLUE, address(factory), params, 0.05e18);
         } else {
-            parking = new idleParking(USDC);
+            parking = new IdleParking(USDC);
         }
-        core = new seriesCore(USDC, factory, parking, GOVERNANCE, ALLOCATOR, CURATOR, SENTINEL);
+        core = new SeriesCore(USDC, factory, parking, GOVERNANCE, ALLOCATOR, CURATOR, SENTINEL);
         factory.setCore(address(core));
         seniorVault = new usdcSeniorVault(core, USDC);
         juniorVault = new usdcJuniorVault(core, USDC);
@@ -201,7 +201,7 @@ abstract contract ForkBase is Test {
 
     function _openSeries(Market[] memory markets, uint256[] memory caps, uint256 S, uint256 J)
         internal
-        returns (creditSeries series, bytes32[] memory ids)
+        returns (CreditSeries series, bytes32[] memory ids)
     {
         ids = new bytes32[](markets.length);
         uint256[] memory floors = new uint256[](markets.length);
@@ -228,16 +228,16 @@ abstract contract ForkBase is Test {
             offchainAttestationHash: bytes32(0)
         });
         vm.prank(ALLOCATOR);
-        series = creditSeries(core.openSeries(p, S, J));
+        series = CreditSeries(core.openSeries(p, S, J));
         tracked.push(series);
     }
 
-    function _openSingle(Market memory market, uint256 S, uint256 J) internal returns (creditSeries, bytes32) {
+    function _openSingle(Market memory market, uint256 S, uint256 J) internal returns (CreditSeries, bytes32) {
         Market[] memory ms = new Market[](1);
         ms[0] = market;
         uint256[] memory caps = new uint256[](1);
         caps[0] = S + J;
-        (creditSeries s, bytes32[] memory ids) = _openSeries(ms, caps, S, J);
+        (CreditSeries s, bytes32[] memory ids) = _openSeries(ms, caps, S, J);
         return (s, ids[0]);
     }
 
@@ -261,13 +261,13 @@ abstract contract ForkBase is Test {
         vm.stopPrank();
     }
 
-    function _take(creditSeries series, uint256 i, Market memory market, uint256 units, address borrower) internal {
+    function _take(CreditSeries series, uint256 i, Market memory market, uint256 units, address borrower) internal {
         Offer memory offer = _buildOffer(series, i, market, units, borrower);
         bytes32 root = _registerSingle(series, offer);
         _takeRatified(offer, root, units, borrower);
     }
 
-    function _registerSingle(creditSeries series, Offer memory offer) internal returns (bytes32 root) {
+    function _registerSingle(CreditSeries series, Offer memory offer) internal returns (bytes32 root) {
         Offer[] memory leaves = new Offer[](1);
         leaves[0] = offer;
         root = HashLib.hashOffer(offer);
@@ -280,7 +280,7 @@ abstract contract ForkBase is Test {
         midnight.take(offer, abi.encode(root, uint256(0), new bytes32[](0)), units, borrower, borrower, address(0), "");
     }
 
-    function _buildOffer(creditSeries series, uint256 i, Market memory market, uint256 units, address borrower)
+    function _buildOffer(CreditSeries series, uint256 i, Market memory market, uint256 units, address borrower)
         internal
         view
         returns (Offer memory offer)
@@ -301,7 +301,7 @@ abstract contract ForkBase is Test {
     }
 
     function _borrow(
-        creditSeries series,
+        CreditSeries series,
         uint256 i,
         Market memory market,
         uint256 units,
@@ -312,13 +312,13 @@ abstract contract ForkBase is Test {
         _take(series, i, market, units, borrower);
     }
 
-    function _finalizeByKeeper(creditSeries series) internal {
+    function _finalizeByKeeper(CreditSeries series) internal {
         if (block.timestamp <= series.T_DEPLOY_END()) vm.warp(uint256(series.T_DEPLOY_END()) + 1);
         vm.prank(keeper);
         series.finalize();
     }
 
-    function _toSettling(creditSeries series) internal {
+    function _toSettling(CreditSeries series) internal {
         if (block.timestamp < series.T()) vm.warp(series.T());
         vm.prank(keeper);
         series.startSettlement();
@@ -343,7 +343,7 @@ abstract contract ForkBase is Test {
         vm.stopPrank();
     }
 
-    function _collectAll(creditSeries series) internal {
+    function _collectAll(CreditSeries series) internal {
         uint256 n = series.marketIds().length;
         for (uint256 i = 0; i < n; i++) {
             vm.prank(keeper);
@@ -381,7 +381,7 @@ abstract contract ForkBase is Test {
         paid = juniorVault.redeem(claimable, juniorLender, juniorLender);
     }
 
-    function _proceeds(creditSeries s) internal view returns (uint256) {
+    function _proceeds(CreditSeries s) internal view returns (uint256) {
         return IERC20Like(USDC).balanceOf(address(s)) + parking.totalAssets(address(s)) + s.paidS() + s.paidJ()
             + s.feeClaimed();
     }
@@ -402,7 +402,7 @@ abstract contract ForkBase is Test {
         assertEq(juniorVault.totalAssets(), core.juniorAssets(), "books: junior vault equals junior book");
 
         for (uint256 k = 0; k < tracked.length; k++) {
-            creditSeries s = tracked[k];
+            CreditSeries s = tracked[k];
             assertEq(IERC20Like(USDC).balanceOf(address(s)), 0, "series never holds loose usdc between calls");
             if (uint8(s.state()) != uint8(SeriesState.SETTLED)) continue;
             uint256 p = _proceeds(s);

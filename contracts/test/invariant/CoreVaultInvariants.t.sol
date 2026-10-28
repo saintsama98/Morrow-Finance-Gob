@@ -14,8 +14,8 @@ import {DeployHandler} from "./handlers/DeployHandler.sol";
 import {MidnightChaosHandler} from "./handlers/MidnightChaosHandler.sol";
 import {SettleHandler} from "./handlers/SettleHandler.sol";
 
-import {seriesCore} from "../../src/core/seriesCore.sol";
-import {creditSeries} from "../../src/series/creditSeries.sol";
+import {SeriesCore} from "../../src/core/SeriesCore.sol";
+import {CreditSeries} from "../../src/series/CreditSeries.sol";
 import {usdcSeniorVault} from "../../src/vaults/senior/usdcSeniorVault.sol";
 import {usdcJuniorVault} from "../../src/vaults/junior/usdcJuniorVault.sol";
 
@@ -71,7 +71,7 @@ contract CoreVaultInvariantsTest is Test {
     }
 
     function invariant_coreBalanceReconciles() public view {
-        seriesCore core = registry.realCore();
+        SeriesCore core = registry.realCore();
         (, uint256 seniorReserved,) = core.senior();
         (, uint256 juniorReserved, uint256 juniorPending) = core.junior();
 
@@ -87,7 +87,7 @@ contract CoreVaultInvariantsTest is Test {
     }
 
     function invariant_vaultAssetsEqualCoreBooks() public view {
-        seriesCore core = registry.realCore();
+        SeriesCore core = registry.realCore();
         assertEq(
             registry.seniorVault().totalAssets(), core.seniorAssets(), "srUSDC totalAssets must equal the senior book"
         );
@@ -285,25 +285,25 @@ contract CoreVaultInvariantsTest is Test {
     }
 
     function invariant_seriesCountsWithinCaps() public view {
-        seriesCore core = registry.realCore();
+        SeriesCore core = registry.realCore();
         (,,,,,,,,, uint256 maxSeries, uint256 maxRecovering,,,,,,,,) = core.policy();
         assertLe(core.liveSeriesCount(), maxSeries, "liveSeries must never exceed maxSeries");
         assertLe(core.recoveringSeriesCount(), maxRecovering, "recoveringSeries must never exceed maxRecovering");
     }
 
     function invariant_seriesCustodyBoundToCoreParking() public view {
-        seriesCore core = registry.realCore();
+        SeriesCore core = registry.realCore();
         address coreParking = address(core.PARKING());
         uint256 live = core.liveSeriesCount();
         for (uint256 i = 0; i < live; i++) {
             assertEq(
-                address(creditSeries(core.liveSeries(i)).PARKING()), coreParking, "live series parks outside the core"
+                address(CreditSeries(core.liveSeries(i)).PARKING()), coreParking, "live series parks outside the core"
             );
         }
         uint256 recovering = core.recoveringSeriesCount();
         for (uint256 i = 0; i < recovering; i++) {
             assertEq(
-                address(creditSeries(core.recoveringSeries(i)).PARKING()),
+                address(CreditSeries(core.recoveringSeries(i)).PARKING()),
                 coreParking,
                 "recovering series parks outside the core"
             );

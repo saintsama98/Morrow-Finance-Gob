@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-// Morrow Finance: unit tests for creditSeries creation, funding, fills, and finalize.
+// Morrow Finance: unit tests for CreditSeries creation, funding, fills, and finalize.
 // @author adiii.eth
 
 pragma solidity 0.8.34;
@@ -15,25 +15,25 @@ import {DummyRatifier} from "@morpho-org/midnight/test/helpers/DummyRatifier.sol
 import {MidnightHarness} from "../mocks/MidnightHarness.sol";
 import {MockUSDC} from "../mocks/MockUSDC.sol";
 import {StubCore} from "../mocks/StubCore.sol";
-import {seriesFactory} from "../../src/series/seriesFactory.sol";
-import {creditSeries} from "../../src/series/creditSeries.sol";
+import {SeriesFactory} from "../../src/series/SeriesFactory.sol";
+import {CreditSeries} from "../../src/series/CreditSeries.sol";
 import {SeriesParams, SeriesState} from "../../src/interfaces/ISeries.sol";
 import {IMidnightMinimal} from "../../src/interfaces/IMidnightMinimal.sol";
-import {iParking} from "../../src/parking/iParking.sol";
-import {idleParking} from "../../src/parking/idleParking.sol";
-import {seriesStorage} from "../../src/series/modules/seriesStorage.sol";
+import {IParking} from "../../src/parking/IParking.sol";
+import {IdleParking} from "../../src/parking/IdleParking.sol";
+import {SeriesStorage} from "../../src/series/modules/SeriesStorage.sol";
 
 contract SeriesTest is Test, MidnightHarness {
     using UtilsLib for uint256;
 
     uint256 constant WAD = 1e18;
-    seriesFactory factory;
+    SeriesFactory factory;
     StubCore core;
     address allocator = makeAddr("allocator");
     address sentinel = makeAddr("sentinel");
     address feeRecipient = makeAddr("feeRecipient");
     address borrower = makeAddr("borrower");
-    idleParking parking;
+    IdleParking parking;
 
     uint256 maturity;
     bytes32 marketId;
@@ -44,7 +44,7 @@ contract SeriesTest is Test, MidnightHarness {
         maturity = block.timestamp + 90 days;
 
         core = new StubCore(address(usdc), sentinel);
-        factory = new seriesFactory(
+        factory = new SeriesFactory(
             IMidnightMinimal(address(midnight)), address(setterRatifier), address(usdc), address(this), 0.86e18, 4
         );
         factory.setCore(address(core));
@@ -54,7 +54,7 @@ contract SeriesTest is Test, MidnightHarness {
         market = _cbBtcMarket(maturity, LLTV_77);
         marketId = _touch(market);
 
-        parking = new idleParking(address(usdc));
+        parking = new IdleParking(address(usdc));
 
         usdc.mint(address(core), 10_000_000e6);
     }
@@ -90,20 +90,20 @@ contract SeriesTest is Test, MidnightHarness {
             thetaWad: 0.1e18,
             feeRecipient: feeRecipient,
             allocator: allocator,
-            parking: iParking(address(parking)),
+            parking: IParking(address(parking)),
             offchainAttestationHash: bytes32(0)
         });
     }
 
-    function _openAndFund(uint256 s, uint256 j) internal returns (creditSeries series) {
+    function _openAndFund(uint256 s, uint256 j) internal returns (CreditSeries series) {
         SeriesParams memory p = _defaultParams(s + j);
         vm.prank(address(core));
         address seriesAddr = core.createAndFund(factory, p, s, j);
-        series = creditSeries(seriesAddr);
+        series = CreditSeries(seriesAddr);
     }
 
     function test_initialize_setsAllocations() public {
-        creditSeries series = _openAndFund(900_000e6, 200_000e6);
+        CreditSeries series = _openAndFund(900_000e6, 200_000e6);
         assertEq(series.seniorAllocated(), 900_000e6);
         assertEq(series.juniorAllocated(), 200_000e6);
         assertEq(uint8(series.state()), uint8(SeriesState.DEPLOYING));
@@ -111,7 +111,7 @@ contract SeriesTest is Test, MidnightHarness {
     }
 
     function test_cancel_beforeAnyFill_returnsExactly() public {
-        creditSeries series = _openAndFund(900_000e6, 200_000e6);
+        CreditSeries series = _openAndFund(900_000e6, 200_000e6);
 
         vm.prank(allocator);
         series.cancel();
@@ -123,15 +123,15 @@ contract SeriesTest is Test, MidnightHarness {
     }
 
     function test_cancel_bySentinel_allowed() public {
-        creditSeries series = _openAndFund(900_000e6, 200_000e6);
+        CreditSeries series = _openAndFund(900_000e6, 200_000e6);
         vm.prank(sentinel);
         series.cancel();
         assertEq(uint8(series.state()), uint8(SeriesState.CANCELED));
     }
 
     function test_cancel_byRandomAddress_reverts() public {
-        creditSeries series = _openAndFund(900_000e6, 200_000e6);
-        vm.expectRevert(seriesStorage.NotCoreOrSentinel.selector);
+        CreditSeries series = _openAndFund(900_000e6, 200_000e6);
+        vm.expectRevert(SeriesStorage.NotCoreOrSentinel.selector);
         series.cancel();
     }
 
@@ -146,7 +146,7 @@ contract SeriesTest is Test, MidnightHarness {
         vm.stopPrank();
     }
 
-    function _registerSingleOffer(creditSeries series, uint256 units, uint256 tick)
+    function _registerSingleOffer(CreditSeries series, uint256 units, uint256 tick)
         internal
         returns (Offer memory offer, bytes32 root)
     {
@@ -177,7 +177,7 @@ contract SeriesTest is Test, MidnightHarness {
     }
 
     function test_onBuy_makerPath_realFillThroughMidnight() public {
-        creditSeries series = _openAndFund(900_000e6, 200_000e6);
+        CreditSeries series = _openAndFund(900_000e6, 200_000e6);
         uint256 tick = series.tickMaxFor(0);
         uint256 units = 100_000e6;
 
@@ -195,13 +195,13 @@ contract SeriesTest is Test, MidnightHarness {
     }
 
     function test_onBuy_wrongCaller_reverts() public {
-        creditSeries series = _openAndFund(900_000e6, 200_000e6);
-        vm.expectRevert(seriesStorage.NotMidnight.selector);
+        CreditSeries series = _openAndFund(900_000e6, 200_000e6);
+        vm.expectRevert(SeriesStorage.NotMidnight.selector);
         series.onBuy(marketId, market, 100e6, 100e6, 0, address(series), abi.encode(uint256(0)));
     }
 
     function test_onBuy_noOpTake_changesNoState() public {
-        creditSeries series = _openAndFund(900_000e6, 200_000e6);
+        CreditSeries series = _openAndFund(900_000e6, 200_000e6);
         uint256 filledBefore = series.filled(0);
         uint256 totalBefore = series.totalFilled();
 
@@ -214,25 +214,25 @@ contract SeriesTest is Test, MidnightHarness {
     }
 
     function test_onBuy_wrongMarketId_reverts() public {
-        creditSeries series = _openAndFund(900_000e6, 200_000e6);
+        CreditSeries series = _openAndFund(900_000e6, 200_000e6);
         vm.prank(address(midnight));
-        vm.expectRevert(abi.encodeWithSelector(seriesStorage.MarketMismatch.selector, marketId, bytes32(uint256(1))));
+        vm.expectRevert(abi.encodeWithSelector(SeriesStorage.MarketMismatch.selector, marketId, bytes32(uint256(1))));
         series.onBuy(bytes32(uint256(1)), market, 100e6, 100e6, 0, address(series), abi.encode(uint256(0)));
     }
 
     function test_onBuy_afterTDeployEnd_reverts() public {
-        creditSeries series = _openAndFund(900_000e6, 200_000e6);
+        CreditSeries series = _openAndFund(900_000e6, 200_000e6);
         vm.warp(block.timestamp + 4 days);
 
         vm.prank(address(midnight));
         vm.expectRevert(
-            abi.encodeWithSelector(seriesStorage.WrongState.selector, SeriesState.DEPLOYING, SeriesState.DEPLOYING)
+            abi.encodeWithSelector(SeriesStorage.WrongState.selector, SeriesState.DEPLOYING, SeriesState.DEPLOYING)
         );
         series.onBuy(marketId, market, 100e6, 100e6, 0, address(series), abi.encode(uint256(0)));
     }
 
     function test_finalize_kdZero_cancels() public {
-        creditSeries series = _openAndFund(900_000e6, 200_000e6);
+        CreditSeries series = _openAndFund(900_000e6, 200_000e6);
         vm.warp(block.timestamp + 4 days);
         series.finalize();
 
@@ -242,7 +242,7 @@ contract SeriesTest is Test, MidnightHarness {
     }
 
     function test_finalize_belowKMin_setsPassThrough() public {
-        creditSeries series = _openAndFund(900_000e6, 200_000e6);
+        CreditSeries series = _openAndFund(900_000e6, 200_000e6);
         uint256 tick = series.tickMaxFor(0);
         uint256 units = 10_000e6;
 
@@ -260,7 +260,7 @@ contract SeriesTest is Test, MidnightHarness {
     }
 
     function test_finalize_normalPath_pricesCorrectly() public {
-        creditSeries series = _openAndFund(900_000e6, 200_000e6);
+        CreditSeries series = _openAndFund(900_000e6, 200_000e6);
         uint256 tick = series.tickMaxFor(0);
         uint256 units = 1_000_000e6;
 
@@ -325,7 +325,7 @@ contract SeriesTest is Test, MidnightHarness {
     }
 
     function test_deployTake_takerPath_realFillThroughMidnight() public {
-        creditSeries series = _openAndFund(900_000e6, 200_000e6);
+        CreditSeries series = _openAndFund(900_000e6, 200_000e6);
         uint256 units = 50_000e6;
 
         (, Offer memory ask) = _setUpExistingAskFromLender(units, series.tickMaxFor(0));
@@ -342,22 +342,22 @@ contract SeriesTest is Test, MidnightHarness {
     }
 
     function test_deployTake_wrongOfferSide_reverts() public {
-        creditSeries series = _openAndFund(900_000e6, 200_000e6);
+        CreditSeries series = _openAndFund(900_000e6, 200_000e6);
         uint256 units = 50_000e6;
         (, Offer memory ask) = _setUpExistingAskFromLender(units, series.tickMaxFor(0));
         ask.buy = true;
 
         vm.prank(allocator);
-        vm.expectRevert(abi.encodeWithSelector(seriesStorage.MarketMismatch.selector, marketId, marketId));
+        vm.expectRevert(abi.encodeWithSelector(SeriesStorage.MarketMismatch.selector, marketId, marketId));
         series.deployTake(0, ask, "", units);
     }
 
     function test_deployTake_onlyAllocator_reverts() public {
-        creditSeries series = _openAndFund(900_000e6, 200_000e6);
+        CreditSeries series = _openAndFund(900_000e6, 200_000e6);
         uint256 units = 50_000e6;
         (, Offer memory ask) = _setUpExistingAskFromLender(units, series.tickMaxFor(0));
 
-        vm.expectRevert(seriesStorage.NotAllocator.selector);
+        vm.expectRevert(SeriesStorage.NotAllocator.selector);
         series.deployTake(0, ask, "", units);
     }
 }

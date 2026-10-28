@@ -8,12 +8,12 @@ import {IMorpho, MarketParams, Market, Id} from "@morpho-org/morpho-blue/src/int
 import {MarketParamsLib} from "@morpho-org/morpho-blue/src/libraries/MarketParamsLib.sol";
 import {SharesMathLib} from "@morpho-org/morpho-blue/src/libraries/SharesMathLib.sol";
 import {MorphoBalancesLib} from "@morpho-org/morpho-blue/src/libraries/periphery/MorphoBalancesLib.sol";
-import {iParking} from "./iParking.sol";
+import {IParking} from "./IParking.sol";
 import {IERC20Like} from "../interfaces/IERC20Like.sol";
 import {WadMath} from "../libraries/WadMath.sol";
 
 /// @notice The part of the series factory the Blue adapter reads.
-interface iParkingFactoryLike {
+interface IParkingFactoryLike {
     /// @notice Core address.
     function core() external view returns (address);
     /// @notice Loan token.
@@ -27,7 +27,7 @@ interface iParkingFactoryLike {
 }
 
 /// @notice The part of the core the Blue adapter reads.
-interface iParkingCoreLike {
+interface IParkingCoreLike {
     /// @notice Current curator.
     function curator() external view returns (address);
     /// @notice Current sentinel.
@@ -37,7 +37,7 @@ interface iParkingCoreLike {
 }
 
 /// @notice Parking that lends idle cash directly in one Morpho Blue market, with a raw USDC buffer.
-contract blueParking is iParking {
+contract BlueParking is IParking {
     using WadMath for uint256;
     using MarketParamsLib for MarketParams;
     using SharesMathLib for uint256;
@@ -68,7 +68,7 @@ contract blueParking is iParking {
 
     IERC20Like public immutable USDC;
     IMorpho public immutable MORPHO;
-    iParkingFactoryLike public immutable FACTORY;
+    IParkingFactoryLike public immutable FACTORY;
     Id public immutable MARKET_ID;
     address public immutable COLLATERAL;
     address public immutable ORACLE;
@@ -97,12 +97,12 @@ contract blueParking is iParking {
 
     constructor(address usdc, address morpho, address factory, MarketParams memory params, uint256 bufferWad) {
         require(usdc != address(0) && morpho != address(0) && factory != address(0), ZeroAddress());
-        require(params.loanToken == usdc && iParkingFactoryLike(factory).USDC() == usdc, AssetMismatch());
+        require(params.loanToken == usdc && IParkingFactoryLike(factory).USDC() == usdc, AssetMismatch());
         require(bufferWad <= WAD, InvalidBuffer());
         require(
-            iParkingFactoryLike(factory).collateralAllowed(params.collateralToken)
-                && iParkingFactoryLike(factory).oracleAllowed(params.collateralToken, params.oracle)
-                && params.lltv <= iParkingFactoryLike(factory).maxLltvWad(),
+            IParkingFactoryLike(factory).collateralAllowed(params.collateralToken)
+                && IParkingFactoryLike(factory).oracleAllowed(params.collateralToken, params.oracle)
+                && params.lltv <= IParkingFactoryLike(factory).maxLltvWad(),
             MarketNotEligible()
         );
         Id id = params.id();
@@ -110,7 +110,7 @@ contract blueParking is iParking {
 
         USDC = IERC20Like(usdc);
         MORPHO = IMorpho(morpho);
-        FACTORY = iParkingFactoryLike(factory);
+        FACTORY = IParkingFactoryLike(factory);
         MARKET_ID = id;
         COLLATERAL = params.collateralToken;
         ORACLE = params.oracle;
@@ -172,7 +172,7 @@ contract blueParking is iParking {
     function exitToCash() external nonReentrant {
         address core = FACTORY.core();
         require(
-            msg.sender == iParkingCoreLike(core).sentinel() || msg.sender == iParkingCoreLike(core).curator(),
+            msg.sender == IParkingCoreLike(core).sentinel() || msg.sender == IParkingCoreLike(core).curator(),
             NotAuthorized()
         );
         exited = true;
@@ -231,7 +231,7 @@ contract blueParking is iParking {
     function _requireMorrow(address caller) internal view {
         address core = FACTORY.core();
         if (caller == core) return;
-        (,,, bool registered) = iParkingCoreLike(core).info(caller);
+        (,,, bool registered) = IParkingCoreLike(core).info(caller);
         require(registered, NotAuthorized());
     }
 

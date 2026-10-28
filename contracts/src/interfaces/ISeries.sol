@@ -4,7 +4,7 @@
 
 pragma solidity 0.8.34;
 
-import {iParking} from "../parking/iParking.sol";
+import {IParking} from "../parking/IParking.sol";
 
 struct SeriesParams {
     bytes32[] marketIds;
@@ -20,7 +20,7 @@ struct SeriesParams {
     uint256 thetaWad;
     address feeRecipient;
     address allocator;
-    iParking parking;
+    IParking parking;
     bytes32 offchainAttestationHash;
 }
 

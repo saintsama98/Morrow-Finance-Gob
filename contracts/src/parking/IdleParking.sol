@@ -4,11 +4,11 @@
 
 pragma solidity 0.8.34;
 
-import {iParking} from "./iParking.sol";
+import {IParking} from "./IParking.sol";
 import {IERC20Like} from "../interfaces/IERC20Like.sol";
 
 /// @notice Parking that holds plain USDC.
-contract idleParking is iParking {
+contract IdleParking is IParking {
     error TransferFailed();
     error ZeroAddress();
 

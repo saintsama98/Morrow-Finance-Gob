@@ -5,14 +5,14 @@
 pragma solidity 0.8.34;
 
 import {Market} from "@morpho-org/midnight/src/interfaces/IMidnight.sol";
-import {coreVaultFlows} from "./coreVaultFlows.sol";
-import {creditSeries} from "../../series/creditSeries.sol";
+import {CoreVaultFlows} from "./CoreVaultFlows.sol";
+import {CreditSeries} from "../../series/CreditSeries.sol";
 import {SeriesParams, SeriesState} from "../../interfaces/ISeries.sol";
 import {IMidnightMinimal} from "../../interfaces/IMidnightMinimal.sol";
 import {WadMath} from "../../libraries/WadMath.sol";
 
 /// @notice Opening series, receiving their cash back, syncing marks and pruning settled series.
-abstract contract coreSeriesLifecycle is coreVaultFlows {
+abstract contract CoreSeriesLifecycle is CoreVaultFlows {
     using WadMath for uint256;
 
     /// @notice Opens a series with senior and junior allocations within policy.
@@ -46,7 +46,7 @@ abstract contract coreSeriesLifecycle is coreVaultFlows {
 
         _removeFromBooks(S, J);
         PARKING.transferPosition(seriesAddr, kAlloc);
-        creditSeries(seriesAddr).initialize(S, J);
+        CreditSeries(seriesAddr).initialize(S, J);
 
         liveSeries.push(seriesAddr);
         info[seriesAddr] = SeriesInfo({seniorAllocated: S, juniorAllocated: J, maturity: T, registered: true});
@@ -58,7 +58,7 @@ abstract contract coreSeriesLifecycle is coreVaultFlows {
     function receiveReturn(uint256 toSenior, uint256 toJunior) external onlyRegisteredSeries {
         _creditBooks(toSenior, toJunior);
 
-        if (uint8(creditSeries(msg.sender).state()) == uint8(SeriesState.CANCELED)) {
+        if (uint8(CreditSeries(msg.sender).state()) == uint8(SeriesState.CANCELED)) {
             _removeLive(msg.sender);
         }
 
@@ -73,7 +73,7 @@ abstract contract coreSeriesLifecycle is coreVaultFlows {
             _applyBackstop(msg.sender);
         }
 
-        creditSeries s = creditSeries(msg.sender);
+        CreditSeries s = CreditSeries(msg.sender);
         if (uint8(s.state()) == uint8(SeriesState.SETTLED)) {
             bool stillRecovering = _hasWrittenOffCredit(s);
             _removeLive(msg.sender);
@@ -90,7 +90,7 @@ abstract contract coreSeriesLifecycle is coreVaultFlows {
         _settleIdleLoss(_parked());
         uint256 length = liveSeries.length;
         for (uint256 i = 0; i < length; i++) {
-            creditSeries(liveSeries[i]).navsSynced();
+            CreditSeries(liveSeries[i]).navsSynced();
         }
         emit Synced(seniorAssets(), juniorAssets());
     }
@@ -99,7 +99,7 @@ abstract contract coreSeriesLifecycle is coreVaultFlows {
     function pruneSeries() external {
         uint256 i;
         while (i < liveSeries.length) {
-            creditSeries s = creditSeries(liveSeries[i]);
+            CreditSeries s = CreditSeries(liveSeries[i]);
             uint8 st = uint8(s.state());
             if (st == uint8(SeriesState.SETTLED) || st == uint8(SeriesState.CANCELED)) {
                 bool stillRecovering = st == uint8(SeriesState.SETTLED) && _hasWrittenOffCredit(s);
@@ -116,7 +116,7 @@ abstract contract coreSeriesLifecycle is coreVaultFlows {
 
         uint256 j;
         while (j < recoveringSeries.length) {
-            if (!_hasWrittenOffCredit(creditSeries(recoveringSeries[j]))) {
+            if (!_hasWrittenOffCredit(CreditSeries(recoveringSeries[j]))) {
                 recoveringSeries[j] = recoveringSeries[recoveringSeries.length - 1];
                 recoveringSeries.pop();
             } else {
@@ -157,7 +157,7 @@ abstract contract coreSeriesLifecycle is coreVaultFlows {
     }
 
     function _applyBackstop(address seriesAddr) internal {
-        creditSeries s = creditSeries(seriesAddr);
+        CreditSeries s = CreditSeries(seriesAddr);
         if (s.passThrough()) return;
 
         uint256 claim = s.seniorClaim();

@@ -9,12 +9,12 @@ import {IMorpho, MarketParams, Market as BlueMarket, Id} from "@morpho-org/morph
 import {SharesMathLib} from "@morpho-org/morpho-blue/src/libraries/SharesMathLib.sol";
 import {Market} from "@morpho-org/midnight/src/interfaces/IMidnight.sol";
 import {ForkBase} from "./ForkBase.t.sol";
-import {seriesFactory} from "../../src/series/seriesFactory.sol";
-import {creditSeries} from "../../src/series/creditSeries.sol";
-import {seriesCore} from "../../src/core/seriesCore.sol";
+import {SeriesFactory} from "../../src/series/SeriesFactory.sol";
+import {CreditSeries} from "../../src/series/CreditSeries.sol";
+import {SeriesCore} from "../../src/core/SeriesCore.sol";
 import {usdcSeniorVault} from "../../src/vaults/senior/usdcSeniorVault.sol";
 import {usdcJuniorVault} from "../../src/vaults/junior/usdcJuniorVault.sol";
-import {blueParking} from "../../src/parking/blueParking.sol";
+import {BlueParking} from "../../src/parking/BlueParking.sol";
 import {IMidnightMinimal} from "../../src/interfaces/IMidnightMinimal.sol";
 import {IERC20Like} from "../../src/interfaces/IERC20Like.sol";
 
@@ -28,7 +28,7 @@ contract ForkBlueParkingTest is ForkBase {
     address internal constant BLUE = 0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb;
     bytes32 internal constant CBBTC_USDC_86 = 0x9103c3b4e834476c9a62ea009ba2c884ee42e94e6e314a26f04d312434191836;
 
-    blueParking internal blueAdapter;
+    BlueParking internal blueAdapter;
     MarketParams internal params;
     address internal borrower = makeAddr("borrower");
     address internal squeezer = makeAddr("squeezer");
@@ -44,7 +44,7 @@ contract ForkBlueParkingTest is ForkBase {
         vm.createSelectFork(url, _pinnedBlock());
         forkStartTs = block.timestamp;
 
-        factory = new seriesFactory(IMidnightMinimal(MIDNIGHT), SETTER_RATIFIER, USDC, address(this), _maxLltv(), 4);
+        factory = new SeriesFactory(IMidnightMinimal(MIDNIGHT), SETTER_RATIFIER, USDC, address(this), _maxLltv(), 4);
         factory.proposeCollateralAllowed(CBBTC, true);
         factory.proposeOracleAllowed(CBBTC, CBBTC_ORACLE, true);
         vm.warp(block.timestamp + 48 hours);
@@ -52,10 +52,10 @@ contract ForkBlueParkingTest is ForkBase {
         factory.executeOracleAllowed(CBBTC, CBBTC_ORACLE, true);
 
         params = IMorpho(BLUE).idToMarketParams(Id.wrap(CBBTC_USDC_86));
-        blueAdapter = new blueParking(USDC, BLUE, address(factory), params, 0.05e18);
+        blueAdapter = new BlueParking(USDC, BLUE, address(factory), params, 0.05e18);
         parking = blueAdapter;
 
-        core = new seriesCore(USDC, factory, parking, GOVERNANCE, ALLOCATOR, CURATOR, SENTINEL);
+        core = new SeriesCore(USDC, factory, parking, GOVERNANCE, ALLOCATOR, CURATOR, SENTINEL);
         factory.setCore(address(core));
         seniorVault = new usdcSeniorVault(core, USDC);
         juniorVault = new usdcJuniorVault(core, USDC);
@@ -118,7 +118,7 @@ contract ForkBlueParkingTest is ForkBase {
         _assertValuationMatchesBlue("valuation equals Blue after deposit");
 
         Market memory market = _cbMarket(0.86e18, DEC_25, 3_000_000_001);
-        (creditSeries series, bytes32 id) = _openSingle(market, 400_000e6, 100_000e6);
+        (CreditSeries series, bytes32 id) = _openSingle(market, 400_000e6, 100_000e6);
 
         uint256 sharesBefore = blueAdapter.blueShares();
         uint256 units = 300_000e6;
@@ -163,7 +163,7 @@ contract ForkBlueParkingTest is ForkBase {
         _checkStructure();
     }
 
-    function takeExt(creditSeries series, Market memory market, uint256 units, address who) external {
+    function takeExt(CreditSeries series, Market memory market, uint256 units, address who) external {
         _take(series, 0, market, units, who);
     }
 
@@ -205,7 +205,7 @@ contract ForkBlueParkingTest is ForkBase {
     function test_fullyUtilizedBlue_fillsAndExitsWaitWithoutBreaking() public {
         _fundBooks(1_500_000e6, 500_000e6);
         Market memory market = _cbMarket(0.86e18, DEC_25, 3_000_000_001);
-        (creditSeries series,) = _openSingle(market, 400_000e6, 100_000e6);
+        (CreditSeries series,) = _openSingle(market, 400_000e6, 100_000e6);
         _postCollateral(borrower, market, 0, _collateralFor(market, 0, 400_000e6, 80));
 
         _squeeze();
@@ -217,7 +217,7 @@ contract ForkBlueParkingTest is ForkBase {
         try this.takeExt(series, market, 300_000e6, borrower) {
             revert("a fill larger than the raw slice must not go through");
         } catch (bytes memory err) {
-            assertEq(bytes4(err), blueParking.Illiquid.selector, "the fill was refused for lack of Blue liquidity");
+            assertEq(bytes4(err), BlueParking.Illiquid.selector, "the fill was refused for lack of Blue liquidity");
         }
         assertEq(series.totalFilled(), 0, "the failed fill left nothing behind");
         assertEq(blueAdapter.blueShares(), sharesBefore, "the Blue position is untouched");

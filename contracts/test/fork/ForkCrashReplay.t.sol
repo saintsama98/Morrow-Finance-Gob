@@ -8,7 +8,7 @@ pragma solidity 0.8.34;
 import {console} from "forge-std/console.sol";
 import {Market} from "@morpho-org/midnight/src/interfaces/IMidnight.sol";
 import {ForkBase, iChainlinkFeed} from "./ForkBase.t.sol";
-import {creditSeries} from "../../src/series/creditSeries.sol";
+import {CreditSeries} from "../../src/series/CreditSeries.sol";
 import {SeriesState} from "../../src/interfaces/ISeries.sol";
 import {IERC20Like} from "../../src/interfaces/IERC20Like.sol";
 
@@ -20,7 +20,7 @@ contract ForkCrashReplayTest is ForkBase {
 
     uint256[4] internal healthLevels = [uint256(60), 80, 90, 97];
 
-    creditSeries internal s;
+    CreditSeries internal s;
     bytes32[] internal ids;
     Market[] internal mkts;
     address[] internal borrowers;

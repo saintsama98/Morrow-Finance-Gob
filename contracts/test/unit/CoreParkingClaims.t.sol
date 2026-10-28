@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: BUSL-1.1
-// Morrow Finance: seriesCore's proportional parking claims, exercised with yield-bearing parking.
+// Morrow Finance: SeriesCore's proportional parking claims, exercised with yield-bearing parking.
 // @author adiii.eth
 
 pragma solidity 0.8.34;
 
 import {Vm} from "forge-std/Test.sol";
 import {MorphoScenarioBase} from "../scenario/MorphoScenarioBase.t.sol";
-import {creditSeries} from "../../src/series/creditSeries.sol";
+import {CreditSeries} from "../../src/series/CreditSeries.sol";
 
 contract CoreParkingClaimsTest is MorphoScenarioBase {
     address borrower = makeAddr("borrower");
@@ -63,7 +63,7 @@ contract CoreParkingClaimsTest is MorphoScenarioBase {
         (address seriesAddr,) = _openSeries(700_000e6, 150_000e6, maturity);
         _registerAndFill(seriesAddr, maturity, 800_000e6, borrower);
         _finalize(seriesAddr);
-        creditSeries series = creditSeries(seriesAddr);
+        CreditSeries series = CreditSeries(seriesAddr);
 
         vault.accrueBps(300);
         uint256 seniorBefore = core.idle(true);

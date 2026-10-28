@@ -4,14 +4,14 @@
 
 pragma solidity 0.8.34;
 
-import {coreParkingBooks} from "./coreParkingBooks.sol";
-import {creditSeries} from "../../series/creditSeries.sol";
+import {CoreParkingBooks} from "./CoreParkingBooks.sol";
+import {CreditSeries} from "../../series/CreditSeries.sol";
 import {SeriesState} from "../../interfaces/ISeries.sol";
 import {IExitQueue} from "../../interfaces/IExitQueue.sol";
 import {WadMath} from "../../libraries/WadMath.sol";
 
 /// @notice Book values, capacity, the stress gate and exit limits.
-abstract contract coreValuation is coreParkingBooks {
+abstract contract CoreValuation is CoreParkingBooks {
     using WadMath for uint256;
 
     /// @notice Number of live series.
@@ -29,7 +29,7 @@ abstract contract coreValuation is coreParkingBooks {
         total = idle(true);
         uint256 length = liveSeries.length;
         for (uint256 i = 0; i < length; i++) {
-            (uint256 navS,,) = creditSeries(liveSeries[i]).navs();
+            (uint256 navS,,) = CreditSeries(liveSeries[i]).navs();
             total += navS;
         }
     }
@@ -39,7 +39,7 @@ abstract contract coreValuation is coreParkingBooks {
         total = idle(false);
         uint256 length = liveSeries.length;
         for (uint256 i = 0; i < length; i++) {
-            (, uint256 navJ,) = creditSeries(liveSeries[i]).navs();
+            (, uint256 navJ,) = CreditSeries(liveSeries[i]).navs();
             total += navJ;
         }
     }
@@ -49,7 +49,7 @@ abstract contract coreValuation is coreParkingBooks {
         total = idle(true);
         uint256 length = liveSeries.length;
         for (uint256 i = 0; i < length; i++) {
-            (uint256 navS,,) = creditSeries(liveSeries[i]).navsSynced();
+            (uint256 navS,,) = CreditSeries(liveSeries[i]).navsSynced();
             total += navS;
         }
     }
@@ -59,7 +59,7 @@ abstract contract coreValuation is coreParkingBooks {
         total = idle(false);
         uint256 length = liveSeries.length;
         for (uint256 i = 0; i < length; i++) {
-            (, uint256 navJ,) = creditSeries(liveSeries[i]).navsSynced();
+            (, uint256 navJ,) = CreditSeries(liveSeries[i]).navsSynced();
             total += navJ;
         }
     }
@@ -95,7 +95,7 @@ abstract contract coreValuation is coreParkingBooks {
     function stressGateOpen() public view returns (bool) {
         uint256 length = liveSeries.length;
         for (uint256 i = 0; i < length; i++) {
-            creditSeries s = creditSeries(liveSeries[i]);
+            CreditSeries s = CreditSeries(liveSeries[i]);
             if (uint8(s.state()) == uint8(SeriesState.DEPLOYING)) continue;
             uint256 jD = s.juniorDeployed();
             if (jD == 0) continue;
@@ -105,7 +105,7 @@ abstract contract coreValuation is coreParkingBooks {
 
         uint256 recLength = recoveringSeries.length;
         for (uint256 i = 0; i < recLength; i++) {
-            if (_hasWrittenOffCredit(creditSeries(recoveringSeries[i]))) return false;
+            if (_hasWrittenOffCredit(CreditSeries(recoveringSeries[i]))) return false;
         }
 
         return true;
@@ -124,7 +124,7 @@ abstract contract coreValuation is coreParkingBooks {
         return cap < liquid ? cap : liquid;
     }
 
-    function _hasWrittenOffCredit(creditSeries s) internal view returns (bool) {
+    function _hasWrittenOffCredit(CreditSeries s) internal view returns (bool) {
         bytes32[] memory ids = s.marketIds();
         for (uint256 i = 0; i < ids.length; i++) {
             if (s.writtenOff(i) && !s.resolved(i)) return true;

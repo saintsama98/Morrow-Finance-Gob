@@ -6,11 +6,11 @@ pragma solidity 0.8.34;
 
 import {usdcVaultBase} from "../shared/usdcVaultBase.sol";
 import {usdcJuniorRedeemCancels} from "./usdcJuniorRedeemCancels.sol";
-import {seriesCore} from "../../core/seriesCore.sol";
+import {SeriesCore} from "../../core/SeriesCore.sol";
 
 /// @notice jrUSDC: batched deposits and exits.
 contract usdcJuniorVault is usdcJuniorRedeemCancels {
-    constructor(seriesCore core_, address usdc_) usdcVaultBase(core_, usdc_, "Morrow Junior USDC", "jrUSDC") {}
+    constructor(SeriesCore core_, address usdc_) usdcVaultBase(core_, usdc_, "Morrow Junior USDC", "jrUSDC") {}
 
     /// @notice ERC-165 interface check.
     function supportsInterface(bytes4 interfaceId) public pure override returns (bool) {

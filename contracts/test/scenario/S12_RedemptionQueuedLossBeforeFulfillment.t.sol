@@ -5,7 +5,7 @@
 pragma solidity 0.8.34;
 
 import {ScenarioBase} from "./ScenarioBase.t.sol";
-import {creditSeries} from "../../src/series/creditSeries.sol";
+import {CreditSeries} from "../../src/series/CreditSeries.sol";
 import {EpochMath} from "../../src/libraries/EpochMath.sol";
 
 contract S12_RedemptionQueuedLossBeforeFulfillmentTest is ScenarioBase {
@@ -21,7 +21,7 @@ contract S12_RedemptionQueuedLossBeforeFulfillmentTest is ScenarioBase {
         (address seriesAddr,) = _openSeries(700_000e6, 150_000e6, maturity);
         _registerAndFill(seriesAddr, maturity, 800_000e6, borrower);
         _finalize(seriesAddr);
-        creditSeries series = creditSeries(seriesAddr);
+        CreditSeries series = CreditSeries(seriesAddr);
 
         uint256 sharesToRedeem = seniorVault.balanceOf(seniorDepositor) / 10;
         vm.prank(seniorDepositor);

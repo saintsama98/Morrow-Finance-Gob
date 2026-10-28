@@ -15,9 +15,9 @@ import {ORACLE_PRICE_SCALE} from "@morpho-org/midnight/src/libraries/ConstantsLi
 
 import {SeriesRegistry} from "./SeriesRegistry.sol";
 import {MockUSDC} from "../../mocks/MockUSDC.sol";
-import {creditSeries} from "../../../src/series/creditSeries.sol";
+import {CreditSeries} from "../../../src/series/CreditSeries.sol";
 import {SeriesParams, SeriesState} from "../../../src/interfaces/ISeries.sol";
-import {iParking} from "../../../src/parking/iParking.sol";
+import {IParking} from "../../../src/parking/IParking.sol";
 
 contract AllocatorHandler is Test {
     using UtilsLib for uint256;
@@ -62,7 +62,7 @@ contract AllocatorHandler is Test {
             thetaWad: 0.1e18,
             feeRecipient: registry.FEE_RECIPIENT(),
             allocator: registry.ALLOCATOR(),
-            parking: iParking(address(registry.parking())),
+            parking: IParking(address(registry.parking())),
             offchainAttestationHash: bytes32(0)
         });
 
@@ -86,7 +86,7 @@ contract AllocatorHandler is Test {
     function _registerAndFillAtomically(address seriesAddr, bytes32 marketId, uint256 maturity, uint256 kAlloc)
         internal
     {
-        creditSeries series = creditSeries(seriesAddr);
+        CreditSeries series = CreditSeries(seriesAddr);
         uint256 tick = series.tickMaxFor(0);
         uint256 price = TickLib.tickToPrice(tick);
         if (price == 0) return;
@@ -151,7 +151,7 @@ contract AllocatorHandler is Test {
     function registerOffer(uint256 seriesSeed, uint256 unitsSeed) external {
         (address seriesAddr,) = registry.pickActiveWithOffer(seriesSeed, false);
         if (seriesAddr == address(0)) return;
-        creditSeries series = creditSeries(seriesAddr);
+        CreditSeries series = CreditSeries(seriesAddr);
         if (uint8(series.state()) != uint8(SeriesState.DEPLOYING)) return;
         if (block.timestamp > series.T_DEPLOY_END()) return;
 
@@ -199,7 +199,7 @@ contract AllocatorHandler is Test {
     function finalizeSeries(uint256 seriesSeed) external {
         (address seriesAddr,) = registry.pickActive(seriesSeed);
         if (seriesAddr == address(0)) return;
-        creditSeries series = creditSeries(seriesAddr);
+        CreditSeries series = CreditSeries(seriesAddr);
         if (uint8(series.state()) != uint8(SeriesState.DEPLOYING)) return;
 
         vm.prank(registry.ALLOCATOR());
@@ -210,7 +210,7 @@ contract AllocatorHandler is Test {
     function cancelSeries(uint256 seriesSeed) external {
         (address seriesAddr, uint256 idx) = registry.pickActive(seriesSeed);
         if (seriesAddr == address(0)) return;
-        creditSeries series = creditSeries(seriesAddr);
+        CreditSeries series = CreditSeries(seriesAddr);
         if (uint8(series.state()) != uint8(SeriesState.DEPLOYING) || series.totalFilled() != 0) return;
 
         vm.prank(registry.ALLOCATOR());

@@ -8,10 +8,10 @@ import {Market} from "@morpho-org/midnight/src/interfaces/IMidnight.sol";
 import {ISetterRatifier} from "@morpho-org/midnight/src/ratifiers/interfaces/ISetterRatifier.sol";
 import {IMidnightMinimal} from "../../interfaces/IMidnightMinimal.sol";
 import {SeriesParams, SeriesState} from "../../interfaces/ISeries.sol";
-import {iParking} from "../../parking/iParking.sol";
+import {IParking} from "../../parking/IParking.sol";
 
 /// @notice Storage, immutables, events and errors of a series.
-abstract contract seriesStorage {
+abstract contract SeriesStorage {
     uint256 internal constant U_T_WAD = 0.9e18;
     uint256 internal constant MIN_TERM = 14 days;
 
@@ -72,7 +72,7 @@ abstract contract seriesStorage {
     ISetterRatifier public immutable SETTER_RATIFIER;
     address public immutable USDC;
     address public immutable CORE;
-    iParking public immutable PARKING;
+    IParking public immutable PARKING;
     address public immutable ALLOCATOR;
     address public immutable FEE_RECIPIENT;
 

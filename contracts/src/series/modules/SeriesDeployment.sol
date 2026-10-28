@@ -9,13 +9,13 @@ import {IdLib} from "@morpho-org/midnight/src/libraries/IdLib.sol";
 import {HashLib} from "@morpho-org/midnight/src/ratifiers/libraries/HashLib.sol";
 import {TickLib} from "@morpho-org/midnight/src/libraries/TickLib.sol";
 import {ERC20Lib} from "@morpho-org/midnight/src/periphery/libraries/ERC20Lib.sol";
-import {seriesMarks} from "./seriesMarks.sol";
+import {SeriesMarks} from "./SeriesMarks.sol";
 import {IBuyCallback} from "../../interfaces/IBuyCallback.sol";
 import {SeriesState} from "../../interfaces/ISeries.sol";
 import {WadMath} from "../../libraries/WadMath.sol";
 
 /// @notice Offers and fills on Midnight while the series is deploying.
-abstract contract seriesDeployment is seriesMarks, IBuyCallback {
+abstract contract SeriesDeployment is SeriesMarks, IBuyCallback {
     using WadMath for uint256;
 
     /// @notice Highest tick the series will buy at in one market.

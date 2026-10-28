@@ -14,12 +14,12 @@ import {ORACLE_PRICE_SCALE} from "@morpho-org/midnight/src/libraries/ConstantsLi
 
 import {SeriesRegistry} from "../invariant/handlers/SeriesRegistry.sol";
 import {MockUSDC} from "../mocks/MockUSDC.sol";
-import {creditSeries} from "../../src/series/creditSeries.sol";
+import {CreditSeries} from "../../src/series/CreditSeries.sol";
 import {SeriesParams} from "../../src/interfaces/ISeries.sol";
-import {seriesCore} from "../../src/core/seriesCore.sol";
+import {SeriesCore} from "../../src/core/SeriesCore.sol";
 import {usdcSeniorVault} from "../../src/vaults/senior/usdcSeniorVault.sol";
 import {usdcJuniorVault} from "../../src/vaults/junior/usdcJuniorVault.sol";
-import {iParking} from "../../src/parking/iParking.sol";
+import {IParking} from "../../src/parking/IParking.sol";
 import {WadMath} from "../../src/libraries/WadMath.sol";
 
 abstract contract ScenarioBase is Test {
@@ -28,7 +28,7 @@ abstract contract ScenarioBase is Test {
     uint256 internal constant WAD = 1e18;
 
     SeriesRegistry registry;
-    seriesCore core;
+    SeriesCore core;
     usdcSeniorVault seniorVault;
     usdcJuniorVault juniorVault;
     MockUSDC usdc;
@@ -101,7 +101,7 @@ abstract contract ScenarioBase is Test {
             thetaWad: thetaWad,
             feeRecipient: registry.FEE_RECIPIENT(),
             allocator: registry.ALLOCATOR(),
-            parking: iParking(address(registry.parking())),
+            parking: IParking(address(registry.parking())),
             offchainAttestationHash: bytes32(0)
         });
 
@@ -113,7 +113,7 @@ abstract contract ScenarioBase is Test {
         internal
         returns (uint256 price)
     {
-        creditSeries series = creditSeries(seriesAddr);
+        CreditSeries series = CreditSeries(seriesAddr);
         uint256 tick = series.tickMaxFor(0);
         price = TickLib.tickToPrice(tick);
 
@@ -155,12 +155,12 @@ abstract contract ScenarioBase is Test {
 
     function _finalize(address seriesAddr) internal {
         vm.prank(registry.ALLOCATOR());
-        creditSeries(seriesAddr).finalize();
+        CreditSeries(seriesAddr).finalize();
     }
 
     function _cancel(address seriesAddr) internal {
         vm.prank(registry.ALLOCATOR());
-        creditSeries(seriesAddr).cancel();
+        CreditSeries(seriesAddr).cancel();
     }
 
     function _crashOracle(uint256 dropBps) internal {
@@ -206,7 +206,7 @@ abstract contract ScenarioBase is Test {
         return uint256(registry.midnight().debt(marketId, borrower));
     }
 
-    function _marketIdOf(creditSeries series) internal view returns (bytes32) {
+    function _marketIdOf(CreditSeries series) internal view returns (bytes32) {
         return series.marketIds()[0];
     }
 }

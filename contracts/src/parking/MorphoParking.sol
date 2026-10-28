@@ -4,13 +4,13 @@
 
 pragma solidity 0.8.34;
 
-import {iParking} from "./iParking.sol";
+import {IParking} from "./IParking.sol";
 import {IERC20Like} from "../interfaces/IERC20Like.sol";
 import {IERC4626Like} from "../interfaces/IERC4626Like.sol";
 import {WadMath} from "../libraries/WadMath.sol";
 
 /// @notice Parking that lends idle cash through an ERC-4626 vault, with a raw USDC buffer.
-contract morphoParking is iParking {
+contract MorphoParking is IParking {
     using WadMath for uint256;
 
     error ZeroAddress();

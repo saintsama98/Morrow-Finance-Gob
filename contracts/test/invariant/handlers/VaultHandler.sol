@@ -7,7 +7,7 @@ pragma solidity 0.8.34;
 import {Test} from "forge-std/Test.sol";
 import {SeriesRegistry} from "./SeriesRegistry.sol";
 import {MockUSDC} from "../../mocks/MockUSDC.sol";
-import {seriesCore} from "../../../src/core/seriesCore.sol";
+import {SeriesCore} from "../../../src/core/SeriesCore.sol";
 import {usdcSeniorVault} from "../../../src/vaults/senior/usdcSeniorVault.sol";
 import {usdcJuniorVault} from "../../../src/vaults/junior/usdcJuniorVault.sol";
 
@@ -39,7 +39,7 @@ contract VaultHandler is Test {
         address who = _actor(actorSeed);
         uint256 assets = bound(assetsSeed, 1e6, 3_000_000e6);
 
-        seriesCore core = registry.realCore();
+        SeriesCore core = registry.realCore();
         MockUSDC usdc = registry.usdc();
         usdc.mint(who, assets);
 
@@ -269,7 +269,7 @@ contract VaultHandler is Test {
     }
 
     function curatorLowerAMaxWad(uint256 newSeed) external {
-        seriesCore core = registry.realCore();
+        SeriesCore core = registry.realCore();
         (, uint256 aMaxWad,,,,,,,,,,,,,,,,,) = core.policy();
         if (aMaxWad == 0) return;
         uint256 newAMax = bound(newSeed, 0, aMaxWad);
@@ -283,7 +283,7 @@ contract VaultHandler is Test {
     }
 
     function curatorRaiseMinIdleSeniorWad(uint256 deltaSeed) external {
-        seriesCore core = registry.realCore();
+        SeriesCore core = registry.realCore();
         (,,,,,,,,,,,,, uint256 minIdleSeniorWad,,,,,) = core.policy();
         uint256 newFloor = minIdleSeniorWad + bound(deltaSeed, 0, 0.1e18);
         if (newFloor > 1e18) newFloor = 1e18;
@@ -297,7 +297,7 @@ contract VaultHandler is Test {
     }
 
     function curatorRaiseCovVaultMinWad(uint256 deltaSeed) external {
-        seriesCore core = registry.realCore();
+        SeriesCore core = registry.realCore();
         (,,, uint256 covVaultMinWad,,,,,,,,,,,,,,,) = core.policy();
         uint256 newFloor = covVaultMinWad + bound(deltaSeed, 0, 0.05e18);
         if (newFloor >= 1e18) newFloor = 0.99e18;
@@ -311,7 +311,7 @@ contract VaultHandler is Test {
     }
 
     function curatorPause() external {
-        seriesCore core = registry.realCore();
+        SeriesCore core = registry.realCore();
         vm.prank(registry.CURATOR());
         try core.pause() {
             registry.recordCall(this.curatorPause.selector, false);
@@ -321,7 +321,7 @@ contract VaultHandler is Test {
     }
 
     function governanceUnpause() external {
-        seriesCore core = registry.realCore();
+        SeriesCore core = registry.realCore();
         vm.prank(registry.GOVERNANCE());
         try core.unpause() {
             registry.recordCall(this.governanceUnpause.selector, false);

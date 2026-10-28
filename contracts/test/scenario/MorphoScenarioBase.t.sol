@@ -15,7 +15,7 @@ import {ScenarioBase} from "./ScenarioBase.t.sol";
 import {SeriesRegistry} from "../invariant/handlers/SeriesRegistry.sol";
 import {SeriesRegistryMorphoParking} from "../invariant/handlers/SeriesRegistryMorphoParking.sol";
 import {MockUSDC} from "../mocks/MockUSDC.sol";
-import {creditSeries} from "../../src/series/creditSeries.sol";
+import {CreditSeries} from "../../src/series/CreditSeries.sol";
 import {WadMath} from "../../src/libraries/WadMath.sol";
 
 interface iVenueKnobs {
@@ -56,7 +56,7 @@ abstract contract MorphoScenarioBase is ScenarioBase {
         internal
         returns (Offer memory offer, bytes memory ratifierData)
     {
-        creditSeries series = creditSeries(seriesAddr);
+        CreditSeries series = CreditSeries(seriesAddr);
         uint256 tick = series.tickMaxFor(0);
         uint256 price = TickLib.tickToPrice(tick);
 

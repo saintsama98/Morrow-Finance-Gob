@@ -6,20 +6,20 @@ pragma solidity 0.8.34;
 
 import {Test} from "forge-std/Test.sol";
 import {MockUSDC} from "../mocks/MockUSDC.sol";
-import {seriesFactory} from "../../src/series/seriesFactory.sol";
-import {seriesCore} from "../../src/core/seriesCore.sol";
+import {SeriesFactory} from "../../src/series/SeriesFactory.sol";
+import {SeriesCore} from "../../src/core/SeriesCore.sol";
 import {usdcSeniorVault} from "../../src/vaults/senior/usdcSeniorVault.sol";
 import {usdcJuniorVault} from "../../src/vaults/junior/usdcJuniorVault.sol";
 import {IMidnightMinimal} from "../../src/interfaces/IMidnightMinimal.sol";
-import {iParking} from "../../src/parking/iParking.sol";
-import {idleParking} from "../../src/parking/idleParking.sol";
+import {IParking} from "../../src/parking/IParking.sol";
+import {IdleParking} from "../../src/parking/IdleParking.sol";
 import {usdcVaultBase} from "../../src/vaults/shared/usdcVaultBase.sol";
 
 contract JuniorVaultTest is Test {
     MockUSDC usdc;
-    idleParking parking;
-    seriesFactory factory;
-    seriesCore core;
+    IdleParking parking;
+    SeriesFactory factory;
+    SeriesCore core;
     usdcSeniorVault seniorVault;
     usdcJuniorVault juniorVault;
 
@@ -32,10 +32,10 @@ contract JuniorVaultTest is Test {
 
     function setUp() public {
         usdc = new MockUSDC();
-        parking = new idleParking(address(usdc));
-        factory = new seriesFactory(IMidnightMinimal(address(0x1)), address(0x2), address(usdc), governance, 0.86e18, 4);
-        core = new seriesCore(
-            address(usdc), factory, iParking(address(parking)), governance, allocator, curator, sentinel
+        parking = new IdleParking(address(usdc));
+        factory = new SeriesFactory(IMidnightMinimal(address(0x1)), address(0x2), address(usdc), governance, 0.86e18, 4);
+        core = new SeriesCore(
+            address(usdc), factory, IParking(address(parking)), governance, allocator, curator, sentinel
         );
         vm.prank(governance);
         factory.setCore(address(core));
