@@ -2,6 +2,8 @@
 
 Dated senior and junior credit tranches on Morpho Midnight, behind two vault tokens.
 
+> This project was developed privately and published once it had been tested against its original design. Its full development history is published on a single `main` branch so reviewers can follow it in one place.
+
 Gob is the early beta and testing cascade of the protocol, named after the early form of glass: the base material before it is shaped.
 
 Morrow runs a series engine and two vault tokens. The allocator opens series against staggered maturities on Midnight, each series lends into a basket of ungated USDC markets maturing at the same date, and splits every outcome through a strict waterfall. Senior holders (`srUSDC`) are paid first at maturity up to a fixed senior claim. Junior holders (`jrUSDC`) take the first loss of every series and receive the residual.
