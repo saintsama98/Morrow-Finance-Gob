@@ -34,7 +34,7 @@ The default profile runs fuzz tests at 10,000 runs and invariants at 512 runs of
 
 | Layer | What ran | Result |
 |---|---|---|
-| Unit | 24 suites, 264 tests | all pass |
+| Unit | 25 suites, 271 tests | all pass |
 | Scenario | 24 suites, 48 tests: loss, liquidity and lifecycle scenarios on three parking venues | all pass |
 | Invariants | 6 suites, 63 invariants, 512 runs of depth 128, on idle, ERC-4626 and Morpho Blue parking | all pass |
 | Stateful fuzzing | Medusa and Echidna, 16 properties over 43 actions | final Medusa campaign: 16 of 16 over 323,236 calls |
