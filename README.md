@@ -21,7 +21,7 @@ Seniority cannot exist inside a Midnight market, where every lender shares losse
 
 Gob is built to establish two things.
 
-1. **The arithmetic of the tranches.** Pricing, the cushion, the waterfall, recoveries and every rounding direction are written down in [`docs/morrow-finance-gob-arithmatic.md`](docs/morrow-finance-gob-arithmatic.md) and checked against an independent integer reference implementation. The waterfall split, the allocation split and the batch prices are also proven symbolically with Halmos within stated bounds.
+1. **The arithmetic of the tranches.** Pricing, the cushion, the waterfall, recoveries and every rounding direction are written down in [`docs/arithmetic.md`](docs/arithmetic.md) and checked against an independent integer reference implementation. The waterfall split, the allocation split and the batch prices are also proven symbolically with Halmos within stated bounds.
 2. **The rolling mechanism under stress.** Series are opened, deployed, settled and rolled against the live Midnight deployment on a Base mainnet fork, through historical crashes replayed from recorded Chainlink prices (one month of them round by round), de-pegs, default and recovery grids, a fully borrowed parking market and real bad debt in it.
 
 Everything that was run, with its result and the command to reproduce it, is in [`docs/verification.md`](docs/verification.md).
@@ -71,7 +71,7 @@ C_S = S_d * (1 + r_s)                 senior claim, fixed at finalize
 
 At settlement, proceeds `P` pay senior up to `C_S`, junior the remainder, and a fee of 10% on junior profit above its principal. Recoveries rerun the waterfall on cumulative proceeds and pay only increments.
 
-The full model, with every rounding direction and its audit, is in [`docs/morrow-finance-gob-arithmatic.md`](docs/morrow-finance-gob-arithmatic.md). Its two Python models (`docs/morrow-finance-gob-reference_model.py`, `docs/morrow-finance-gob-stress_model.py`) reproduce every number in its audit and stress tables.
+The full model, with every rounding direction and its audit, is in [`docs/arithmetic.md`](docs/arithmetic.md). Its two Python models (`sim/reference_model.py`, `sim/stress_model.py`) reproduce every number in its audit and stress tables.
 
 ## Loss order
 
