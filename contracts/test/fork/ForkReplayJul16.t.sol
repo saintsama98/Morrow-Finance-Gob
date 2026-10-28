@@ -7,7 +7,7 @@ pragma solidity 0.8.34;
 
 import {console} from "forge-std/console.sol";
 import {Market} from "@morpho-org/midnight/src/interfaces/IMidnight.sol";
-import {ForkBase, iChainlinkFeed} from "./ForkBase.t.sol";
+import {ForkBase, IChainlinkFeed} from "./ForkBase.t.sol";
 import {CreditSeries} from "../../src/series/CreditSeries.sol";
 import {SeriesFactory} from "../../src/series/SeriesFactory.sol";
 import {SeriesState} from "../../src/interfaces/ISeries.sol";
@@ -45,7 +45,7 @@ abstract contract ReplayBase is ForkBase {
     function _setFeed(address feed, uint256[5] memory round) internal {
         vm.mockCall(
             feed,
-            abi.encodeWithSelector(iChainlinkFeed.latestRoundData.selector),
+            abi.encodeWithSelector(IChainlinkFeed.latestRoundData.selector),
             abi.encode(uint80(round[0]), int256(round[1]), round[2], round[3], uint80(round[4]))
         );
     }

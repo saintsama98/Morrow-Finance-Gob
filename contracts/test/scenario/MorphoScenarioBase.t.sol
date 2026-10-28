@@ -18,13 +18,13 @@ import {MockUSDC} from "../mocks/MockUSDC.sol";
 import {CreditSeries} from "../../src/series/CreditSeries.sol";
 import {WadMath} from "../../src/libraries/WadMath.sol";
 
-interface iVenueKnobs {
+interface IVenueKnobs {
     function accrueBps(uint256 bps) external;
     function loseBps(uint256 bps) external;
     function setLiquidityCap(uint256 cap) external;
 }
 
-interface iParkingView {
+interface IParkingView {
     function totalAssets(address account) external view returns (uint256);
     function maxWithdraw(address account) external view returns (uint256);
     function liquidity() external view returns (uint256);
@@ -33,8 +33,8 @@ interface iParkingView {
 abstract contract MorphoScenarioBase is ScenarioBase {
     using WadMath for uint256;
 
-    iVenueKnobs vault;
-    iParkingView mparking;
+    IVenueKnobs vault;
+    IParkingView mparking;
 
     function _newVenueRegistry() internal virtual returns (SeriesRegistry reg, address knobs, address adapter) {
         SeriesRegistryMorphoParking r = new SeriesRegistryMorphoParking();
@@ -48,8 +48,8 @@ abstract contract MorphoScenarioBase is ScenarioBase {
         seniorVault = registry.seniorVault();
         juniorVault = registry.juniorVault();
         usdc = registry.usdc();
-        vault = iVenueKnobs(knobs);
-        mparking = iParkingView(adapter);
+        vault = IVenueKnobs(knobs);
+        mparking = IParkingView(adapter);
     }
 
     function _registerBid(address seriesAddr, uint256 maturity, uint256 units, address borrower)

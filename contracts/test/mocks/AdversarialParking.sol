@@ -8,7 +8,7 @@ pragma solidity 0.8.34;
 import {IParking} from "../../src/parking/IParking.sol";
 import {IERC20Like} from "../../src/interfaces/IERC20Like.sol";
 
-interface iCoreSyncLike {
+interface ICoreSyncLike {
     function syncAll() external;
     function pruneSeries() external;
 }
@@ -51,8 +51,8 @@ contract AdversarialParking is IParking {
         uint256 sent = mode == Mode.ShortPay ? assets * (10_000 - shortBps) / 10_000 : assets;
         if (mode == Mode.Reentrant && reentryTarget != address(0)) {
             reentries++;
-            iCoreSyncLike(reentryTarget).syncAll();
-            iCoreSyncLike(reentryTarget).pruneSeries();
+            ICoreSyncLike(reentryTarget).syncAll();
+            ICoreSyncLike(reentryTarget).pruneSeries();
         }
         require(USDC.transfer(to, sent), "send failed");
     }

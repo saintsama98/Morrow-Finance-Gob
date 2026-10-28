@@ -6,7 +6,7 @@ pragma solidity 0.8.34;
 
 import {SeriesFactory} from "../../src/series/SeriesFactory.sol";
 import {Market} from "@morpho-org/midnight/src/interfaces/IMidnight.sol";
-import {ForkBase, iChainlinkFeed} from "./ForkBase.t.sol";
+import {ForkBase, IChainlinkFeed} from "./ForkBase.t.sol";
 import {CreditSeries} from "../../src/series/CreditSeries.sol";
 import {SeriesState} from "../../src/interfaces/ISeries.sol";
 import {IERC20Like} from "../../src/interfaces/IERC20Like.sol";
@@ -288,7 +288,7 @@ contract ForkRealMarketsTest is ForkBase {
     }
 
     function test_A10_ethOraclePathIsLive() public view {
-        (, int256 answer,, uint256 updatedAt,) = iChainlinkFeed(ETH_USD_FEED).latestRoundData();
+        (, int256 answer,, uint256 updatedAt,) = IChainlinkFeed(ETH_USD_FEED).latestRoundData();
         assertGt(answer, 0, "A10: ETH/USD feed answers on the fork");
         assertGt(updatedAt, 0, "A10: ETH/USD feed has a timestamp");
     }

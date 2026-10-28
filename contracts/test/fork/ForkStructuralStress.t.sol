@@ -7,7 +7,7 @@ pragma solidity 0.8.34;
 
 import {console} from "forge-std/console.sol";
 import {Market} from "@morpho-org/midnight/src/interfaces/IMidnight.sol";
-import {ForkBase, iChainlinkFeed} from "./ForkBase.t.sol";
+import {ForkBase, IChainlinkFeed} from "./ForkBase.t.sol";
 import {CreditSeries} from "../../src/series/CreditSeries.sol";
 import {SeriesState} from "../../src/interfaces/ISeries.sol";
 import {IERC20Like} from "../../src/interfaces/IERC20Like.sol";
@@ -36,10 +36,10 @@ contract ForkStructuralStressTest is ForkBase {
         _finalizeByKeeper(s);
         uint256 juniorIdleBefore = core.idle(false);
 
-        (, int256 btc,,,) = iChainlinkFeed(BTC_USD_FEED).latestRoundData();
+        (, int256 btc,,,) = IChainlinkFeed(BTC_USD_FEED).latestRoundData();
         vm.mockCall(
             BTC_USD_FEED,
-            abi.encodeWithSelector(iChainlinkFeed.latestRoundData.selector),
+            abi.encodeWithSelector(IChainlinkFeed.latestRoundData.selector),
             abi.encode(uint80(1), btc, block.timestamp, block.timestamp, uint80(1))
         );
         assertTrue(midnight.isHealthy(m, s.marketIds()[0], bob), "the oracle still sees a healthy borrower");

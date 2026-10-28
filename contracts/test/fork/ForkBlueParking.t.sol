@@ -18,7 +18,7 @@ import {BlueParking} from "../../src/parking/BlueParking.sol";
 import {IMidnightMinimal} from "../../src/interfaces/IMidnightMinimal.sol";
 import {IERC20Like} from "../../src/interfaces/IERC20Like.sol";
 
-interface iBlueOracle {
+interface IBlueOracle {
     function price() external view returns (uint256);
 }
 
@@ -174,7 +174,7 @@ contract ForkBlueParkingTest is ForkBase {
     }
 
     function _openBlueBorrow(address who, uint256 assets, uint256 headroomPct) internal {
-        uint256 price = iBlueOracle(params.oracle).price();
+        uint256 price = IBlueOracle(params.oracle).price();
         uint256 collateral = assets * 1e36 / price * 1e18 / params.lltv * headroomPct / 100 + 1;
         deal(CBBTC, who, collateral);
         vm.startPrank(who);
@@ -301,8 +301,8 @@ contract ForkBlueParkingTest is ForkBase {
         _openBlueBorrow(victim, size, 105);
         uint256 collateral = IMorpho(BLUE).position(Id.wrap(CBBTC_USDC_86), victim).collateral;
 
-        uint256 price = iBlueOracle(params.oracle).price();
-        vm.mockCall(params.oracle, abi.encodeWithSelector(iBlueOracle.price.selector), abi.encode(price * 4 / 10));
+        uint256 price = IBlueOracle(params.oracle).price();
+        vm.mockCall(params.oracle, abi.encodeWithSelector(IBlueOracle.price.selector), abi.encode(price * 4 / 10));
         deal(USDC, blueLiquidator, size);
         vm.startPrank(blueLiquidator);
         IERC20Like(USDC).approve(BLUE, size);

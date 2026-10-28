@@ -26,11 +26,11 @@ import {IERC20Like} from "../../src/interfaces/IERC20Like.sol";
 import {SeriesParams, SeriesState} from "../../src/interfaces/ISeries.sol";
 import {WadMath} from "../../src/libraries/WadMath.sol";
 
-interface iPriceOracle {
+interface IPriceOracle {
     function price() external view returns (uint256);
 }
 
-interface iChainlinkFeed {
+interface IChainlinkFeed {
     function latestRoundData() external view returns (uint80, int256, uint256, uint256, uint80);
 }
 
@@ -247,7 +247,7 @@ abstract contract ForkBase is Test {
         returns (uint256)
     {
         CollateralParams memory c = market.collateralParams[index];
-        uint256 price = iPriceOracle(c.oracle).price();
+        uint256 price = IPriceOracle(c.oracle).price();
         uint256 atLimit = units.mulDivUp(WAD, c.lltv).mulDivUp(ORACLE_PRICE_SCALE, price);
         return atLimit.mulDivUp(100, healthPctOfLltv);
     }

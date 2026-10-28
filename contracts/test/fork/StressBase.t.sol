@@ -8,7 +8,7 @@ pragma solidity 0.8.34;
 import {console} from "forge-std/console.sol";
 import {Market} from "@morpho-org/midnight/src/interfaces/IMidnight.sol";
 import {ORACLE_PRICE_SCALE} from "@morpho-org/midnight/src/libraries/ConstantsLib.sol";
-import {ForkBase, iChainlinkFeed, iPriceOracle} from "./ForkBase.t.sol";
+import {ForkBase, IChainlinkFeed, IPriceOracle} from "./ForkBase.t.sol";
 import {CreditSeries} from "../../src/series/CreditSeries.sol";
 import {SeriesState} from "../../src/interfaces/ISeries.sol";
 import {IERC20Like} from "../../src/interfaces/IERC20Like.sol";
@@ -58,8 +58,8 @@ abstract contract StressBase is ForkBase {
     }
 
     function _captureBases() internal {
-        (, btcBase,,,) = iChainlinkFeed(BTC_USD_FEED).latestRoundData();
-        (, ethBase,,,) = iChainlinkFeed(ETH_USD_FEED).latestRoundData();
+        (, btcBase,,,) = IChainlinkFeed(BTC_USD_FEED).latestRoundData();
+        (, ethBase,,,) = IChainlinkFeed(ETH_USD_FEED).latestRoundData();
         _fund(USDC, keeper, 20_000_000e6);
         vm.prank(keeper);
         IERC20Like(USDC).approve(MIDNIGHT, type(uint256).max);
@@ -71,7 +71,7 @@ abstract contract StressBase is ForkBase {
         roundCounter++;
         vm.mockCall(
             feed,
-            abi.encodeWithSelector(iChainlinkFeed.latestRoundData.selector),
+            abi.encodeWithSelector(IChainlinkFeed.latestRoundData.selector),
             abi.encode(roundCounter, answer, block.timestamp, block.timestamp, roundCounter)
         );
     }
@@ -100,7 +100,7 @@ abstract contract StressBase is ForkBase {
     uint256 internal cbbtcDepegBps;
 
     function _collateralValue(Market memory m, uint256 amount) internal view returns (uint256) {
-        return amount * iPriceOracle(m.collateralParams[0].oracle).price() / ORACLE_PRICE_SCALE;
+        return amount * IPriceOracle(m.collateralParams[0].oracle).price() / ORACLE_PRICE_SCALE;
     }
 
     function _realValue(Market memory m, uint256 amount) internal view returns (uint256 v) {

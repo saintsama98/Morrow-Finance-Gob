@@ -23,11 +23,11 @@ import {IERC20Like} from "../../src/interfaces/IERC20Like.sol";
 import {SeriesParams, SeriesState} from "../../src/interfaces/ISeries.sol";
 import {WadMath} from "../../src/libraries/WadMath.sol";
 
-interface iOracleLike {
+interface IOracleLike {
     function price() external view returns (uint256);
 }
 
-interface iSetterRatifierLike {
+interface ISetterRatifierLike {
     function MIDNIGHT() external view returns (address);
 }
 
@@ -199,7 +199,7 @@ contract BaseForkTest is Test {
         vm.prank(ALLOCATOR);
         series.registerOffers(root, leaves);
 
-        uint256 oraclePrice = iOracleLike(CBBTC_ORACLE).price();
+        uint256 oraclePrice = IOracleLike(CBBTC_ORACLE).price();
         uint256 collateral = units.mulDivUp(WAD, LLTV).mulDivUp(ORACLE_PRICE_SCALE, oraclePrice) * 12 / 10;
         _fund(CBBTC, borrower, collateral);
         vm.startPrank(borrower);
@@ -245,7 +245,7 @@ contract BaseForkTest is Test {
         assertEq(SETTER_RATIFIER.codehash, SETTER_RATIFIER_CODEHASH, "f0: setter ratifier bytecode changed");
         assertEq(MEMPOOL.codehash, MEMPOOL_CODEHASH, "f0: mempool bytecode changed");
         assertEq(MIDNIGHT.codehash, MIDNIGHT_CODEHASH, "f0: midnight bytecode changed");
-        assertEq(iSetterRatifierLike(SETTER_RATIFIER).MIDNIGHT(), MIDNIGHT, "f0: ratifier must point at midnight");
+        assertEq(ISetterRatifierLike(SETTER_RATIFIER).MIDNIGHT(), MIDNIGHT, "f0: ratifier must point at midnight");
         assertTrue(midnight.isLltvEnabled(LLTV), "f0: lltv 0.86 must be enabled");
         assertTrue(midnight.isLiquidationCursorEnabled(CURSOR), "f0: cursor 0.3 must be enabled");
         assertEq(midnight.defaultContinuousFee(USDC), 0, "f0: default usdc continuous fee as recorded");
@@ -343,8 +343,8 @@ contract BaseForkTest is Test {
         _makerFill(series, maturity, 300_000e6);
         _toSettling(series, maturity);
 
-        uint256 crashed = iOracleLike(CBBTC_ORACLE).price() / 4;
-        vm.mockCall(CBBTC_ORACLE, abi.encodeWithSelector(iOracleLike.price.selector), abi.encode(crashed));
+        uint256 crashed = IOracleLike(CBBTC_ORACLE).price() / 4;
+        vm.mockCall(CBBTC_ORACLE, abi.encodeWithSelector(IOracleLike.price.selector), abi.encode(crashed));
         vm.warp(maturity + 1 hours);
         uint256 debt = midnight.debt(id, borrower);
         uint256 posted = midnight.collateral(id, borrower, 0);
