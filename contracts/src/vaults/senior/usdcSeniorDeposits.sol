@@ -48,7 +48,7 @@ abstract contract usdcSeniorDeposits is usdcVaultBase {
         shares = convertToShares(assets);
         require(shares > 0, ZeroShares());
 
-        require(iErc20Like(USDC).transferFrom(msg.sender, address(CORE), assets), "transfer failed");
+        require(iErc20Like(USDC).transferFrom(msg.sender, address(CORE), assets), TransferFailed());
         CORE.depositFor(true, assets);
 
         _mint(receiver, shares);
@@ -66,7 +66,7 @@ abstract contract usdcSeniorDeposits is usdcVaultBase {
         require(assets > 0, ZeroAssets());
         require(CORE.seniorAssets() + assets <= CORE.seniorCapacity(), CapacityExceeded());
 
-        require(iErc20Like(USDC).transferFrom(msg.sender, address(CORE), assets), "transfer failed");
+        require(iErc20Like(USDC).transferFrom(msg.sender, address(CORE), assets), TransferFailed());
         CORE.depositFor(true, assets);
 
         _mint(receiver, shares);
