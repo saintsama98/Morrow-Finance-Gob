@@ -106,7 +106,7 @@ echidna contracts/test/crytic/MorrowCrytic.sol --contract MorrowCrytic --config 
 
 ## Symbolic execution (Halmos)
 
-Halmos ran on the math libraries (`wadMath`, `premiumCurve`, `seriesMath`, `epochMath`), whose logic is unchanged in the current code. The run was made on a separate machine. Its harnesses are not yet in this repository; the targets included here are `contracts/test/formal/EpochDetachMath.t.sol` and `contracts/test/formal/IdleLossMath.t.sol`. Every proven property has a reachability companion that produced a counterexample, which shows the proven paths are not vacuous.
+Halmos ran on the math libraries (`WadMath`, `PremiumCurve`, `SeriesMath`, `EpochMath`), whose logic is unchanged in the current code. The run was made on a separate machine. Its harnesses are not yet in this repository; the targets included here are `contracts/test/formal/EpochDetachMath.t.sol` and `contracts/test/formal/IdleLossMath.t.sol`. Every proven property has a reachability companion that produced a counterexample, which shows the proven paths are not vacuous.
 
 | Target | Property | Result |
 |---|---|---|
@@ -152,15 +152,15 @@ python3 -c "import json;k=lambda d:{(i['title'],x['contract_path'],x['line_no'])
 
 | Tool | Results | Open |
 |---|---|---|
-| Slither | 258 in the current run, each classified | 0 |
-| Aderyn | 129 instances | 0 new |
+| Slither | 211 in the current run, each classified | 0 |
+| Aderyn | 135 instances | 0 new |
 
 The High results and why they stand:
 - `arbitrary-send-erc20` on the junior deposit request: the pulled address must be the caller, or must have made the caller its operator, for both owner and controller. Tested.
 - `incorrect-exp` in the full-precision mulDiv: the XOR is the intended seed of the Newton inverse. Fuzz and differential tested.
 - `reentrancy-balance` in `collect` and in the exit reservation: only Midnight's withdraw or the trusted parking venue runs between the two balance reads. A donation cannot break the check, and a venue that pays short reverts. Tested within that trust scope.
 
-The Medium and Low results are calls into trusted callees (USDC, the immutable parking adapter, Midnight, factory-created series) under `nonReentrant` or role checks, bounded loops, day-scale timestamps, deliberate tuple destructuring, strict equalities used as guards, and the governance setters listed under limitations.
+The Medium and Low results are calls into trusted callees (USDC, the immutable parking adapter, Midnight, factory-created series) under `nonReentrant` or role checks, bounded loops, day-scale timestamps, deliberate tuple destructuring, strict equalities used as guards, and the governance setters listed under limitations. Aderyn's unsafe ERC20 results are the USDC `transferFrom` calls, each of which checks the returned bool and reverts with `TransferFailed`.
 
 ## Tests against the live Base deployment
 

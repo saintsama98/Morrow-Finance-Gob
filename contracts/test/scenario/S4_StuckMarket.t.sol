@@ -5,9 +5,9 @@
 pragma solidity 0.8.34;
 
 import {ScenarioBase} from "./ScenarioBase.t.sol";
-import {creditSeries} from "../../src/series/creditSeries.sol";
-import {SeriesState} from "../../src/interfaces/iSeries.sol";
-import {seriesMath} from "../../src/libraries/seriesMath.sol";
+import {CreditSeries} from "../../src/series/CreditSeries.sol";
+import {SeriesState} from "../../src/interfaces/ISeries.sol";
+import {SeriesMath} from "../../src/libraries/SeriesMath.sol";
 
 contract S4_StuckMarketTest is ScenarioBase {
     address borrower = makeAddr("borrower");
@@ -22,7 +22,7 @@ contract S4_StuckMarketTest is ScenarioBase {
         (address seriesAddr,) = _openSeries(700_000e6, 150_000e6, maturity);
         _registerAndFill(seriesAddr, maturity, 800_000e6, borrower);
         _finalize(seriesAddr);
-        creditSeries series = creditSeries(seriesAddr);
+        CreditSeries series = CreditSeries(seriesAddr);
 
         uint256 seniorClaim = series.seniorClaim();
         uint256 juniorDeployed = series.juniorDeployed();
@@ -52,7 +52,7 @@ contract S4_StuckMarketTest is ScenarioBase {
         uint256 received = series.collect(0);
         assertTrue(series.resolved(0), "the market must resolve once the full late repayment is collected");
 
-        (uint256 expectedXs,, uint256 expectedFee) = seriesMath.waterfall(received, seniorClaim, juniorDeployed, 0.1e18);
+        (uint256 expectedXs,, uint256 expectedFee) = SeriesMath.waterfall(received, seniorClaim, juniorDeployed, 0.1e18);
         assertEq(series.paidS(), expectedXs, "the recovery must pay senior first, per the cumulative waterfall");
         assertGe(expectedFee, 0);
 

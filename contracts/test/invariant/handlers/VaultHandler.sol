@@ -7,9 +7,9 @@ pragma solidity 0.8.34;
 import {Test} from "forge-std/Test.sol";
 import {SeriesRegistry} from "./SeriesRegistry.sol";
 import {MockUSDC} from "../../mocks/MockUSDC.sol";
-import {seriesCore} from "../../../src/core/seriesCore.sol";
-import {usdcSeniorVault} from "../../../src/vaults/senior/usdcSeniorVault.sol";
-import {usdcJuniorVault} from "../../../src/vaults/junior/usdcJuniorVault.sol";
+import {SeriesCore} from "../../../src/core/SeriesCore.sol";
+import {USDCSeniorVault} from "../../../src/vaults/senior/USDCSeniorVault.sol";
+import {USDCJuniorVault} from "../../../src/vaults/junior/USDCJuniorVault.sol";
 
 contract VaultHandler is Test {
     SeriesRegistry public registry;
@@ -39,7 +39,7 @@ contract VaultHandler is Test {
         address who = _actor(actorSeed);
         uint256 assets = bound(assetsSeed, 1e6, 3_000_000e6);
 
-        seriesCore core = registry.realCore();
+        SeriesCore core = registry.realCore();
         MockUSDC usdc = registry.usdc();
         usdc.mint(who, assets);
 
@@ -64,7 +64,7 @@ contract VaultHandler is Test {
 
     function seniorRequestRedeem(uint256 actorSeed, uint256 sharesSeed) external {
         address who = _actor(actorSeed);
-        usdcSeniorVault sv = registry.seniorVault();
+        USDCSeniorVault sv = registry.seniorVault();
         uint256 bal = sv.balanceOf(who);
         if (bal == 0) return;
         uint256 shares = bound(sharesSeed, 1, bal);
@@ -79,7 +79,7 @@ contract VaultHandler is Test {
 
     function seniorCancelRedeemRequest(uint256 actorSeed) external {
         address who = _actor(actorSeed);
-        usdcSeniorVault sv = registry.seniorVault();
+        USDCSeniorVault sv = registry.seniorVault();
         uint256 requestId = sv.activeRedeemRequestId(who);
         if (requestId == 0) return;
 
@@ -93,7 +93,7 @@ contract VaultHandler is Test {
 
     function seniorClaimCancelRedeem(uint256 actorSeed) external {
         address who = _actor(actorSeed);
-        usdcSeniorVault sv = registry.seniorVault();
+        USDCSeniorVault sv = registry.seniorVault();
         uint256 requestId = sv.activeRedeemRequestId(who);
         if (requestId == 0) return;
 
@@ -108,7 +108,7 @@ contract VaultHandler is Test {
     function transferSeniorShares(uint256 fromSeed, uint256 toSeed, uint256 amountSeed) external {
         address from = _actor(fromSeed);
         address to = _actor(toSeed);
-        usdcSeniorVault sv = registry.seniorVault();
+        USDCSeniorVault sv = registry.seniorVault();
         uint256 bal = sv.balanceOf(from);
         if (bal == 0) return;
         uint256 amount = bound(amountSeed, 1, bal);
@@ -159,7 +159,7 @@ contract VaultHandler is Test {
 
     function curatorJuniorRequestRedeemAttempt(uint256 sharesSeed) external {
         address curator = registry.CURATOR();
-        usdcJuniorVault jv = registry.juniorVault();
+        USDCJuniorVault jv = registry.juniorVault();
         uint256 bal = jv.balanceOf(curator);
         if (bal == 0) return;
         uint256 shares = bound(sharesSeed, 1, bal);
@@ -181,7 +181,7 @@ contract VaultHandler is Test {
 
     function juniorCancelDepositRequest(uint256 actorSeed) external {
         address who = _actor(actorSeed);
-        usdcJuniorVault jv = registry.juniorVault();
+        USDCJuniorVault jv = registry.juniorVault();
         uint256 requestId = jv.activeDepositRequestId(who);
         if (requestId == 0) return;
 
@@ -195,7 +195,7 @@ contract VaultHandler is Test {
 
     function juniorClaimCancelDeposit(uint256 actorSeed) external {
         address who = _actor(actorSeed);
-        usdcJuniorVault jv = registry.juniorVault();
+        USDCJuniorVault jv = registry.juniorVault();
         uint256 requestId = jv.activeDepositRequestId(who);
         if (requestId == 0) return;
         uint256 pending = jv.claimableCancelDepositRequest(requestId, who);
@@ -211,7 +211,7 @@ contract VaultHandler is Test {
 
     function juniorRequestRedeem(uint256 actorSeed, uint256 sharesSeed) external {
         address who = _actor(actorSeed);
-        usdcJuniorVault jv = registry.juniorVault();
+        USDCJuniorVault jv = registry.juniorVault();
         uint256 bal = jv.balanceOf(who);
         if (bal == 0) return;
         uint256 shares = bound(sharesSeed, 1, bal);
@@ -226,7 +226,7 @@ contract VaultHandler is Test {
 
     function juniorCancelRedeemRequest(uint256 actorSeed) external {
         address who = _actor(actorSeed);
-        usdcJuniorVault jv = registry.juniorVault();
+        USDCJuniorVault jv = registry.juniorVault();
         uint256 requestId = jv.activeRedeemRequestId(who);
         if (requestId == 0) return;
 
@@ -240,7 +240,7 @@ contract VaultHandler is Test {
 
     function juniorClaimCancelRedeem(uint256 actorSeed) external {
         address who = _actor(actorSeed);
-        usdcJuniorVault jv = registry.juniorVault();
+        USDCJuniorVault jv = registry.juniorVault();
         uint256 requestId = jv.activeRedeemRequestId(who);
         if (requestId == 0) return;
 
@@ -255,7 +255,7 @@ contract VaultHandler is Test {
     function transferJuniorShares(uint256 fromSeed, uint256 toSeed, uint256 amountSeed) external {
         address from = _actor(fromSeed);
         address to = _actor(toSeed);
-        usdcJuniorVault jv = registry.juniorVault();
+        USDCJuniorVault jv = registry.juniorVault();
         uint256 bal = jv.balanceOf(from);
         if (bal == 0) return;
         uint256 amount = bound(amountSeed, 1, bal);
@@ -269,7 +269,7 @@ contract VaultHandler is Test {
     }
 
     function curatorLowerAMaxWad(uint256 newSeed) external {
-        seriesCore core = registry.realCore();
+        SeriesCore core = registry.realCore();
         (, uint256 aMaxWad,,,,,,,,,,,,,,,,,) = core.policy();
         if (aMaxWad == 0) return;
         uint256 newAMax = bound(newSeed, 0, aMaxWad);
@@ -283,7 +283,7 @@ contract VaultHandler is Test {
     }
 
     function curatorRaiseMinIdleSeniorWad(uint256 deltaSeed) external {
-        seriesCore core = registry.realCore();
+        SeriesCore core = registry.realCore();
         (,,,,,,,,,,,,, uint256 minIdleSeniorWad,,,,,) = core.policy();
         uint256 newFloor = minIdleSeniorWad + bound(deltaSeed, 0, 0.1e18);
         if (newFloor > 1e18) newFloor = 1e18;
@@ -297,7 +297,7 @@ contract VaultHandler is Test {
     }
 
     function curatorRaiseCovVaultMinWad(uint256 deltaSeed) external {
-        seriesCore core = registry.realCore();
+        SeriesCore core = registry.realCore();
         (,,, uint256 covVaultMinWad,,,,,,,,,,,,,,,) = core.policy();
         uint256 newFloor = covVaultMinWad + bound(deltaSeed, 0, 0.05e18);
         if (newFloor >= 1e18) newFloor = 0.99e18;
@@ -311,7 +311,7 @@ contract VaultHandler is Test {
     }
 
     function curatorPause() external {
-        seriesCore core = registry.realCore();
+        SeriesCore core = registry.realCore();
         vm.prank(registry.CURATOR());
         try core.pause() {
             registry.recordCall(this.curatorPause.selector, false);
@@ -321,7 +321,7 @@ contract VaultHandler is Test {
     }
 
     function governanceUnpause() external {
-        seriesCore core = registry.realCore();
+        SeriesCore core = registry.realCore();
         vm.prank(registry.GOVERNANCE());
         try core.unpause() {
             registry.recordCall(this.governanceUnpause.selector, false);

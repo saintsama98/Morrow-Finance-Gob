@@ -7,10 +7,10 @@ pragma solidity 0.8.34;
 
 import {console} from "forge-std/console.sol";
 import {Market} from "@morpho-org/midnight/src/interfaces/IMidnight.sol";
-import {ForkBase, iChainlinkFeed} from "./ForkBase.t.sol";
-import {creditSeries} from "../../src/series/creditSeries.sol";
-import {SeriesState} from "../../src/interfaces/iSeries.sol";
-import {iErc20Like} from "../../src/interfaces/iErc20Like.sol";
+import {ForkBase, IChainlinkFeed} from "./ForkBase.t.sol";
+import {CreditSeries} from "../../src/series/CreditSeries.sol";
+import {SeriesState} from "../../src/interfaces/ISeries.sol";
+import {IERC20Like} from "../../src/interfaces/IERC20Like.sol";
 
 contract ForkStructuralStressTest is ForkBase {
     address internal bob = makeAddr("bob");
@@ -20,7 +20,7 @@ contract ForkStructuralStressTest is ForkBase {
         return _cbMarket(0.86e18, maturity, 3_000_000_000);
     }
 
-    function _defaultWithoutLiquidator(creditSeries s) internal {
+    function _defaultWithoutLiquidator(CreditSeries s) internal {
         _toSettling(s);
         vm.warp(s.T() + s.D_WRITE_OFF());
         _collectAll(s);
@@ -31,15 +31,15 @@ contract ForkStructuralStressTest is ForkBase {
     function test_cbbtcDepeg_oracleBlind_defaultWritesOff_juniorFirst_gateCloses() public {
         _fundBooks(1_000_000e6, 400_000e6);
         Market memory m = _cb86(OCT_30);
-        (creditSeries s,) = _openSingle(m, 400_000e6, 100_000e6);
+        (CreditSeries s,) = _openSingle(m, 400_000e6, 100_000e6);
         _borrow(s, 0, m, 300_000e6, bob, 80);
         _finalizeByKeeper(s);
         uint256 juniorIdleBefore = core.idle(false);
 
-        (, int256 btc,,,) = iChainlinkFeed(BTC_USD_FEED).latestRoundData();
+        (, int256 btc,,,) = IChainlinkFeed(BTC_USD_FEED).latestRoundData();
         vm.mockCall(
             BTC_USD_FEED,
-            abi.encodeWithSelector(iChainlinkFeed.latestRoundData.selector),
+            abi.encodeWithSelector(IChainlinkFeed.latestRoundData.selector),
             abi.encode(uint80(1), btc, block.timestamp, block.timestamp, uint80(1))
         );
         assertTrue(midnight.isHealthy(m, s.marketIds()[0], bob), "the oracle still sees a healthy borrower");
@@ -59,7 +59,7 @@ contract ForkStructuralStressTest is ForkBase {
 
     function _twoSeriesWithLossOnFirst(bool backstopOn)
         internal
-        returns (creditSeries lossy, creditSeries healthy, uint256 healthySLeg, uint256 healthyJLeg)
+        returns (CreditSeries lossy, CreditSeries healthy, uint256 healthySLeg, uint256 healthyJLeg)
     {
         _fundBooks(1_000_000e6, 400_000e6);
         if (!backstopOn) {
@@ -80,7 +80,7 @@ contract ForkStructuralStressTest is ForkBase {
     }
 
     function test_backstopOff_otherSeriesLegsUntouched() public {
-        (creditSeries lossy, creditSeries healthy, uint256 sLeg, uint256 jLeg) = _twoSeriesWithLossOnFirst(false);
+        (CreditSeries lossy, CreditSeries healthy, uint256 sLeg, uint256 jLeg) = _twoSeriesWithLossOnFirst(false);
         (uint256 sNow, uint256 jNow,) = healthy.navs();
         assertEq(core.backstopPaid(address(lossy)), 0, "no backstop when disabled");
         assertGe(sNow, sLeg, "the healthy series' senior leg is untouched");
@@ -88,7 +88,7 @@ contract ForkStructuralStressTest is ForkBase {
     }
 
     function test_backstopOn_juniorIdleCoversSeniorShortfall() public {
-        (creditSeries lossy, creditSeries healthy, uint256 sLeg, uint256 jLeg) = _twoSeriesWithLossOnFirst(true);
+        (CreditSeries lossy, CreditSeries healthy, uint256 sLeg, uint256 jLeg) = _twoSeriesWithLossOnFirst(true);
         (uint256 sNow, uint256 jNow,) = healthy.navs();
         assertGt(core.backstopPaid(address(lossy)), 0, "the backstop pays the senior shortfall");
         assertGe(sNow, sLeg, "the healthy series' legs are still untouched inside the series");
@@ -98,7 +98,7 @@ contract ForkStructuralStressTest is ForkBase {
     function test_donationsDuringStress_neverMoveTheBooks() public {
         _fundBooks(1_000_000e6, 400_000e6);
         Market memory m = _cb86(OCT_30);
-        (creditSeries s,) = _openSingle(m, 400_000e6, 100_000e6);
+        (CreditSeries s,) = _openSingle(m, 400_000e6, 100_000e6);
         _borrow(s, 0, m, 300_000e6, bob, 80);
         _finalizeByKeeper(s);
         uint256 seniorBefore = core.seniorAssets();

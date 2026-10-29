@@ -1,27 +1,27 @@
 // SPDX-License-Identifier: BUSL-1.1
-// Morrow Finance: unit tests for usdcJuniorVault: deposit and redemption epochs, and pro-rata claims.
+// Morrow Finance: unit tests for USDCJuniorVault: deposit and redemption epochs, and pro-rata claims.
 // @author adiii.eth
 
 pragma solidity 0.8.34;
 
 import {Test} from "forge-std/Test.sol";
 import {MockUSDC} from "../mocks/MockUSDC.sol";
-import {seriesFactory} from "../../src/series/seriesFactory.sol";
-import {seriesCore} from "../../src/core/seriesCore.sol";
-import {usdcSeniorVault} from "../../src/vaults/senior/usdcSeniorVault.sol";
-import {usdcJuniorVault} from "../../src/vaults/junior/usdcJuniorVault.sol";
-import {iMidnightMinimal} from "../../src/interfaces/iMidnightMinimal.sol";
-import {iParking} from "../../src/parking/iParking.sol";
-import {idleParking} from "../../src/parking/idleParking.sol";
-import {usdcVaultBase} from "../../src/vaults/shared/usdcVaultBase.sol";
+import {SeriesFactory} from "../../src/series/SeriesFactory.sol";
+import {SeriesCore} from "../../src/core/SeriesCore.sol";
+import {USDCSeniorVault} from "../../src/vaults/senior/USDCSeniorVault.sol";
+import {USDCJuniorVault} from "../../src/vaults/junior/USDCJuniorVault.sol";
+import {IMidnightMinimal} from "../../src/interfaces/IMidnightMinimal.sol";
+import {IParking} from "../../src/parking/IParking.sol";
+import {IdleParking} from "../../src/parking/IdleParking.sol";
+import {USDCVaultBase} from "../../src/vaults/shared/USDCVaultBase.sol";
 
 contract JuniorVaultTest is Test {
     MockUSDC usdc;
-    idleParking parking;
-    seriesFactory factory;
-    seriesCore core;
-    usdcSeniorVault seniorVault;
-    usdcJuniorVault juniorVault;
+    IdleParking parking;
+    SeriesFactory factory;
+    SeriesCore core;
+    USDCSeniorVault seniorVault;
+    USDCJuniorVault juniorVault;
 
     address governance = makeAddr("governance");
     address allocator = makeAddr("allocator");
@@ -32,16 +32,16 @@ contract JuniorVaultTest is Test {
 
     function setUp() public {
         usdc = new MockUSDC();
-        parking = new idleParking(address(usdc));
-        factory = new seriesFactory(iMidnightMinimal(address(0x1)), address(0x2), address(usdc), governance, 0.86e18, 4);
-        core = new seriesCore(
-            address(usdc), factory, iParking(address(parking)), governance, allocator, curator, sentinel
+        parking = new IdleParking(address(usdc));
+        factory = new SeriesFactory(IMidnightMinimal(address(0x1)), address(0x2), address(usdc), governance, 0.86e18, 4);
+        core = new SeriesCore(
+            address(usdc), factory, IParking(address(parking)), governance, allocator, curator, sentinel
         );
         vm.prank(governance);
         factory.setCore(address(core));
 
-        seniorVault = new usdcSeniorVault(core, address(usdc));
-        juniorVault = new usdcJuniorVault(core, address(usdc));
+        seniorVault = new USDCSeniorVault(core, address(usdc));
+        juniorVault = new USDCJuniorVault(core, address(usdc));
         vm.prank(governance);
         core.setVaults(address(seniorVault), address(juniorVault));
 
@@ -84,7 +84,7 @@ contract JuniorVaultTest is Test {
     function test_fulfillDeposit_beforeClose_reverts() public {
         uint256 epochId = _requestDeposit(alice, 500_000e6);
         vm.prank(curator);
-        vm.expectRevert(usdcVaultBase.EpochNotClosed.selector);
+        vm.expectRevert(USDCVaultBase.EpochNotClosed.selector);
         juniorVault.fulfillDeposit(epochId, 500_000e6);
     }
 
@@ -129,7 +129,7 @@ contract JuniorVaultTest is Test {
         juniorVault.closeDepositEpoch();
 
         vm.prank(alice);
-        vm.expectRevert(usdcVaultBase.EpochAlreadyClosed.selector);
+        vm.expectRevert(USDCVaultBase.EpochAlreadyClosed.selector);
         juniorVault.cancelDepositRequest(epochId, alice);
     }
 
@@ -226,7 +226,7 @@ contract JuniorVaultTest is Test {
         juniorVault.closeRedeemEpoch();
 
         vm.prank(alice);
-        vm.expectRevert(usdcVaultBase.EpochAlreadyClosed.selector);
+        vm.expectRevert(USDCVaultBase.EpochAlreadyClosed.selector);
         juniorVault.cancelRedeemRequest(epochId, alice);
     }
 }

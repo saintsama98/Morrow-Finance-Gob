@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: BUSL-1.1
-// Morrow Finance: fuzz handler that moves the Morpho Blue market underneath blueParking.
+// Morrow Finance: fuzz handler that moves the Morpho Blue market underneath BlueParking.
 // @author adiii.eth
 
 pragma solidity 0.8.34;
 
 import {Test} from "forge-std/Test.sol";
 import {SeriesRegistryBlueParking, BlueVenueKnobs} from "./SeriesRegistryBlueParking.sol";
-import {seriesCore} from "../../../src/core/seriesCore.sol";
-import {blueParking} from "../../../src/parking/blueParking.sol";
+import {SeriesCore} from "../../../src/core/SeriesCore.sol";
+import {BlueParking} from "../../../src/parking/BlueParking.sol";
 
 contract BlueParkingChaosHandler is Test {
     SeriesRegistryBlueParking public registry;
@@ -29,9 +29,9 @@ contract BlueParkingChaosHandler is Test {
 
     function lose(uint256 seed) external {
         if (seed % 8 != 0) return;
-        seriesCore core = registry.realCore();
+        SeriesCore core = registry.realCore();
         core.syncAll();
-        blueParking parking = registry.blueParkingAdapter();
+        BlueParking parking = registry.blueParkingAdapter();
         uint256 parkedBefore = parking.totalAssets(address(core));
         uint256 seniorBefore = core.idle(true);
         uint256 juniorBefore = core.idle(false);
@@ -62,7 +62,7 @@ contract BlueParkingChaosHandler is Test {
 
     function donateToBlue(uint256 amountSeed) external {
         uint256 amount = bound(amountSeed, 1, 10_000e6);
-        blueParking parking = registry.blueParkingAdapter();
+        BlueParking parking = registry.blueParkingAdapter();
         registry.usdc().mint(address(this), amount);
         registry.usdc().approve(address(registry.blue()), amount);
         registry.blue().supply(parking.marketParams(), amount, 0, address(parking), "");

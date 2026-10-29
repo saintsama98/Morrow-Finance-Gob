@@ -1,0 +1,177 @@
+// SPDX-License-Identifier: BUSL-1.1
+// Morrow Finance: parking adapter that earns yield in one Morpho ERC-4626 vault while keeping a USDC buffer.
+// @author adiii.eth
+
+pragma solidity 0.8.34;
+
+import {IParking} from "./IParking.sol";
+import {IERC20Like} from "../interfaces/IERC20Like.sol";
+import {IERC4626Like} from "../interfaces/IERC4626Like.sol";
+import {WadMath} from "../libraries/WadMath.sol";
+
+/// @notice Parking that lends idle cash through an ERC-4626 vault, with a raw USDC buffer.
+contract MorphoParking is IParking {
+    using WadMath for uint256;
+
+    error ZeroAddress();
+    error AssetMismatch();
+    error InvalidBuffer();
+    error InsufficientBalance();
+    error Illiquid(uint256 asked, uint256 available);
+    error Reentrancy();
+    error ZeroShares();
+    error TransferFailed();
+
+    event Deposited(address indexed account, uint256 assets, uint256 shares);
+    event Withdrawn(address indexed account, address indexed to, uint256 assets, uint256 shares);
+    event Transferred(address indexed from, address indexed to, uint256 assets, uint256 shares);
+    event Rebalanced(uint256 buffer, uint256 vaultAssets);
+
+    uint256 internal constant WAD = 1e18;
+    uint256 internal constant VIRTUAL_SHARES = 1e12;
+
+    uint256 public constant DUST_ASSETS = 100;
+
+    IERC20Like public immutable USDC;
+    IERC4626Like public immutable VAULT;
+    uint256 public immutable BUFFER_WAD;
+
+    mapping(address account => uint256) public sharesOf;
+    uint256 public totalShares;
+
+    uint256 private _lock = 1;
+
+    modifier nonReentrant() {
+        require(_lock == 1, Reentrancy());
+        _lock = 2;
+        _;
+        _lock = 1;
+    }
+
+    constructor(address usdc, address vault, uint256 bufferWad) {
+        require(usdc != address(0) && vault != address(0), ZeroAddress());
+        require(IERC4626Like(vault).asset() == usdc, AssetMismatch());
+        require(bufferWad <= WAD, InvalidBuffer());
+        USDC = IERC20Like(usdc);
+        VAULT = IERC4626Like(vault);
+        BUFFER_WAD = bufferWad;
+    }
+
+    /// @notice Parks assets for the caller and invests the excess over the buffer.
+    function deposit(uint256 assets) external nonReentrant {
+        if (assets == 0) return;
+        uint256 pool = poolAssets();
+        uint256 shares = assets.mulDivDown(totalShares + VIRTUAL_SHARES, pool + 1);
+        require(shares > 0, ZeroShares());
+
+        sharesOf[msg.sender] += shares;
+        totalShares += shares;
+        require(USDC.transferFrom(msg.sender, address(this), assets), TransferFailed());
+        emit Deposited(msg.sender, assets, shares);
+
+        _investExcess();
+    }
+
+    /// @notice Withdraws the caller's assets, pulling from the vault if the buffer is short.
+    function withdraw(uint256 assets, address to) external nonReentrant {
+        if (assets == 0) return;
+        require(to != address(0), ZeroAddress());
+        uint256 shares = _burnFor(msg.sender, assets);
+
+        _ensureBuffer(assets);
+        require(USDC.transfer(to, assets), TransferFailed());
+        emit Withdrawn(msg.sender, to, assets, shares);
+
+        _refillIfLow();
+    }
+
+    /// @notice Moves part of the caller's position to another account.
+    function transferPosition(address to, uint256 assets) external nonReentrant {
+        if (assets == 0) return;
+        require(to != address(0), ZeroAddress());
+        uint256 shares = _burnFor(msg.sender, assets);
+        sharesOf[to] += shares;
+        totalShares += shares;
+        emit Transferred(msg.sender, to, assets, shares);
+    }
+
+    /// @notice Value of an account's position.
+    function totalAssets(address account) public view returns (uint256) {
+        return sharesOf[account].mulDivDown(poolAssets() + 1, totalShares + VIRTUAL_SHARES);
+    }
+
+    /// @notice Assets an account can withdraw now.
+    function maxWithdraw(address account) external view returns (uint256) {
+        uint256 owned = totalAssets(account);
+        uint256 liquid = liquidity();
+        return owned < liquid ? owned : liquid;
+    }
+
+    /// @notice Raw buffer plus the vault position.
+    function poolAssets() public view returns (uint256) {
+        return USDC.balanceOf(address(this)) + VAULT.previewRedeem(VAULT.balanceOf(address(this)));
+    }
+
+    /// @notice Raw buffer plus what the vault can pay out now.
+    function liquidity() public view returns (uint256) {
+        return USDC.balanceOf(address(this)) + VAULT.maxWithdraw(address(this));
+    }
+
+    /// @notice Moves the raw buffer back to its target; anyone may call.
+    function rebalance() external nonReentrant {
+        uint256 target = poolAssets().mulDivDown(BUFFER_WAD, WAD);
+        uint256 buffer = USDC.balanceOf(address(this));
+        if (buffer > target) _supply(buffer - target);
+        else if (buffer < target) _pull(target - buffer);
+        emit Rebalanced(USDC.balanceOf(address(this)), VAULT.previewRedeem(VAULT.balanceOf(address(this))));
+    }
+
+    function _investExcess() internal {
+        uint256 target = poolAssets().mulDivDown(BUFFER_WAD, WAD);
+        uint256 buffer = USDC.balanceOf(address(this));
+        if (buffer > target) _supply(buffer - target);
+    }
+
+    function _refillIfLow() internal {
+        uint256 target = poolAssets().mulDivDown(BUFFER_WAD, WAD);
+        uint256 buffer = USDC.balanceOf(address(this));
+        if (buffer < target / 2) _pull(target - buffer);
+    }
+
+    function _supply(uint256 amount) internal {
+        uint256 cap = VAULT.maxDeposit(address(this));
+        if (amount > cap) amount = cap;
+        if (amount == 0) return;
+        require(USDC.approve(address(VAULT), amount), TransferFailed());
+        VAULT.deposit(amount, address(this));
+    }
+
+    function _pull(uint256 amount) internal {
+        uint256 cap = VAULT.maxWithdraw(address(this));
+        if (amount > cap) amount = cap;
+        if (amount == 0) return;
+        VAULT.withdraw(amount, address(this), address(this));
+    }
+
+    function _ensureBuffer(uint256 assets) internal {
+        uint256 buffer = USDC.balanceOf(address(this));
+        if (buffer >= assets) return;
+        uint256 need = assets - buffer;
+        uint256 available = VAULT.maxWithdraw(address(this));
+        require(need <= available, Illiquid(assets, buffer + available));
+        VAULT.withdraw(need, address(this), address(this));
+    }
+
+    function _burnFor(address account, uint256 assets) internal returns (uint256 shares) {
+        uint256 pool = poolAssets();
+        shares = assets.mulDivUp(totalShares + VIRTUAL_SHARES, pool + 1);
+        uint256 held = sharesOf[account];
+        if (shares > held) {
+            uint256 heldValueUp = held.mulDivUp(pool + 1, totalShares + VIRTUAL_SHARES);
+            require(held > 0 && assets <= heldValueUp + DUST_ASSETS, InsufficientBalance());
+            shares = held;
+        }
+        sharesOf[account] = held - shares;
+        totalShares -= shares;
+    }
+}

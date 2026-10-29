@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-// Morrow Finance: the shared test stack with idle cash lent directly in one (mock) Morpho Blue market through blueParking.
+// Morrow Finance: the shared test stack with idle cash lent directly in one (mock) Morpho Blue market through BlueParking.
 // @author adiii.eth
 
 pragma solidity 0.8.34;
@@ -7,8 +7,8 @@ pragma solidity 0.8.34;
 import {MarketParams} from "@morpho-org/morpho-blue/src/interfaces/IMorpho.sol";
 import {MarketParamsLib} from "@morpho-org/morpho-blue/src/libraries/MarketParamsLib.sol";
 import {SeriesRegistry} from "./SeriesRegistry.sol";
-import {iParking} from "../../../src/parking/iParking.sol";
-import {blueParking} from "../../../src/parking/blueParking.sol";
+import {IParking} from "../../../src/parking/IParking.sol";
+import {BlueParking} from "../../../src/parking/BlueParking.sol";
 import {MockMorphoBlue, MockBlueIrm} from "../../mocks/MockMorphoBlue.sol";
 
 contract BlueVenueKnobs {
@@ -42,7 +42,7 @@ contract SeriesRegistryBlueParking is SeriesRegistry {
     MockBlueIrm public irm;
     BlueVenueKnobs public knobs;
 
-    function _deployParking() internal override returns (iParking) {
+    function _deployParking() internal override returns (IParking) {
         blue = new MockMorphoBlue(usdc);
         irm = new MockBlueIrm();
         MarketParams memory params = MarketParams({
@@ -54,10 +54,10 @@ contract SeriesRegistryBlueParking is SeriesRegistry {
         });
         blue.createMarket(params);
         knobs = new BlueVenueKnobs(blue, params);
-        return new blueParking(address(usdc), address(blue), address(realFactory), params, BUFFER_WAD);
+        return new BlueParking(address(usdc), address(blue), address(realFactory), params, BUFFER_WAD);
     }
 
-    function blueParkingAdapter() external view returns (blueParking) {
-        return blueParking(address(parking));
+    function blueParkingAdapter() external view returns (BlueParking) {
+        return BlueParking(address(parking));
     }
 }

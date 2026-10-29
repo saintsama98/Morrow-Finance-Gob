@@ -6,23 +6,23 @@ pragma solidity 0.8.34;
 
 import {Test} from "forge-std/Test.sol";
 import {MockUSDC} from "../mocks/MockUSDC.sol";
-import {seriesFactory} from "../../src/series/seriesFactory.sol";
-import {seriesCore} from "../../src/core/seriesCore.sol";
-import {usdcSeniorVault} from "../../src/vaults/senior/usdcSeniorVault.sol";
-import {usdcJuniorVault} from "../../src/vaults/junior/usdcJuniorVault.sol";
-import {iMidnightMinimal} from "../../src/interfaces/iMidnightMinimal.sol";
-import {iParking} from "../../src/parking/iParking.sol";
-import {idleParking} from "../../src/parking/idleParking.sol";
-import {usdcVaultBase} from "../../src/vaults/shared/usdcVaultBase.sol";
-import {usdcJuniorDepositQueue} from "../../src/vaults/junior/usdcJuniorDepositQueue.sol";
+import {SeriesFactory} from "../../src/series/SeriesFactory.sol";
+import {SeriesCore} from "../../src/core/SeriesCore.sol";
+import {USDCSeniorVault} from "../../src/vaults/senior/USDCSeniorVault.sol";
+import {USDCJuniorVault} from "../../src/vaults/junior/USDCJuniorVault.sol";
+import {IMidnightMinimal} from "../../src/interfaces/IMidnightMinimal.sol";
+import {IParking} from "../../src/parking/IParking.sol";
+import {IdleParking} from "../../src/parking/IdleParking.sol";
+import {USDCVaultBase} from "../../src/vaults/shared/USDCVaultBase.sol";
+import {USDCJuniorDepositQueue} from "../../src/vaults/junior/USDCJuniorDepositQueue.sol";
 
 contract StandardsComplianceTest is Test {
     MockUSDC usdc;
-    idleParking parking;
-    seriesFactory factory;
-    seriesCore core;
-    usdcSeniorVault seniorVault;
-    usdcJuniorVault juniorVault;
+    IdleParking parking;
+    SeriesFactory factory;
+    SeriesCore core;
+    USDCSeniorVault seniorVault;
+    USDCJuniorVault juniorVault;
 
     address governance = makeAddr("governance");
     address allocator = makeAddr("allocator");
@@ -34,16 +34,16 @@ contract StandardsComplianceTest is Test {
 
     function setUp() public {
         usdc = new MockUSDC();
-        parking = new idleParking(address(usdc));
-        factory = new seriesFactory(iMidnightMinimal(address(0x1)), address(0x2), address(usdc), governance, 0.86e18, 4);
-        core = new seriesCore(
-            address(usdc), factory, iParking(address(parking)), governance, allocator, curator, sentinel
+        parking = new IdleParking(address(usdc));
+        factory = new SeriesFactory(IMidnightMinimal(address(0x1)), address(0x2), address(usdc), governance, 0.86e18, 4);
+        core = new SeriesCore(
+            address(usdc), factory, IParking(address(parking)), governance, allocator, curator, sentinel
         );
         vm.prank(governance);
         factory.setCore(address(core));
 
-        seniorVault = new usdcSeniorVault(core, address(usdc));
-        juniorVault = new usdcJuniorVault(core, address(usdc));
+        seniorVault = new USDCSeniorVault(core, address(usdc));
+        juniorVault = new USDCJuniorVault(core, address(usdc));
         vm.prank(governance);
         core.setVaults(address(seniorVault), address(juniorVault));
 
@@ -94,26 +94,26 @@ contract StandardsComplianceTest is Test {
     }
 
     function test_previewFunctions_senior_asyncRedeemSide_revert() public {
-        vm.expectRevert(usdcVaultBase.AsyncPreviewUnsupported.selector);
+        vm.expectRevert(USDCVaultBase.AsyncPreviewUnsupported.selector);
         seniorVault.previewRedeem(1);
-        vm.expectRevert(usdcVaultBase.AsyncPreviewUnsupported.selector);
+        vm.expectRevert(USDCVaultBase.AsyncPreviewUnsupported.selector);
         seniorVault.previewWithdraw(1);
         vm.prank(bob);
-        vm.expectRevert(usdcVaultBase.AsyncPreviewUnsupported.selector);
+        vm.expectRevert(USDCVaultBase.AsyncPreviewUnsupported.selector);
         seniorVault.previewRedeem(type(uint256).max);
     }
 
     function test_previewFunctions_junior_bothSides_revert() public {
-        vm.expectRevert(usdcVaultBase.AsyncPreviewUnsupported.selector);
+        vm.expectRevert(USDCVaultBase.AsyncPreviewUnsupported.selector);
         juniorVault.previewDeposit(1);
-        vm.expectRevert(usdcVaultBase.AsyncPreviewUnsupported.selector);
+        vm.expectRevert(USDCVaultBase.AsyncPreviewUnsupported.selector);
         juniorVault.previewMint(1);
-        vm.expectRevert(usdcVaultBase.AsyncPreviewUnsupported.selector);
+        vm.expectRevert(USDCVaultBase.AsyncPreviewUnsupported.selector);
         juniorVault.previewRedeem(1);
-        vm.expectRevert(usdcVaultBase.AsyncPreviewUnsupported.selector);
+        vm.expectRevert(USDCVaultBase.AsyncPreviewUnsupported.selector);
         juniorVault.previewWithdraw(1);
         vm.prank(bob);
-        vm.expectRevert(usdcVaultBase.AsyncPreviewUnsupported.selector);
+        vm.expectRevert(USDCVaultBase.AsyncPreviewUnsupported.selector);
         juniorVault.previewDeposit(type(uint256).max);
     }
 
@@ -159,7 +159,7 @@ contract StandardsComplianceTest is Test {
         uint256 claimable = seniorVault.claimableRedeemRequest(epochId, alice);
 
         vm.prank(bob);
-        vm.expectRevert(usdcVaultBase.NotControllerOrOperator.selector);
+        vm.expectRevert(USDCVaultBase.NotControllerOrOperator.selector);
         seniorVault.redeem(claimable, bob, alice);
 
         vm.prank(alice);
@@ -173,7 +173,7 @@ contract StandardsComplianceTest is Test {
 
     function test_setOperator_emitsEventAndReturnsTrue() public {
         vm.expectEmit(true, true, false, true, address(seniorVault));
-        emit usdcVaultBase.OperatorSet(alice, op, true);
+        emit USDCVaultBase.OperatorSet(alice, op, true);
         vm.prank(alice);
         bool ok = seniorVault.setOperator(op, true);
         assertTrue(ok, "setOperator must return true");
@@ -248,7 +248,7 @@ contract StandardsComplianceTest is Test {
 
         uint256 claimable = juniorVault.claimableDepositRequest(epochId, alice);
         vm.expectEmit(true, true, false, true, address(juniorVault));
-        emit usdcJuniorDepositQueue.Deposit(alice, bob, claimable, claimable * 1e12);
+        emit USDCJuniorDepositQueue.Deposit(alice, bob, claimable, claimable * 1e12);
         vm.prank(alice);
         juniorVault.deposit(claimable, bob, alice);
     }

@@ -7,10 +7,10 @@ pragma solidity 0.8.34;
 
 import {console} from "forge-std/console.sol";
 import {Market} from "@morpho-org/midnight/src/interfaces/IMidnight.sol";
-import {ForkBase, iChainlinkFeed} from "./ForkBase.t.sol";
-import {creditSeries} from "../../src/series/creditSeries.sol";
-import {SeriesState} from "../../src/interfaces/iSeries.sol";
-import {iErc20Like} from "../../src/interfaces/iErc20Like.sol";
+import {ForkBase, IChainlinkFeed} from "./ForkBase.t.sol";
+import {CreditSeries} from "../../src/series/CreditSeries.sol";
+import {SeriesState} from "../../src/interfaces/ISeries.sol";
+import {IERC20Like} from "../../src/interfaces/IERC20Like.sol";
 
 contract ForkCrashReplayTest is ForkBase {
     struct Path {
@@ -20,7 +20,7 @@ contract ForkCrashReplayTest is ForkBase {
 
     uint256[4] internal healthLevels = [uint256(60), 80, 90, 97];
 
-    creditSeries internal s;
+    CreditSeries internal s;
     bytes32[] internal ids;
     Market[] internal mkts;
     address[] internal borrowers;
@@ -62,11 +62,11 @@ contract ForkCrashReplayTest is ForkBase {
         _finalizeByKeeper(s);
         _checkStructure();
 
-        (, btcBase,,,) = iChainlinkFeed(BTC_USD_FEED).latestRoundData();
-        (, ethBase,,,) = iChainlinkFeed(ETH_USD_FEED).latestRoundData();
+        (, btcBase,,,) = IChainlinkFeed(BTC_USD_FEED).latestRoundData();
+        (, ethBase,,,) = IChainlinkFeed(ETH_USD_FEED).latestRoundData();
         _fund(USDC, keeper, 5_000_000e6);
         vm.prank(keeper);
-        iErc20Like(USDC).approve(MIDNIGHT, type(uint256).max);
+        IERC20Like(USDC).approve(MIDNIGHT, type(uint256).max);
         (lastNavS,,) = s.navs();
     }
 
@@ -81,7 +81,7 @@ contract ForkCrashReplayTest is ForkBase {
         roundCounter++;
         vm.mockCall(
             feed,
-            abi.encodeWithSelector(iChainlinkFeed.latestRoundData.selector),
+            abi.encodeWithSelector(IChainlinkFeed.latestRoundData.selector),
             abi.encode(roundCounter, answer, block.timestamp, block.timestamp, roundCounter)
         );
     }

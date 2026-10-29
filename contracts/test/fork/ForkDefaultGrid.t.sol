@@ -8,15 +8,15 @@ pragma solidity 0.8.34;
 import {console} from "forge-std/console.sol";
 import {Market} from "@morpho-org/midnight/src/interfaces/IMidnight.sol";
 import {StressBase} from "./StressBase.t.sol";
-import {creditSeries} from "../../src/series/creditSeries.sol";
-import {SeriesState} from "../../src/interfaces/iSeries.sol";
+import {CreditSeries} from "../../src/series/CreditSeries.sol";
+import {SeriesState} from "../../src/interfaces/ISeries.sol";
 
 contract ForkDefaultGridTest is StressBase {
     uint256 internal constant N = 10;
     uint256 internal constant UNITS = 30_000e6;
     uint256 internal constant ISOLATED_RCF = 3_000_000_001;
 
-    function _gridSetup() internal returns (creditSeries s) {
+    function _gridSetup() internal returns (CreditSeries s) {
         _fundBooks(1_500_000e6, 500_000e6);
         mkts.push(_cbMarket(0.86e18, OCT_30, ISOLATED_RCF));
         bytes32 id;
@@ -57,7 +57,7 @@ contract ForkDefaultGridTest is StressBase {
         return c;
     }
 
-    function _finishSeries(creditSeries s, bool postMaturityDone) internal {
+    function _finishSeries(CreditSeries s, bool postMaturityDone) internal {
         if (!postMaturityDone) {
             vm.warp(s.T());
             vm.prank(keeper);
@@ -73,7 +73,7 @@ contract ForkDefaultGridTest is StressBase {
         _checkStructure();
     }
 
-    function _line(string memory tag, uint256 defaulters, uint256 recoveryBps, uint256 bad, creditSeries s)
+    function _line(string memory tag, uint256 defaulters, uint256 recoveryBps, uint256 bad, CreditSeries s)
         internal
         view
     {
@@ -100,7 +100,7 @@ contract ForkDefaultGridTest is StressBase {
 
     function test_defaultShareByRecovery_midTerm() public {
         vm.pauseGasMetering();
-        creditSeries s = _gridSetup();
+        CreditSeries s = _gridSetup();
         uint256 snap = vm.snapshotState();
         uint256[6] memory shares = [uint256(0), 1, 3, 5, 8, 10];
         uint256[3] memory recoveries = [uint256(10_000), 5_000, 0];
@@ -119,7 +119,7 @@ contract ForkDefaultGridTest is StressBase {
 
     function test_timingOfLoss_halfDefault_zeroRecovery() public {
         vm.pauseGasMetering();
-        creditSeries s = _gridSetup();
+        CreditSeries s = _gridSetup();
         uint256 snap = vm.snapshotState();
         string[4] memory tags = ["early (day 1)", "mid-term", "one day before maturity", "post-maturity"];
         for (uint256 t = 0; t < 4; t++) {
@@ -143,7 +143,7 @@ contract ForkDefaultGridTest is StressBase {
 
     function test_breakEven_juniorThenSenior() public {
         vm.pauseGasMetering();
-        creditSeries s = _gridSetup();
+        CreditSeries s = _gridSetup();
         uint256 snap = vm.snapshotState();
         uint256 juniorFirstLoss;
         uint256 seniorFirstLoss;
@@ -168,7 +168,7 @@ contract ForkDefaultGridTest is StressBase {
 
     function test_recoveryLag_afterWriteOff() public {
         vm.pauseGasMetering();
-        creditSeries s = _gridSetup();
+        CreditSeries s = _gridSetup();
         uint256 snap = vm.snapshotState();
         uint256[3] memory lags = [uint256(1 days), 30 days, 180 days];
         for (uint256 x = 0; x < 3; x++) {
@@ -209,7 +209,7 @@ contract ForkDefaultGridTest is StressBase {
 
     function test_recoveringListFull_gateBlindToWriteOff() public {
         vm.pauseGasMetering();
-        creditSeries s = _gridSetup();
+        CreditSeries s = _gridSetup();
         vm.prank(CURATOR);
         core.proposePolicyChange(keccak256("maxRecovering"), 0);
         vm.warp(block.timestamp + core.CURATOR_TIMELOCK());
@@ -235,7 +235,7 @@ contract ForkDefaultGridTest is StressBase {
         uint256 n = mkts.length;
         for (uint256 r = 0; r < n; r++) {
             Market memory m = mkts[r];
-            (creditSeries s, bytes32 id) = _openSingle(m, S, J);
+            (CreditSeries s, bytes32 id) = _openSingle(m, S, J);
             seriesSet.push(s);
             mktIds.push(id);
         }

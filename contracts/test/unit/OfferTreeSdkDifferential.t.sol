@@ -7,17 +7,17 @@ pragma solidity 0.8.34;
 import {Offer} from "@morpho-org/midnight/src/interfaces/IMidnight.sol";
 import {HashLib} from "@morpho-org/midnight/src/ratifiers/libraries/HashLib.sol";
 import {ScenarioBase} from "../scenario/ScenarioBase.t.sol";
-import {creditSeries} from "../../src/series/creditSeries.sol";
+import {CreditSeries} from "../../src/series/CreditSeries.sol";
 
 contract OfferTreeSdkDifferentialTest is ScenarioBase {
-    creditSeries series;
+    CreditSeries series;
 
     function setUp() public override {
         super.setUp();
         _juniorDeposit(makeAddr("juniorSeed"), 400_000e6);
         _seniorDeposit(makeAddr("seniorSeed"), 1_000_000e6);
         (address seriesAddr,) = _openSeries(400_000e6, 100_000e6, block.timestamp + 45 days);
-        series = creditSeries(seriesAddr);
+        series = CreditSeries(seriesAddr);
     }
 
     function _vector(uint256 n) internal view returns (bytes32 root, bytes32[] memory leaves, Offer[] memory offers) {

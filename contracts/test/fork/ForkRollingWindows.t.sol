@@ -8,7 +8,7 @@ pragma solidity 0.8.34;
 import {console} from "forge-std/console.sol";
 import {Market} from "@morpho-org/midnight/src/interfaces/IMidnight.sol";
 import {StressBase} from "./StressBase.t.sol";
-import {creditSeries} from "../../src/series/creditSeries.sol";
+import {CreditSeries} from "../../src/series/CreditSeries.sol";
 
 contract ForkRollingWindowsTest is StressBase {
     function _setupBasket() internal {
@@ -21,7 +21,7 @@ contract ForkRollingWindowsTest is StressBase {
         uint256[] memory caps = new uint256[](2);
         caps[0] = 250_000e6;
         caps[1] = 250_000e6;
-        (creditSeries s, bytes32[] memory ids) = _openSeries(ms, caps, 400_000e6, 100_000e6);
+        (CreditSeries s, bytes32[] memory ids) = _openSeries(ms, caps, 400_000e6, 100_000e6);
         seriesSet.push(s);
         mktIds.push(ids[0]);
         mktIds.push(ids[1]);
@@ -66,7 +66,7 @@ contract ForkRollingWindowsTest is StressBase {
             totalDefaults += defaultsAtMaturity;
             totalAuctions += auctionLiquidations;
             _assertSeniority();
-            creditSeries s = seriesSet[0];
+            CreditSeries s = seriesSet[0];
             uint256 jd = s.juniorDeployed();
             uint256 jLoss = s.paidJ() >= jd ? 0 : (jd - s.paidJ()) * 10_000 / jd;
             uint256 sLoss = s.paidS() >= s.seniorClaim() ? 0 : (s.seniorClaim() - s.paidS()) * 10_000 / s.seniorClaim();

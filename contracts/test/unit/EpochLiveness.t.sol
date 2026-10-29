@@ -6,10 +6,10 @@
 pragma solidity 0.8.34;
 
 import {ScenarioBase} from "../scenario/ScenarioBase.t.sol";
-import {usdcVaultBase} from "../../src/vaults/shared/usdcVaultBase.sol";
-import {coreStorage} from "../../src/core/modules/coreStorage.sol";
-import {SeriesParams} from "../../src/interfaces/iSeries.sol";
-import {iParking} from "../../src/parking/iParking.sol";
+import {USDCVaultBase} from "../../src/vaults/shared/USDCVaultBase.sol";
+import {CoreStorage} from "../../src/core/modules/CoreStorage.sol";
+import {SeriesParams} from "../../src/interfaces/ISeries.sol";
+import {IParking} from "../../src/parking/IParking.sol";
 import {Market} from "@morpho-org/midnight/src/interfaces/IMidnight.sol";
 
 contract EpochLivenessTest is ScenarioBase {
@@ -44,7 +44,7 @@ contract EpochLivenessTest is ScenarioBase {
         uint256 maxDuration = seniorVault.MAX_EPOCH_DURATION();
 
         vm.prank(stranger);
-        vm.expectRevert(usdcVaultBase.NotOperator.selector);
+        vm.expectRevert(USDCVaultBase.NotOperator.selector);
         seniorVault.closeEpoch();
 
         vm.warp(block.timestamp + maxDuration);
@@ -60,7 +60,7 @@ contract EpochLivenessTest is ScenarioBase {
         seniorVault.closeEpoch();
 
         vm.prank(stranger);
-        vm.expectRevert(usdcVaultBase.NotOperator.selector);
+        vm.expectRevert(USDCVaultBase.NotOperator.selector);
         seniorVault.fulfill(id, type(uint128).max);
 
         vm.warp(block.timestamp + grace);
@@ -99,7 +99,7 @@ contract EpochLivenessTest is ScenarioBase {
         seniorVault.closeEpoch();
 
         vm.prank(curator);
-        vm.expectRevert(abi.encodeWithSelector(usdcVaultBase.NotOldestBatch.selector, first));
+        vm.expectRevert(abi.encodeWithSelector(USDCVaultBase.NotOldestBatch.selector, first));
         seniorVault.fulfill(second, type(uint128).max);
 
         vm.prank(curator);
@@ -128,7 +128,7 @@ contract EpochLivenessTest is ScenarioBase {
         assertLt(aliceFilled, sharesA, "sanity: a partial fill");
 
         vm.prank(alice);
-        vm.expectRevert(usdcVaultBase.EpochAlreadyClosed.selector);
+        vm.expectRevert(USDCVaultBase.EpochAlreadyClosed.selector);
         seniorVault.cancelRedeemRequest(id, alice);
 
         vm.warp(block.timestamp + timeout);
@@ -178,7 +178,7 @@ contract EpochLivenessTest is ScenarioBase {
         registry.midnight().touchMarket(market);
         SeriesParams memory p = _params(market, 850_000e6);
         vm.prank(registry.ALLOCATOR());
-        vm.expectPartialRevert(coreStorage.IdleInsufficient.selector);
+        vm.expectPartialRevert(CoreStorage.IdleInsufficient.selector);
         core.openSeries(p, 700_000e6, 150_000e6);
 
         vm.prank(curator);
@@ -225,7 +225,7 @@ contract EpochLivenessTest is ScenarioBase {
         juniorVault.closeDepositEpoch();
 
         vm.prank(curator);
-        vm.expectRevert(abi.encodeWithSelector(usdcVaultBase.NotOldestBatch.selector, first));
+        vm.expectRevert(abi.encodeWithSelector(USDCVaultBase.NotOldestBatch.selector, first));
         juniorVault.fulfillDeposit(second, type(uint128).max);
 
         vm.warp(block.timestamp + juniorVault.FILL_GRACE());
@@ -375,7 +375,7 @@ contract EpochLivenessTest is ScenarioBase {
             thetaWad: 0.1e18,
             feeRecipient: registry.FEE_RECIPIENT(),
             allocator: registry.ALLOCATOR(),
-            parking: iParking(address(registry.parking())),
+            parking: IParking(address(registry.parking())),
             offchainAttestationHash: bytes32(0)
         });
     }

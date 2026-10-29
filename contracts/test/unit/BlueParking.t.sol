@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: BUSL-1.1
-// Morrow Finance: unit tests for blueParking: pooled shares over one Morpho Blue market, buffer, liquidity, access and exit.
+// Morrow Finance: unit tests for BlueParking: pooled shares over one Morpho Blue market, buffer, liquidity, access and exit.
 // @author adiii.eth
 
 pragma solidity 0.8.34;
 
 import {Test} from "forge-std/Test.sol";
 import {MarketParams} from "@morpho-org/morpho-blue/src/interfaces/IMorpho.sol";
-import {blueParking} from "../../src/parking/blueParking.sol";
+import {BlueParking} from "../../src/parking/BlueParking.sol";
 import {MockMorphoBlue, MockBlueIrm} from "../mocks/MockMorphoBlue.sol";
 import {MockUSDC} from "../mocks/MockUSDC.sol";
 
@@ -47,9 +47,9 @@ contract BlueParkingCoreStub {
 
 contract BlueParkingUser {
     MockUSDC immutable usdc;
-    blueParking immutable parking;
+    BlueParking immutable parking;
 
-    constructor(MockUSDC usdc_, blueParking parking_) {
+    constructor(MockUSDC usdc_, BlueParking parking_) {
         usdc = usdc_;
         parking = parking_;
     }
@@ -76,7 +76,7 @@ contract BlueParkingTest is Test {
     MockBlueIrm irm;
     BlueParkingFactoryStub factory;
     BlueParkingCoreStub core;
-    blueParking parking;
+    BlueParking parking;
     MarketParams params;
     BlueParkingUser alice;
     BlueParkingUser bob;
@@ -95,7 +95,7 @@ contract BlueParkingTest is Test {
             loanToken: address(usdc), collateralToken: collateral, oracle: oracle, irm: address(irm), lltv: 0.86e18
         });
         blue.createMarket(params);
-        parking = new blueParking(address(usdc), address(blue), address(factory), params, BUFFER_WAD);
+        parking = new BlueParking(address(usdc), address(blue), address(factory), params, BUFFER_WAD);
         alice = new BlueParkingUser(usdc, parking);
         bob = new BlueParkingUser(usdc, parking);
         core.register(address(alice));
@@ -118,36 +118,36 @@ contract BlueParkingTest is Test {
     function test_constructor_rejectsWrongLoanToken() public {
         MarketParams memory p = params;
         p.loanToken = address(new MockUSDC());
-        vm.expectRevert(blueParking.AssetMismatch.selector);
-        new blueParking(address(usdc), address(blue), address(factory), p, BUFFER_WAD);
+        vm.expectRevert(BlueParking.AssetMismatch.selector);
+        new BlueParking(address(usdc), address(blue), address(factory), p, BUFFER_WAD);
     }
 
     function test_constructor_rejectsBufferAboveOne() public {
-        vm.expectRevert(blueParking.InvalidBuffer.selector);
-        new blueParking(address(usdc), address(blue), address(factory), params, 1e18 + 1);
+        vm.expectRevert(BlueParking.InvalidBuffer.selector);
+        new BlueParking(address(usdc), address(blue), address(factory), params, 1e18 + 1);
     }
 
     function test_constructor_rejectsZeroAddresses() public {
-        vm.expectRevert(blueParking.ZeroAddress.selector);
-        new blueParking(address(usdc), address(0), address(factory), params, BUFFER_WAD);
+        vm.expectRevert(BlueParking.ZeroAddress.selector);
+        new BlueParking(address(usdc), address(0), address(factory), params, BUFFER_WAD);
     }
 
     function test_constructor_rejectsMarketsTheFactoryWouldNotAllow() public {
         MarketParams memory p = params;
         p.oracle = address(0xBAD);
-        vm.expectRevert(blueParking.MarketNotEligible.selector);
-        new blueParking(address(usdc), address(blue), address(factory), p, BUFFER_WAD);
+        vm.expectRevert(BlueParking.MarketNotEligible.selector);
+        new BlueParking(address(usdc), address(blue), address(factory), p, BUFFER_WAD);
         p = params;
         p.lltv = 0.915e18;
-        vm.expectRevert(blueParking.MarketNotEligible.selector);
-        new blueParking(address(usdc), address(blue), address(factory), p, BUFFER_WAD);
+        vm.expectRevert(BlueParking.MarketNotEligible.selector);
+        new BlueParking(address(usdc), address(blue), address(factory), p, BUFFER_WAD);
     }
 
     function test_constructor_rejectsAMarketNotCreatedOnBlue() public {
         MarketParams memory p = params;
         p.lltv = 0.77e18;
-        vm.expectRevert(blueParking.MarketNotCreated.selector);
-        new blueParking(address(usdc), address(blue), address(factory), p, BUFFER_WAD);
+        vm.expectRevert(BlueParking.MarketNotCreated.selector);
+        new BlueParking(address(usdc), address(blue), address(factory), p, BUFFER_WAD);
     }
 
     function test_deposit_isExactAtUnitPrice_andSplitsIntoBufferAndBlue() public {
@@ -196,7 +196,7 @@ contract BlueParkingTest is Test {
 
     function test_withdraw_moreThanOwned_reverts() public {
         alice.deposit(1_000e6);
-        vm.expectRevert(blueParking.InsufficientBalance.selector);
+        vm.expectRevert(BlueParking.InsufficientBalance.selector);
         alice.withdraw(1_000e6 + 101, address(alice));
     }
 
@@ -254,7 +254,7 @@ contract BlueParkingTest is Test {
         assertEq(parking.blueLiquidity(), 0);
         assertEq(parking.maxWithdraw(address(alice)), 50_000e6, "only the raw buffer is liquid");
         alice.withdraw(50_000e6, address(alice));
-        vm.expectRevert(abi.encodeWithSelector(blueParking.Illiquid.selector, 10_000e6, 0));
+        vm.expectRevert(abi.encodeWithSelector(BlueParking.Illiquid.selector, 10_000e6, 0));
         alice.withdraw(10_000e6, address(alice));
     }
 
@@ -278,7 +278,7 @@ contract BlueParkingTest is Test {
 
     function test_registeredSeries_canOnlyTransferToTheCore() public {
         alice.deposit(1_000_000e6);
-        vm.expectRevert(blueParking.NotAuthorized.selector);
+        vm.expectRevert(BlueParking.NotAuthorized.selector);
         alice.transfer(address(bob), 1e6);
     }
 
@@ -296,25 +296,25 @@ contract BlueParkingTest is Test {
         alice.deposit(1_000_000e6);
         BlueParkingUser stranger = new BlueParkingUser(usdc, parking);
         usdc.mint(address(stranger), 1e6);
-        vm.expectRevert(blueParking.NotAuthorized.selector);
+        vm.expectRevert(BlueParking.NotAuthorized.selector);
         stranger.deposit(1e6);
         uint256 dust = parking.DUST_ASSETS();
-        vm.expectRevert(blueParking.NotAuthorized.selector);
+        vm.expectRevert(BlueParking.NotAuthorized.selector);
         stranger.withdraw(dust, address(stranger));
-        vm.expectRevert(blueParking.NotAuthorized.selector);
+        vm.expectRevert(BlueParking.NotAuthorized.selector);
         stranger.transfer(address(core), 1);
     }
 
     function test_registeredAccountWithNoShares_cannotWithdrawDust() public {
         alice.deposit(1_000_000e6);
         uint256 dust = parking.DUST_ASSETS();
-        vm.expectRevert(blueParking.InsufficientBalance.selector);
+        vm.expectRevert(BlueParking.InsufficientBalance.selector);
         bob.withdraw(dust, address(bob));
     }
 
     function test_exitToCash_onlySentinelOrCurator_isOneWay_andPullsWhatIsLiquid() public {
         alice.deposit(1_000_000e6);
-        vm.expectRevert(blueParking.NotAuthorized.selector);
+        vm.expectRevert(BlueParking.NotAuthorized.selector);
         parking.exitToCash();
 
         vm.prank(core.sentinel());

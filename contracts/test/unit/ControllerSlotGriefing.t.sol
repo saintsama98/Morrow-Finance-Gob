@@ -6,22 +6,22 @@ pragma solidity 0.8.34;
 
 import {Test} from "forge-std/Test.sol";
 import {MockUSDC} from "../mocks/MockUSDC.sol";
-import {seriesFactory} from "../../src/series/seriesFactory.sol";
-import {seriesCore} from "../../src/core/seriesCore.sol";
-import {usdcSeniorVault} from "../../src/vaults/senior/usdcSeniorVault.sol";
-import {usdcJuniorVault} from "../../src/vaults/junior/usdcJuniorVault.sol";
-import {iMidnightMinimal} from "../../src/interfaces/iMidnightMinimal.sol";
-import {iParking} from "../../src/parking/iParking.sol";
-import {idleParking} from "../../src/parking/idleParking.sol";
-import {usdcVaultBase} from "../../src/vaults/shared/usdcVaultBase.sol";
+import {SeriesFactory} from "../../src/series/SeriesFactory.sol";
+import {SeriesCore} from "../../src/core/SeriesCore.sol";
+import {USDCSeniorVault} from "../../src/vaults/senior/USDCSeniorVault.sol";
+import {USDCJuniorVault} from "../../src/vaults/junior/USDCJuniorVault.sol";
+import {IMidnightMinimal} from "../../src/interfaces/IMidnightMinimal.sol";
+import {IParking} from "../../src/parking/IParking.sol";
+import {IdleParking} from "../../src/parking/IdleParking.sol";
+import {USDCVaultBase} from "../../src/vaults/shared/USDCVaultBase.sol";
 
 contract ControllerSlotGriefingTest is Test {
     MockUSDC usdc;
-    idleParking parking;
-    seriesFactory factory;
-    seriesCore core;
-    usdcSeniorVault seniorVault;
-    usdcJuniorVault juniorVault;
+    IdleParking parking;
+    SeriesFactory factory;
+    SeriesCore core;
+    USDCSeniorVault seniorVault;
+    USDCJuniorVault juniorVault;
 
     address governance = makeAddr("governance");
     address allocator = makeAddr("allocator");
@@ -32,15 +32,15 @@ contract ControllerSlotGriefingTest is Test {
 
     function setUp() public {
         usdc = new MockUSDC();
-        parking = new idleParking(address(usdc));
-        factory = new seriesFactory(iMidnightMinimal(address(0x1)), address(0x2), address(usdc), governance, 0.86e18, 4);
-        core = new seriesCore(
-            address(usdc), factory, iParking(address(parking)), governance, allocator, curator, sentinel
+        parking = new IdleParking(address(usdc));
+        factory = new SeriesFactory(IMidnightMinimal(address(0x1)), address(0x2), address(usdc), governance, 0.86e18, 4);
+        core = new SeriesCore(
+            address(usdc), factory, IParking(address(parking)), governance, allocator, curator, sentinel
         );
         vm.prank(governance);
         factory.setCore(address(core));
-        seniorVault = new usdcSeniorVault(core, address(usdc));
-        juniorVault = new usdcJuniorVault(core, address(usdc));
+        seniorVault = new USDCSeniorVault(core, address(usdc));
+        juniorVault = new USDCJuniorVault(core, address(usdc));
         vm.prank(governance);
         core.setVaults(address(seniorVault), address(juniorVault));
         usdc.mint(victim, 10_000_000e6);
@@ -70,7 +70,7 @@ contract ControllerSlotGriefingTest is Test {
     function test_juniorRequestDeposit_forForeignController_reverts() public {
         vm.startPrank(mallory);
         usdc.approve(address(juniorVault), 1);
-        vm.expectRevert(usdcVaultBase.NotControllerOrOperator.selector);
+        vm.expectRevert(USDCVaultBase.NotControllerOrOperator.selector);
         juniorVault.requestDeposit(1, victim, mallory);
         vm.stopPrank();
 
@@ -84,7 +84,7 @@ contract ControllerSlotGriefingTest is Test {
     function test_juniorRequestRedeem_forForeignController_reverts() public {
         _fundJunior(mallory, 1_000e6);
         vm.prank(mallory);
-        vm.expectRevert(usdcVaultBase.NotControllerOrOperator.selector);
+        vm.expectRevert(USDCVaultBase.NotControllerOrOperator.selector);
         juniorVault.requestRedeem(1, victim, mallory);
     }
 
@@ -92,7 +92,7 @@ contract ControllerSlotGriefingTest is Test {
         _fundJunior(victim, 1_000_000e6);
         _fundSenior(mallory, 1_000e6);
         vm.prank(mallory);
-        vm.expectRevert(usdcVaultBase.NotControllerOrOperator.selector);
+        vm.expectRevert(USDCVaultBase.NotControllerOrOperator.selector);
         seniorVault.requestRedeem(1, victim, mallory);
     }
 
@@ -134,7 +134,7 @@ contract ControllerSlotGriefingTest is Test {
         vm.prank(curator);
         juniorVault.fulfillRedeem(epochId, type(uint256).max);
         vm.prank(victim);
-        vm.expectRevert(usdcVaultBase.NothingToClaim.selector);
+        vm.expectRevert(USDCVaultBase.NothingToClaim.selector);
         juniorVault.redeem(1, victim, victim);
     }
 
@@ -157,7 +157,7 @@ contract ControllerSlotGriefingTest is Test {
         vm.prank(victim);
         usdc.approve(address(juniorVault), type(uint256).max);
         vm.prank(mallory);
-        vm.expectRevert(usdcVaultBase.NotControllerOrOperator.selector);
+        vm.expectRevert(USDCVaultBase.NotControllerOrOperator.selector);
         juniorVault.requestDeposit(1_000e6, mallory, victim);
         assertEq(usdc.balanceOf(victim), 10_000_000e6);
     }

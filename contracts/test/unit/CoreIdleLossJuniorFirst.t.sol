@@ -6,7 +6,7 @@ pragma solidity 0.8.34;
 
 import {Vm} from "forge-std/Test.sol";
 import {MorphoScenarioBase} from "../scenario/MorphoScenarioBase.t.sol";
-import {creditSeries} from "../../src/series/creditSeries.sol";
+import {CreditSeries} from "../../src/series/CreditSeries.sol";
 
 contract CoreIdleLossJuniorFirstTest is MorphoScenarioBase {
     bytes32 constant ABSORBED = keccak256("IdleLossAbsorbed(uint256,uint256)");
@@ -104,7 +104,7 @@ contract CoreIdleLossJuniorFirstTest is MorphoScenarioBase {
 
         vm.recordLogs();
         _finalize(seriesAddr);
-        creditSeries series = creditSeries(seriesAddr);
+        CreditSeries series = CreditSeries(seriesAddr);
         vm.warp(maturity + 1);
         series.startSettlement();
         vm.warp(maturity + series.D_WRITE_OFF());

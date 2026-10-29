@@ -5,15 +5,15 @@
 pragma solidity 0.8.34;
 
 import {Test} from "forge-std/Test.sol";
-import {morphoParking} from "../../src/parking/morphoParking.sol";
+import {MorphoParking} from "../../src/parking/MorphoParking.sol";
 import {MockMorphoVault} from "../mocks/MockMorphoVault.sol";
 import {MockUSDC} from "../mocks/MockUSDC.sol";
 
 contract ParkingUser {
     MockUSDC immutable usdc;
-    morphoParking immutable parking;
+    MorphoParking immutable parking;
 
-    constructor(MockUSDC usdc_, morphoParking parking_) {
+    constructor(MockUSDC usdc_, MorphoParking parking_) {
         usdc = usdc_;
         parking = parking_;
     }
@@ -35,7 +35,7 @@ contract ParkingUser {
 contract MorphoParkingTest is Test {
     MockUSDC usdc;
     MockMorphoVault vault;
-    morphoParking parking;
+    MorphoParking parking;
     ParkingUser alice;
     ParkingUser bob;
 
@@ -44,7 +44,7 @@ contract MorphoParkingTest is Test {
     function setUp() public {
         usdc = new MockUSDC();
         vault = new MockMorphoVault(usdc);
-        parking = new morphoParking(address(usdc), address(vault), BUFFER_WAD);
+        parking = new MorphoParking(address(usdc), address(vault), BUFFER_WAD);
         alice = new ParkingUser(usdc, parking);
         bob = new ParkingUser(usdc, parking);
         usdc.mint(address(alice), 100_000_000e6);
@@ -61,18 +61,18 @@ contract MorphoParkingTest is Test {
 
     function test_constructor_rejectsWrongAsset() public {
         MockUSDC other = new MockUSDC();
-        vm.expectRevert(morphoParking.AssetMismatch.selector);
-        new morphoParking(address(other), address(vault), BUFFER_WAD);
+        vm.expectRevert(MorphoParking.AssetMismatch.selector);
+        new MorphoParking(address(other), address(vault), BUFFER_WAD);
     }
 
     function test_constructor_rejectsBufferAboveOne() public {
-        vm.expectRevert(morphoParking.InvalidBuffer.selector);
-        new morphoParking(address(usdc), address(vault), 1e18 + 1);
+        vm.expectRevert(MorphoParking.InvalidBuffer.selector);
+        new MorphoParking(address(usdc), address(vault), 1e18 + 1);
     }
 
     function test_constructor_rejectsZeroAddresses() public {
-        vm.expectRevert(morphoParking.ZeroAddress.selector);
-        new morphoParking(address(0), address(vault), BUFFER_WAD);
+        vm.expectRevert(MorphoParking.ZeroAddress.selector);
+        new MorphoParking(address(0), address(vault), BUFFER_WAD);
     }
 
     function test_deposit_isExactAtUnitPrice_andSplitsIntoBufferAndVault() public {
@@ -116,7 +116,7 @@ contract MorphoParkingTest is Test {
 
     function test_withdraw_moreThanOwned_reverts() public {
         alice.deposit(1_000e6);
-        vm.expectRevert(morphoParking.InsufficientBalance.selector);
+        vm.expectRevert(MorphoParking.InsufficientBalance.selector);
         alice.withdraw(2_000e6, address(this));
     }
 
@@ -168,7 +168,7 @@ contract MorphoParkingTest is Test {
 
         alice.withdraw(100_000e6, address(this));
 
-        vm.expectRevert(abi.encodeWithSelector(morphoParking.Illiquid.selector, 1e6, 0));
+        vm.expectRevert(abi.encodeWithSelector(MorphoParking.Illiquid.selector, 1e6, 0));
         alice.withdraw(1e6, address(this));
     }
 
@@ -210,7 +210,7 @@ contract MorphoParkingTest is Test {
             alice.withdraw(1_000_000e6, address(this));
             assertEq(parking.sharesOf(address(alice)), 0);
         } else {
-            vm.expectRevert(morphoParking.InsufficientBalance.selector);
+            vm.expectRevert(MorphoParking.InsufficientBalance.selector);
             alice.withdraw(1_000_000e6, address(this));
         }
     }
@@ -219,7 +219,7 @@ contract MorphoParkingTest is Test {
         bob.deposit(1_000_000e6);
         alice.deposit(1_000e6);
         uint256 dust = parking.DUST_ASSETS();
-        vm.expectRevert(morphoParking.InsufficientBalance.selector);
+        vm.expectRevert(MorphoParking.InsufficientBalance.selector);
         alice.withdraw(1_000e6 + dust + 1, address(this));
         alice.withdraw(1_000e6 + dust, address(this));
         assertEq(parking.sharesOf(address(alice)), 0);
@@ -245,7 +245,7 @@ contract MorphoParkingTest is Test {
         assertEq(parking.sharesOf(address(stranger)), 0);
         uint256 before = usdc.balanceOf(address(stranger));
         uint256 dust = parking.DUST_ASSETS();
-        vm.expectRevert(morphoParking.InsufficientBalance.selector);
+        vm.expectRevert(MorphoParking.InsufficientBalance.selector);
         stranger.withdraw(dust, address(stranger));
         assertEq(usdc.balanceOf(address(stranger)), before, "an account with no shares must receive nothing");
     }

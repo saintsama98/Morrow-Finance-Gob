@@ -5,13 +5,13 @@
 pragma solidity 0.8.34;
 
 import {MorphoScenarioBase} from "./MorphoScenarioBase.t.sol";
-import {creditSeries} from "../../src/series/creditSeries.sol";
-import {SeriesState} from "../../src/interfaces/iSeries.sol";
-import {seriesMath} from "../../src/libraries/seriesMath.sol";
-import {wadMath} from "../../src/libraries/wadMath.sol";
+import {CreditSeries} from "../../src/series/CreditSeries.sol";
+import {SeriesState} from "../../src/interfaces/ISeries.sol";
+import {SeriesMath} from "../../src/libraries/SeriesMath.sol";
+import {WadMath} from "../../src/libraries/WadMath.sol";
 
 contract S17_ParkingVenueLossTest is MorphoScenarioBase {
-    using wadMath for uint256;
+    using WadMath for uint256;
 
     address borrower = makeAddr("borrower");
     address seniorDepositor = makeAddr("seniorDepositor");
@@ -39,7 +39,7 @@ contract S17_ParkingVenueLossTest is MorphoScenarioBase {
         (address seriesAddr,) = _openSeries(700_000e6, 150_000e6, maturity);
         _registerAndFill(seriesAddr, maturity, 800_000e6, borrower);
         _finalize(seriesAddr);
-        creditSeries series = creditSeries(seriesAddr);
+        CreditSeries series = CreditSeries(seriesAddr);
 
         vm.warp(maturity + 1);
         series.startSettlement();
@@ -52,7 +52,7 @@ contract S17_ParkingVenueLossTest is MorphoScenarioBase {
 
         series.settle();
         (uint256 xs, uint256 xj,) =
-            seriesMath.waterfall(proceeds, series.seniorClaim(), series.juniorDeployed(), 0.1e18);
+            SeriesMath.waterfall(proceeds, series.seniorClaim(), series.juniorDeployed(), 0.1e18);
         assertEq(series.paidS(), xs, "senior is paid first out of the reduced proceeds");
         assertEq(series.paidJ(), xj, "junior takes what is left");
         assertLt(series.paidS(), series.seniorClaim(), "a loss this large reaches senior's claim");
@@ -67,7 +67,7 @@ contract S17_ParkingVenueLossTest is MorphoScenarioBase {
         (address seriesAddr,) = _openSeries(700_000e6, 150_000e6, maturity);
         _registerAndFill(seriesAddr, maturity, 800_000e6, borrower);
         _finalize(seriesAddr);
-        creditSeries series = creditSeries(seriesAddr);
+        CreditSeries series = CreditSeries(seriesAddr);
         bytes32 marketId = _marketIdOf(series);
 
         vm.warp(maturity + 1);

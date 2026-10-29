@@ -5,9 +5,9 @@
 pragma solidity 0.8.34;
 
 import {ScenarioBase} from "./ScenarioBase.t.sol";
-import {creditSeries} from "../../src/series/creditSeries.sol";
-import {SeriesState} from "../../src/interfaces/iSeries.sol";
-import {seriesMath} from "../../src/libraries/seriesMath.sol";
+import {CreditSeries} from "../../src/series/CreditSeries.sol";
+import {SeriesState} from "../../src/interfaces/ISeries.sol";
+import {SeriesMath} from "../../src/libraries/SeriesMath.sol";
 
 contract S9_FeesAtCapsTest is ScenarioBase {
     address borrower = makeAddr("borrower");
@@ -32,7 +32,7 @@ contract S9_FeesAtCapsTest is ScenarioBase {
         (address seriesAddr,) = _openSeriesWithTheta(700_000e6, 150_000e6, maturity, 0.2e18);
         _registerAndFill(seriesAddr, maturity, 800_000e6, borrower);
         _finalize(seriesAddr);
-        creditSeries series = creditSeries(seriesAddr);
+        CreditSeries series = CreditSeries(seriesAddr);
 
         assertLt(
             series.faceNetAtFinalize(),
@@ -57,11 +57,11 @@ contract S9_FeesAtCapsTest is ScenarioBase {
         assertEq(uint8(series.state()), uint8(SeriesState.SETTLED));
 
         (uint256 expectedXs, uint256 expectedXj, uint256 expectedFee) =
-            seriesMath.waterfall(received, seniorClaim, juniorDeployed, 0.2e18);
+            SeriesMath.waterfall(received, seniorClaim, juniorDeployed, 0.2e18);
         assertGt(expectedFee, 0, "sanity: a 0.20e18 theta on a clean settlement must recognize a positive fee");
-        assertEq(series.paidS(), expectedXs, "senior payout must match seriesMath.waterfall at the 0.20e18 cap");
-        assertEq(series.paidJ(), expectedXj, "junior payout must match seriesMath.waterfall at the 0.20e18 cap");
-        assertEq(series.feeAccounted(), expectedFee, "recognized fee must match seriesMath.waterfall exactly");
+        assertEq(series.paidS(), expectedXs, "senior payout must match SeriesMath.waterfall at the 0.20e18 cap");
+        assertEq(series.paidJ(), expectedXj, "junior payout must match SeriesMath.waterfall at the 0.20e18 cap");
+        assertEq(series.feeAccounted(), expectedFee, "recognized fee must match SeriesMath.waterfall exactly");
 
         assertEq(
             series.paidS() + series.paidJ() + series.feeAccounted(),

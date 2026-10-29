@@ -13,15 +13,15 @@ import {IdLib} from "@morpho-org/midnight/src/libraries/IdLib.sol";
 import {MockUSDC} from "../../mocks/MockUSDC.sol";
 import {MockOracle} from "../../mocks/MockOracle.sol";
 import {StubCore} from "../../mocks/StubCore.sol";
-import {seriesFactory} from "../../../src/series/seriesFactory.sol";
-import {creditSeries} from "../../../src/series/creditSeries.sol";
-import {SeriesParams} from "../../../src/interfaces/iSeries.sol";
-import {iMidnightMinimal} from "../../../src/interfaces/iMidnightMinimal.sol";
-import {iParking} from "../../../src/parking/iParking.sol";
-import {idleParking} from "../../../src/parking/idleParking.sol";
-import {seriesCore} from "../../../src/core/seriesCore.sol";
-import {usdcSeniorVault} from "../../../src/vaults/senior/usdcSeniorVault.sol";
-import {usdcJuniorVault} from "../../../src/vaults/junior/usdcJuniorVault.sol";
+import {SeriesFactory} from "../../../src/series/SeriesFactory.sol";
+import {CreditSeries} from "../../../src/series/CreditSeries.sol";
+import {SeriesParams} from "../../../src/interfaces/ISeries.sol";
+import {IMidnightMinimal} from "../../../src/interfaces/IMidnightMinimal.sol";
+import {IParking} from "../../../src/parking/IParking.sol";
+import {IdleParking} from "../../../src/parking/IdleParking.sol";
+import {SeriesCore} from "../../../src/core/SeriesCore.sol";
+import {USDCSeniorVault} from "../../../src/vaults/senior/USDCSeniorVault.sol";
+import {USDCJuniorVault} from "../../../src/vaults/junior/USDCJuniorVault.sol";
 
 contract SeriesRegistry is Test {
     uint256 public constant WAD = 1e18;
@@ -33,14 +33,14 @@ contract SeriesRegistry is Test {
     MockUSDC public usdc;
     MockOracle public oracle;
     address public collateralToken;
-    seriesFactory public factory;
+    SeriesFactory public factory;
     StubCore public core;
-    seriesFactory public realFactory;
-    iParking public parking;
+    SeriesFactory public realFactory;
+    IParking public parking;
 
-    seriesCore public realCore;
-    usdcSeniorVault public seniorVault;
-    usdcJuniorVault public juniorVault;
+    SeriesCore public realCore;
+    USDCSeniorVault public seniorVault;
+    USDCJuniorVault public juniorVault;
 
     address public constant ALLOCATOR = address(0xA110C000);
     address public constant SENTINEL = address(0xC0FFEE);
@@ -96,14 +96,14 @@ contract SeriesRegistry is Test {
         oracle = new MockOracle(1e36 * 60_000);
         collateralToken = address(new MockUSDC());
 
-        factory = new seriesFactory(
-            iMidnightMinimal(address(midnight)), address(setterRatifier), address(usdc), address(this), 0.86e18, 4
+        factory = new SeriesFactory(
+            IMidnightMinimal(address(midnight)), address(setterRatifier), address(usdc), address(this), 0.86e18, 4
         );
         core = new StubCore(address(usdc), SENTINEL);
         factory.setCore(address(core));
 
-        realFactory = new seriesFactory(
-            iMidnightMinimal(address(midnight)), address(setterRatifier), address(usdc), address(this), 0.86e18, 4
+        realFactory = new SeriesFactory(
+            IMidnightMinimal(address(midnight)), address(setterRatifier), address(usdc), address(this), 0.86e18, 4
         );
 
         factory.proposeCollateralAllowed(collateralToken, true);
@@ -119,18 +119,18 @@ contract SeriesRegistry is Test {
         parking = _deployParking();
         usdc.mint(address(core), 100_000_000e6);
 
-        realCore = new seriesCore(address(usdc), realFactory, parking, GOVERNANCE, ALLOCATOR, CURATOR, SENTINEL);
+        realCore = new SeriesCore(address(usdc), realFactory, parking, GOVERNANCE, ALLOCATOR, CURATOR, SENTINEL);
         realFactory.setCore(address(realCore));
-        seniorVault = new usdcSeniorVault(realCore, address(usdc));
-        juniorVault = new usdcJuniorVault(realCore, address(usdc));
+        seniorVault = new USDCSeniorVault(realCore, address(usdc));
+        juniorVault = new USDCJuniorVault(realCore, address(usdc));
         vm.prank(GOVERNANCE);
         realCore.setVaults(address(seniorVault), address(juniorVault));
         vm.prank(GOVERNANCE);
         realCore.setFeeRecipient(FEE_RECIPIENT);
     }
 
-    function _deployParking() internal virtual returns (iParking) {
-        return new idleParking(address(usdc));
+    function _deployParking() internal virtual returns (IParking) {
+        return new IdleParking(address(usdc));
     }
 
     function activeSeriesCount() external view returns (uint256) {

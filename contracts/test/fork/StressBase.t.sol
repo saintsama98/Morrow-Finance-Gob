@@ -8,10 +8,10 @@ pragma solidity 0.8.34;
 import {console} from "forge-std/console.sol";
 import {Market} from "@morpho-org/midnight/src/interfaces/IMidnight.sol";
 import {ORACLE_PRICE_SCALE} from "@morpho-org/midnight/src/libraries/ConstantsLib.sol";
-import {ForkBase, iChainlinkFeed, iPriceOracle} from "./ForkBase.t.sol";
-import {creditSeries} from "../../src/series/creditSeries.sol";
-import {SeriesState} from "../../src/interfaces/iSeries.sol";
-import {iErc20Like} from "../../src/interfaces/iErc20Like.sol";
+import {ForkBase, IChainlinkFeed, IPriceOracle} from "./ForkBase.t.sol";
+import {CreditSeries} from "../../src/series/CreditSeries.sol";
+import {SeriesState} from "../../src/interfaces/ISeries.sol";
+import {IERC20Like} from "../../src/interfaces/IERC20Like.sol";
 
 abstract contract StressBase is ForkBase {
     enum Liquidator {
@@ -33,7 +33,7 @@ abstract contract StressBase is ForkBase {
     uint256 internal depthUsd = 50_000_000e6;
     uint256 internal lastLiqAt;
 
-    creditSeries[] internal seriesSet;
+    CreditSeries[] internal seriesSet;
     Market[] internal mkts;
     bytes32[] internal mktIds;
     address[] internal borrowers;
@@ -58,11 +58,11 @@ abstract contract StressBase is ForkBase {
     }
 
     function _captureBases() internal {
-        (, btcBase,,,) = iChainlinkFeed(BTC_USD_FEED).latestRoundData();
-        (, ethBase,,,) = iChainlinkFeed(ETH_USD_FEED).latestRoundData();
+        (, btcBase,,,) = IChainlinkFeed(BTC_USD_FEED).latestRoundData();
+        (, ethBase,,,) = IChainlinkFeed(ETH_USD_FEED).latestRoundData();
         _fund(USDC, keeper, 20_000_000e6);
         vm.prank(keeper);
-        iErc20Like(USDC).approve(MIDNIGHT, type(uint256).max);
+        IERC20Like(USDC).approve(MIDNIGHT, type(uint256).max);
     }
 
     function _pushFeed(address feed, int256 base, uint256 ratio, uint256 overlay) internal {
@@ -71,7 +71,7 @@ abstract contract StressBase is ForkBase {
         roundCounter++;
         vm.mockCall(
             feed,
-            abi.encodeWithSelector(iChainlinkFeed.latestRoundData.selector),
+            abi.encodeWithSelector(IChainlinkFeed.latestRoundData.selector),
             abi.encode(roundCounter, answer, block.timestamp, block.timestamp, roundCounter)
         );
     }
@@ -86,7 +86,7 @@ abstract contract StressBase is ForkBase {
         _pushFeed(ETH_USD_FEED, ethBase, ethRatio, ethOverlay);
     }
 
-    function _addBorrowers(creditSeries s, uint256 mi, uint256 i, uint256 units, uint256[] memory healths) internal {
+    function _addBorrowers(CreditSeries s, uint256 mi, uint256 i, uint256 units, uint256[] memory healths) internal {
         for (uint256 h = 0; h < healths.length; h++) {
             address b = makeAddr(
                 string.concat("b-", vm.toString(address(s)), "-", vm.toString(i), "-", vm.toString(healths[h]))
@@ -100,7 +100,7 @@ abstract contract StressBase is ForkBase {
     uint256 internal cbbtcDepegBps;
 
     function _collateralValue(Market memory m, uint256 amount) internal view returns (uint256) {
-        return amount * iPriceOracle(m.collateralParams[0].oracle).price() / ORACLE_PRICE_SCALE;
+        return amount * IPriceOracle(m.collateralParams[0].oracle).price() / ORACLE_PRICE_SCALE;
     }
 
     function _realValue(Market memory m, uint256 amount) internal view returns (uint256 v) {
@@ -113,8 +113,8 @@ abstract contract StressBase is ForkBase {
         bytes32 id = mktIds[borrowerMkt[k]];
         address b = borrowers[k];
         address token = m.collateralParams[0].token;
-        uint256 usdcBefore = iErc20Like(USDC).balanceOf(keeper);
-        uint256 collBefore = iErc20Like(token).balanceOf(keeper);
+        uint256 usdcBefore = IERC20Like(USDC).balanceOf(keeper);
+        uint256 collBefore = IERC20Like(token).balanceOf(keeper);
         uint256 snap = vm.snapshotState();
 
         uint256 posted = midnight.collateral(id, b, 0);
@@ -134,8 +134,8 @@ abstract contract StressBase is ForkBase {
         }
 
         if (liqMode == Liquidator.ProfitCapacity || liqMode == Liquidator.Cascade) {
-            uint256 paid = usdcBefore - iErc20Like(USDC).balanceOf(keeper);
-            uint256 seizedValue = _realValue(m, iErc20Like(token).balanceOf(keeper) - collBefore);
+            uint256 paid = usdcBefore - IERC20Like(USDC).balanceOf(keeper);
+            uint256 seizedValue = _realValue(m, IERC20Like(token).balanceOf(keeper) - collBefore);
             uint256 slip = seizedValue * 1e4 / depthUsd;
             uint256 realized = seizedValue * (1e4 - (slip > 5000 ? 5000 : slip)) / 1e4;
             if (realized < paid) {
@@ -175,7 +175,7 @@ abstract contract StressBase is ForkBase {
 
     function _trackJuniorFirst() internal {
         for (uint256 k = 0; k < seriesSet.length; k++) {
-            creditSeries s = seriesSet[k];
+            CreditSeries s = seriesSet[k];
             if (uint8(s.state()) == uint8(SeriesState.SETTLED) || uint8(s.state()) == uint8(SeriesState.CANCELED)) {
                 continue;
             }
@@ -256,7 +256,7 @@ abstract contract StressBase is ForkBase {
         }
         vm.warp(latestT + 7 days);
         for (uint256 k = 0; k < seriesSet.length; k++) {
-            creditSeries s = seriesSet[k];
+            CreditSeries s = seriesSet[k];
             if (uint8(s.state()) != uint8(SeriesState.SETTLING)) continue;
             _collectAll(s);
             bool all = true;
@@ -272,8 +272,8 @@ abstract contract StressBase is ForkBase {
 
     function _auction(Market memory m, bytes32 id, address b) internal returns (bool ok) {
         address token = m.collateralParams[0].token;
-        uint256 usdcBefore = iErc20Like(USDC).balanceOf(keeper);
-        uint256 collBefore = iErc20Like(token).balanceOf(keeper);
+        uint256 usdcBefore = IERC20Like(USDC).balanceOf(keeper);
+        uint256 collBefore = IERC20Like(token).balanceOf(keeper);
         uint256 snap = vm.snapshotState();
         uint256 posted = midnight.collateral(id, b, 0);
         vm.prank(keeper);
@@ -288,8 +288,8 @@ abstract contract StressBase is ForkBase {
             return false;
         }
         if (liqMode == Liquidator.ProfitCapacity || liqMode == Liquidator.Cascade) {
-            uint256 paid = usdcBefore - iErc20Like(USDC).balanceOf(keeper);
-            uint256 seizedValue = _realValue(m, iErc20Like(token).balanceOf(keeper) - collBefore);
+            uint256 paid = usdcBefore - IERC20Like(USDC).balanceOf(keeper);
+            uint256 seizedValue = _realValue(m, IERC20Like(token).balanceOf(keeper) - collBefore);
             uint256 slip = seizedValue * 1e4 / depthUsd;
             if (seizedValue * (1e4 - (slip > 5000 ? 5000 : slip)) / 1e4 < paid) {
                 vm.revertToState(snap);
@@ -307,7 +307,7 @@ abstract contract StressBase is ForkBase {
         console.log("  defaults at maturity / auction liquidations:", defaultsAtMaturity, auctionLiquidations);
         console.log("  senior NAV drops while junior > 0:", navSDropsWithJuniorLeft);
         for (uint256 k = 0; k < seriesSet.length; k++) {
-            creditSeries s = seriesSet[k];
+            CreditSeries s = seriesSet[k];
             console.log("  series", k);
             console.log("    senior claim / paid:", s.seniorClaim(), s.paidS());
             console.log("    junior deployed / paid:", s.juniorDeployed(), s.paidJ());
@@ -317,7 +317,7 @@ abstract contract StressBase is ForkBase {
 
     function _assertSeniority() internal view {
         for (uint256 k = 0; k < seriesSet.length; k++) {
-            creditSeries s = seriesSet[k];
+            CreditSeries s = seriesSet[k];
             if (uint8(s.state()) != uint8(SeriesState.SETTLED)) continue;
             uint256 p = _proceeds(s);
             uint256 claim = s.seniorClaim();

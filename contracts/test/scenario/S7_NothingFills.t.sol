@@ -5,8 +5,8 @@
 pragma solidity 0.8.34;
 
 import {ScenarioBase} from "./ScenarioBase.t.sol";
-import {creditSeries} from "../../src/series/creditSeries.sol";
-import {SeriesState} from "../../src/interfaces/iSeries.sol";
+import {CreditSeries} from "../../src/series/CreditSeries.sol";
+import {SeriesState} from "../../src/interfaces/ISeries.sol";
 
 contract S7_NothingFillsTest is ScenarioBase {
     address seniorDepositor = makeAddr("seniorDepositor");
@@ -19,7 +19,7 @@ contract S7_NothingFillsTest is ScenarioBase {
         (uint256 seniorIdleBefore, uint256 juniorIdleBefore) = (core.idle(true), core.idle(false));
 
         (address seriesAddr,) = _openSeries(400_000e6, 100_000e6, block.timestamp + 30 days);
-        creditSeries series = creditSeries(seriesAddr);
+        CreditSeries series = CreditSeries(seriesAddr);
         assertEq(series.totalFilled(), 0, "nothing has been taken yet");
         assertEq(core.idle(true), seniorIdleBefore - 400_000e6, "senior idle must drop by exactly S while deploying");
         assertEq(core.idle(false), juniorIdleBefore - 100_000e6, "junior idle must drop by exactly J while deploying");

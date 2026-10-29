@@ -11,28 +11,28 @@ import {TickLib} from "@morpho-org/midnight/src/libraries/TickLib.sol";
 import {IdLib} from "@morpho-org/midnight/src/libraries/IdLib.sol";
 import {ORACLE_PRICE_SCALE} from "@morpho-org/midnight/src/libraries/ConstantsLib.sol";
 
-import {seriesFactory} from "../../src/series/seriesFactory.sol";
-import {creditSeries} from "../../src/series/creditSeries.sol";
-import {seriesCore} from "../../src/core/seriesCore.sol";
-import {usdcSeniorVault} from "../../src/vaults/senior/usdcSeniorVault.sol";
-import {usdcJuniorVault} from "../../src/vaults/junior/usdcJuniorVault.sol";
-import {idleParking} from "../../src/parking/idleParking.sol";
-import {iParking} from "../../src/parking/iParking.sol";
-import {iMidnightMinimal} from "../../src/interfaces/iMidnightMinimal.sol";
-import {iErc20Like} from "../../src/interfaces/iErc20Like.sol";
-import {SeriesParams, SeriesState} from "../../src/interfaces/iSeries.sol";
-import {wadMath} from "../../src/libraries/wadMath.sol";
+import {SeriesFactory} from "../../src/series/SeriesFactory.sol";
+import {CreditSeries} from "../../src/series/CreditSeries.sol";
+import {SeriesCore} from "../../src/core/SeriesCore.sol";
+import {USDCSeniorVault} from "../../src/vaults/senior/USDCSeniorVault.sol";
+import {USDCJuniorVault} from "../../src/vaults/junior/USDCJuniorVault.sol";
+import {IdleParking} from "../../src/parking/IdleParking.sol";
+import {IParking} from "../../src/parking/IParking.sol";
+import {IMidnightMinimal} from "../../src/interfaces/IMidnightMinimal.sol";
+import {IERC20Like} from "../../src/interfaces/IERC20Like.sol";
+import {SeriesParams, SeriesState} from "../../src/interfaces/ISeries.sol";
+import {WadMath} from "../../src/libraries/WadMath.sol";
 
-interface iOracleLike {
+interface IOracleLike {
     function price() external view returns (uint256);
 }
 
-interface iSetterRatifierLike {
+interface ISetterRatifierLike {
     function MIDNIGHT() external view returns (address);
 }
 
 contract BaseForkTest is Test {
-    using wadMath for uint256;
+    using WadMath for uint256;
 
     uint256 internal constant PINNED_BLOCK = 51_894_109;
     uint256 internal constant WAD = 1e18;
@@ -67,10 +67,10 @@ contract BaseForkTest is Test {
     address internal constant FEE_RECIPIENT = address(0xFEE);
 
     IMidnight internal midnight = IMidnight(MIDNIGHT);
-    seriesFactory internal factory;
-    seriesCore internal core;
-    usdcSeniorVault internal seniorVault;
-    usdcJuniorVault internal juniorVault;
+    SeriesFactory internal factory;
+    SeriesCore internal core;
+    USDCSeniorVault internal seniorVault;
+    USDCJuniorVault internal juniorVault;
 
     address internal keeper = makeAddr("keeper");
     address internal alice = makeAddr("alice");
@@ -85,12 +85,12 @@ contract BaseForkTest is Test {
         }
         vm.createSelectFork(url, PINNED_BLOCK);
 
-        factory = new seriesFactory(iMidnightMinimal(MIDNIGHT), SETTER_RATIFIER, USDC, address(this), LLTV, 4);
-        iParking parking = new idleParking(USDC);
-        core = new seriesCore(USDC, factory, parking, GOVERNANCE, ALLOCATOR, CURATOR, SENTINEL);
+        factory = new SeriesFactory(IMidnightMinimal(MIDNIGHT), SETTER_RATIFIER, USDC, address(this), LLTV, 4);
+        IParking parking = new IdleParking(USDC);
+        core = new SeriesCore(USDC, factory, parking, GOVERNANCE, ALLOCATOR, CURATOR, SENTINEL);
         factory.setCore(address(core));
-        seniorVault = new usdcSeniorVault(core, USDC);
-        juniorVault = new usdcJuniorVault(core, USDC);
+        seniorVault = new USDCSeniorVault(core, USDC);
+        juniorVault = new USDCJuniorVault(core, USDC);
         vm.startPrank(GOVERNANCE);
         core.setVaults(address(seniorVault), address(juniorVault));
         core.setFeeRecipient(FEE_RECIPIENT);
@@ -105,7 +105,7 @@ contract BaseForkTest is Test {
 
     function _fund(address token, address to, uint256 amount) internal {
         vm.prank(FUNDER);
-        require(iErc20Like(token).transfer(to, amount), "fund failed");
+        require(IERC20Like(token).transfer(to, amount), "fund failed");
     }
 
     function _market(uint256 maturity) internal pure returns (Market memory market) {
@@ -126,7 +126,7 @@ contract BaseForkTest is Test {
     function _fundBooks(uint256 seniorAssets, uint256 juniorAssets) internal {
         _fund(USDC, juniorLender, juniorAssets);
         vm.startPrank(juniorLender);
-        iErc20Like(USDC).approve(address(juniorVault), juniorAssets);
+        IERC20Like(USDC).approve(address(juniorVault), juniorAssets);
         uint256 epochId = juniorVault.requestDeposit(juniorAssets, juniorLender, juniorLender);
         vm.stopPrank();
         vm.startPrank(CURATOR);
@@ -138,12 +138,12 @@ contract BaseForkTest is Test {
 
         _fund(USDC, alice, seniorAssets);
         vm.startPrank(alice);
-        iErc20Like(USDC).approve(address(seniorVault), seniorAssets);
+        IERC20Like(USDC).approve(address(seniorVault), seniorAssets);
         seniorVault.deposit(seniorAssets, alice);
         vm.stopPrank();
     }
 
-    function _openSeries(uint256 S, uint256 J, uint256 maturity) internal returns (creditSeries series, bytes32 id) {
+    function _openSeries(uint256 S, uint256 J, uint256 maturity) internal returns (CreditSeries series, bytes32 id) {
         Market memory market = _market(maturity);
         id = midnight.touchMarket(market);
 
@@ -173,10 +173,10 @@ contract BaseForkTest is Test {
             offchainAttestationHash: bytes32(0)
         });
         vm.prank(ALLOCATOR);
-        series = creditSeries(core.openSeries(p, S, J));
+        series = CreditSeries(core.openSeries(p, S, J));
     }
 
-    function _makerFill(creditSeries series, uint256 maturity, uint256 units) internal {
+    function _makerFill(CreditSeries series, uint256 maturity, uint256 units) internal {
         uint256 tick = series.tickMaxFor(0);
         uint256 price = TickLib.tickToPrice(tick);
 
@@ -199,17 +199,17 @@ contract BaseForkTest is Test {
         vm.prank(ALLOCATOR);
         series.registerOffers(root, leaves);
 
-        uint256 oraclePrice = iOracleLike(CBBTC_ORACLE).price();
+        uint256 oraclePrice = IOracleLike(CBBTC_ORACLE).price();
         uint256 collateral = units.mulDivUp(WAD, LLTV).mulDivUp(ORACLE_PRICE_SCALE, oraclePrice) * 12 / 10;
         _fund(CBBTC, borrower, collateral);
         vm.startPrank(borrower);
-        iErc20Like(CBBTC).approve(MIDNIGHT, collateral);
+        IERC20Like(CBBTC).approve(MIDNIGHT, collateral);
         midnight.supplyCollateral(offer.market, 0, collateral, borrower);
         midnight.take(offer, abi.encode(root, uint256(0), new bytes32[](0)), units, borrower, borrower, address(0), "");
         vm.stopPrank();
     }
 
-    function _toSettling(creditSeries series, uint256 maturity) internal {
+    function _toSettling(CreditSeries series, uint256 maturity) internal {
         vm.warp(uint256(series.T_DEPLOY_END()) + 1);
         vm.prank(keeper);
         series.finalize();
@@ -222,7 +222,7 @@ contract BaseForkTest is Test {
         uint256 debt = midnight.debt(id, borrower);
         _fund(USDC, borrower, debt);
         vm.startPrank(borrower);
-        iErc20Like(USDC).approve(MIDNIGHT, debt);
+        IERC20Like(USDC).approve(MIDNIGHT, debt);
         midnight.repay(_market(maturity), debt, borrower, address(0), "");
         vm.stopPrank();
     }
@@ -245,7 +245,7 @@ contract BaseForkTest is Test {
         assertEq(SETTER_RATIFIER.codehash, SETTER_RATIFIER_CODEHASH, "f0: setter ratifier bytecode changed");
         assertEq(MEMPOOL.codehash, MEMPOOL_CODEHASH, "f0: mempool bytecode changed");
         assertEq(MIDNIGHT.codehash, MIDNIGHT_CODEHASH, "f0: midnight bytecode changed");
-        assertEq(iSetterRatifierLike(SETTER_RATIFIER).MIDNIGHT(), MIDNIGHT, "f0: ratifier must point at midnight");
+        assertEq(ISetterRatifierLike(SETTER_RATIFIER).MIDNIGHT(), MIDNIGHT, "f0: ratifier must point at midnight");
         assertTrue(midnight.isLltvEnabled(LLTV), "f0: lltv 0.86 must be enabled");
         assertTrue(midnight.isLiquidationCursorEnabled(CURSOR), "f0: cursor 0.3 must be enabled");
         assertEq(midnight.defaultContinuousFee(USDC), 0, "f0: default usdc continuous fee as recorded");
@@ -254,7 +254,7 @@ contract BaseForkTest is Test {
     function test_f1_openSeriesOnRealMidnight_andLiveMarketsAreIneligible() public {
         _fundBooks(1_000_000e6, 400_000e6);
         uint256 maturity = block.timestamp + 45 days;
-        (creditSeries series, bytes32 id) = _openSeries(400_000e6, 100_000e6, maturity);
+        (CreditSeries series, bytes32 id) = _openSeries(400_000e6, 100_000e6, maturity);
 
         bytes32[] memory ids = new bytes32[](1);
         ids[0] = id;
@@ -268,7 +268,7 @@ contract BaseForkTest is Test {
         bytes32[3] memory live = [LIVE_CBBTC_PLUS_USDC_MARKET, LIVE_EQUITY_PLUS_USDC_MARKET, LIVE_WETH_MARKET];
         for (uint256 k = 0; k < live.length; k++) {
             ids[0] = live[k];
-            vm.expectPartialRevert(seriesFactory.IneligibleMarket.selector);
+            vm.expectPartialRevert(SeriesFactory.IneligibleMarket.selector);
             factory.checkEligibility(ids);
         }
     }
@@ -276,7 +276,7 @@ contract BaseForkTest is Test {
     function test_f2_makerPath_realBorrowerTakesTheSeriesBid() public {
         _fundBooks(1_000_000e6, 400_000e6);
         uint256 maturity = block.timestamp + 45 days;
-        (creditSeries series, bytes32 id) = _openSeries(400_000e6, 100_000e6, maturity);
+        (CreditSeries series, bytes32 id) = _openSeries(400_000e6, 100_000e6, maturity);
         _makerFill(series, maturity, 300_000e6);
 
         assertEq(series.unitsBought(0), 300_000e6, "f2: fill recorded inside onBuy from midnight's units");
@@ -294,7 +294,7 @@ contract BaseForkTest is Test {
     function test_f4_repaidMaturity_settlesAndPaysASeniorExit() public {
         _fundBooks(1_000_000e6, 400_000e6);
         uint256 maturity = block.timestamp + 45 days;
-        (creditSeries series, bytes32 id) = _openSeries(400_000e6, 100_000e6, maturity);
+        (CreditSeries series, bytes32 id) = _openSeries(400_000e6, 100_000e6, maturity);
         _makerFill(series, maturity, 300_000e6);
         _toSettling(series, maturity);
 
@@ -316,7 +316,7 @@ contract BaseForkTest is Test {
     function test_f5_unrepaidMaturity_overdueLiquidationThenSettle() public {
         _fundBooks(1_000_000e6, 400_000e6);
         uint256 maturity = block.timestamp + 45 days;
-        (creditSeries series, bytes32 id) = _openSeries(400_000e6, 100_000e6, maturity);
+        (CreditSeries series, bytes32 id) = _openSeries(400_000e6, 100_000e6, maturity);
         _makerFill(series, maturity, 300_000e6);
         _toSettling(series, maturity);
 
@@ -324,7 +324,7 @@ contract BaseForkTest is Test {
         uint256 debt = midnight.debt(id, borrower);
         _fund(USDC, keeper, debt);
         vm.startPrank(keeper);
-        iErc20Like(USDC).approve(MIDNIGHT, debt);
+        IERC20Like(USDC).approve(MIDNIGHT, debt);
         midnight.liquidate(_market(maturity), 0, 0, debt, borrower, true, keeper, address(0), "");
         series.collect(0);
         series.settle();
@@ -332,25 +332,25 @@ contract BaseForkTest is Test {
 
         assertEq(midnight.debt(id, borrower), 0, "f5: overdue auction cleared the debt");
         assertEq(uint8(series.state()), uint8(SeriesState.SETTLED), "f5: settled after liquidation");
-        assertGt(iErc20Like(CBBTC).balanceOf(keeper), 0, "f5: the keeper received seized collateral");
+        assertGt(IERC20Like(CBBTC).balanceOf(keeper), 0, "f5: the keeper received seized collateral");
         assertEq(series.paidS(), series.seniorClaim(), "f5: a fully covered liquidation keeps senior whole");
     }
 
     function test_f6_badDebtOnRealMidnight_hitsJuniorFirst() public {
         _fundBooks(1_000_000e6, 400_000e6);
         uint256 maturity = block.timestamp + 45 days;
-        (creditSeries series, bytes32 id) = _openSeries(400_000e6, 100_000e6, maturity);
+        (CreditSeries series, bytes32 id) = _openSeries(400_000e6, 100_000e6, maturity);
         _makerFill(series, maturity, 300_000e6);
         _toSettling(series, maturity);
 
-        uint256 crashed = iOracleLike(CBBTC_ORACLE).price() / 4;
-        vm.mockCall(CBBTC_ORACLE, abi.encodeWithSelector(iOracleLike.price.selector), abi.encode(crashed));
+        uint256 crashed = IOracleLike(CBBTC_ORACLE).price() / 4;
+        vm.mockCall(CBBTC_ORACLE, abi.encodeWithSelector(IOracleLike.price.selector), abi.encode(crashed));
         vm.warp(maturity + 1 hours);
         uint256 debt = midnight.debt(id, borrower);
         uint256 posted = midnight.collateral(id, borrower, 0);
         _fund(USDC, keeper, debt);
         vm.startPrank(keeper);
-        iErc20Like(USDC).approve(MIDNIGHT, debt);
+        IERC20Like(USDC).approve(MIDNIGHT, debt);
         midnight.liquidate(_market(maturity), 0, posted, 0, borrower, true, keeper, address(0), "");
         vm.stopPrank();
         (uint128 creditAfterLoss,,) = midnight.updatePositionView(_market(maturity), id, address(series));
@@ -373,7 +373,7 @@ contract BaseForkTest is Test {
     function test_f7_twoMaturityLadder_settleFirstRollIntoSecond() public {
         _fundBooks(1_000_000e6, 400_000e6);
         uint256 maturityA = block.timestamp + 30 days;
-        (creditSeries seriesA, bytes32 idA) = _openSeries(300_000e6, 75_000e6, maturityA);
+        (CreditSeries seriesA, bytes32 idA) = _openSeries(300_000e6, 75_000e6, maturityA);
         _makerFill(seriesA, maturityA, 250_000e6);
         uint256 seniorPpsBefore = seniorVault.pricePerShareWad();
         uint256 juniorPpsBefore = juniorVault.pricePerShareWad();
@@ -391,7 +391,7 @@ contract BaseForkTest is Test {
         assertGe(juniorVault.pricePerShareWad(), juniorPpsBefore, "f7: junior keeps at least its value on no loss");
 
         uint256 maturityB = block.timestamp + 45 days;
-        (creditSeries seriesB,) = _openSeries(300_000e6, 75_000e6, maturityB);
+        (CreditSeries seriesB,) = _openSeries(300_000e6, 75_000e6, maturityB);
         assertEq(core.liveSeriesCount(), 1, "f7: the settled rung left, the new rung is live");
         assertEq(uint8(seriesB.state()), uint8(SeriesState.DEPLOYING), "f7: second rung funded from returned cash");
         assertApproxEqAbs(

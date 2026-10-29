@@ -5,12 +5,12 @@
 pragma solidity 0.8.34;
 
 import {CoreVaultInvariantsTest} from "./CoreVaultInvariants.t.sol";
-import {seriesCore} from "../../src/core/seriesCore.sol";
+import {SeriesCore} from "../../src/core/SeriesCore.sol";
 
 contract CoreVaultInvariantsNoBackstopTest is CoreVaultInvariantsTest {
     function setUp() public override {
         super.setUp();
-        seriesCore core = registry.realCore();
+        SeriesCore core = registry.realCore();
         vm.prank(registry.CURATOR());
         core.disableBackstop();
     }

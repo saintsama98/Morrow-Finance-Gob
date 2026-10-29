@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: BUSL-1.1
-// Morrow Finance: unit and fuzz tests for seriesMath: pricing, waterfall, and nav.
+// Morrow Finance: unit and fuzz tests for SeriesMath: pricing, waterfall, and nav.
 // @author adiii.eth
 
 pragma solidity 0.8.34;
 
 import {Test} from "forge-std/Test.sol";
-import {seriesMath} from "../../src/libraries/seriesMath.sol";
-import {premiumCurve} from "../../src/libraries/premiumCurve.sol";
-import {wadMath} from "../../src/libraries/wadMath.sol";
+import {SeriesMath} from "../../src/libraries/SeriesMath.sol";
+import {PremiumCurve} from "../../src/libraries/PremiumCurve.sol";
+import {WadMath} from "../../src/libraries/WadMath.sol";
 
 contract SeriesMathTest is Test {
-    using wadMath for uint256;
+    using WadMath for uint256;
 
     uint256 constant WAD = 1e18;
     uint256 constant USDC = 1e6;
@@ -41,16 +41,16 @@ contract SeriesMathTest is Test {
     function _pricingResult()
         internal
         pure
-        returns (seriesMath.PricingResult memory r, uint256 a, uint256 u, uint256 pi)
+        returns (SeriesMath.PricingResult memory r, uint256 a, uint256 u, uint256 pi)
     {
         a = uint256(J).wDivDown(K_ALLOC);
         u = COV.wDivUp(a);
-        pi = premiumCurve.pi(u, UT, PI0, PIT, PI1);
-        r = seriesMath.price(K_D, a, F_NET, pi);
+        pi = PremiumCurve.pi(u, UT, PI0, PIT, PI1);
+        r = SeriesMath.price(K_D, a, F_NET, pi);
     }
 
     function test_referenceExample_allocationAndPricing() public pure {
-        (seriesMath.PricingResult memory r, uint256 a, uint256 u, uint256 pi) = _pricingResult();
+        (SeriesMath.PricingResult memory r, uint256 a, uint256 u, uint256 pi) = _pricingResult();
 
         assertEq(a, EXPECTED_A, "a");
         assertEq(u, EXPECTED_U, "u");
@@ -68,9 +68,9 @@ contract SeriesMathTest is Test {
     }
 
     function test_referenceExample_waterfall_noLoss() public pure {
-        (seriesMath.PricingResult memory r,,,) = _pricingResult();
+        (SeriesMath.PricingResult memory r,,,) = _pricingResult();
         uint256 P = F_NET;
-        (uint256 xs, uint256 xj, uint256 fee) = seriesMath.waterfall(P, r.seniorClaim, r.juniorDeployed, THETA);
+        (uint256 xs, uint256 xj, uint256 fee) = SeriesMath.waterfall(P, r.seniorClaim, r.juniorDeployed, THETA);
 
         assertEq(xs, 824795454544, "XS");
         assertEq(xj, 184865909093, "XJ");
@@ -79,9 +79,9 @@ contract SeriesMathTest is Test {
     }
 
     function test_referenceExample_waterfall_150kLoss() public pure {
-        (seriesMath.PricingResult memory r,,,) = _pricingResult();
+        (SeriesMath.PricingResult memory r,,,) = _pricingResult();
         uint256 P = F_NET - 150_000 * USDC;
-        (uint256 xs, uint256 xj, uint256 fee) = seriesMath.waterfall(P, r.seniorClaim, r.juniorDeployed, THETA);
+        (uint256 xs, uint256 xj, uint256 fee) = SeriesMath.waterfall(P, r.seniorClaim, r.juniorDeployed, THETA);
 
         assertEq(xs, 824795454544, "XS unchanged, senior still fully covered");
         assertEq(xj, 35204545456, "XJ");
@@ -90,9 +90,9 @@ contract SeriesMathTest is Test {
     }
 
     function test_referenceExample_waterfall_200kLoss_seniorImpaired() public pure {
-        (seriesMath.PricingResult memory r,,,) = _pricingResult();
+        (SeriesMath.PricingResult memory r,,,) = _pricingResult();
         uint256 P = F_NET - 200_000 * USDC;
-        (uint256 xs, uint256 xj, uint256 fee) = seriesMath.waterfall(P, r.seniorClaim, r.juniorDeployed, THETA);
+        (uint256 xs, uint256 xj, uint256 fee) = SeriesMath.waterfall(P, r.seniorClaim, r.juniorDeployed, THETA);
 
         assertEq(xs, 810_000 * USDC, "senior impaired: XS == P since P < C_S");
         assertEq(xj, 0, "junior wiped");
@@ -112,9 +112,9 @@ contract SeriesMathTest is Test {
         pLow = bound(pLow, 0, 2e15 * USDC);
         pHigh = bound(pHigh, pLow, 2e15 * USDC);
 
-        (uint256 xsLow, uint256 xjLow, uint256 feeLow) = seriesMath.waterfall(pLow, seniorClaim, juniorDeployed, THETA);
+        (uint256 xsLow, uint256 xjLow, uint256 feeLow) = SeriesMath.waterfall(pLow, seniorClaim, juniorDeployed, THETA);
         (uint256 xsHigh, uint256 xjHigh, uint256 feeHigh) =
-            seriesMath.waterfall(pHigh, seniorClaim, juniorDeployed, THETA);
+            SeriesMath.waterfall(pHigh, seniorClaim, juniorDeployed, THETA);
 
         assertGe(xsHigh, xsLow, "XS non-decreasing");
         assertGe(xjHigh, xjLow, "XJ non-decreasing");
@@ -129,22 +129,22 @@ contract SeriesMathTest is Test {
         seniorClaim = bound(seniorClaim, 0, 1e15 * USDC);
         juniorDeployed = bound(juniorDeployed, 0, 1e15 * USDC);
 
-        (uint256 xs, uint256 xj, uint256 fee) = seriesMath.waterfall(proceeds, seniorClaim, juniorDeployed, THETA);
+        (uint256 xs, uint256 xj, uint256 fee) = SeriesMath.waterfall(proceeds, seniorClaim, juniorDeployed, THETA);
         assertEq(xs + xj + fee, proceeds, "conservation must hold at every P");
     }
 
     function test_waterfall_edgeCases() public pure {
-        (uint256 xs, uint256 xj, uint256 fee) = seriesMath.waterfall(0, 1000 * USDC, 500 * USDC, THETA);
+        (uint256 xs, uint256 xj, uint256 fee) = SeriesMath.waterfall(0, 1000 * USDC, 500 * USDC, THETA);
         assertEq(xs, 0);
         assertEq(xj, 0);
         assertEq(fee, 0);
 
-        (xs, xj, fee) = seriesMath.waterfall(1000 * USDC, 1000 * USDC, 500 * USDC, THETA);
+        (xs, xj, fee) = SeriesMath.waterfall(1000 * USDC, 1000 * USDC, 500 * USDC, THETA);
         assertEq(xs, 1000 * USDC);
         assertEq(xj, 0);
         assertEq(fee, 0);
 
-        (xs, xj, fee) = seriesMath.waterfall(1500 * USDC, 1000 * USDC, 0, THETA);
+        (xs, xj, fee) = SeriesMath.waterfall(1500 * USDC, 1000 * USDC, 0, THETA);
         assertEq(xs, 1000 * USDC);
         assertEq(fee, 50 * USDC);
         assertEq(xj, 450 * USDC);
@@ -160,7 +160,7 @@ contract SeriesMathTest is Test {
         uint256 cS = 824795 * USDC;
         uint256 jD = kD - sD;
 
-        (uint256 navS, uint256 navJ, uint256 feeAccrued) = seriesMath.nav(elapsed, tau, kD, fNet, 0, sD, cS, jD, 0);
+        (uint256 navS, uint256 navJ, uint256 feeAccrued) = SeriesMath.nav(elapsed, tau, kD, fNet, 0, sD, cS, jD, 0);
 
         uint256 b0 = fNet - cS;
         uint256 expectedNavJ = jD + (b0 - jD).mulDivDown(elapsed, tau);
@@ -192,7 +192,7 @@ contract SeriesMathTest is Test {
         uint256 cS = sD + sD.mulDivDown(rSWad, WAD);
 
         (uint256 navS, uint256 navJ, uint256 feeAccrued) =
-            seriesMath.nav(elapsed, tau, kD, fNet, faceLoss, sD, cS, jD, THETA);
+            SeriesMath.nav(elapsed, tau, kD, fNet, faceLoss, sD, cS, jD, THETA);
 
         uint256 s = elapsed > tau ? tau : elapsed;
         uint256 accretion = fNet >= kD ? (fNet - kD).mulDivDown(s, tau) : 0;
@@ -203,13 +203,13 @@ contract SeriesMathTest is Test {
     }
 
     function test_nav_convergesToWaterfall_atMaturity() public pure {
-        (seriesMath.PricingResult memory r,,,) = _pricingResult();
+        (SeriesMath.PricingResult memory r,,,) = _pricingResult();
         uint256 tau = 56 days;
 
         (uint256 navS, uint256 navJ, uint256 feeAccrued) =
-            seriesMath.nav(tau, tau, K_D, F_NET, 0, r.seniorDeployed, r.seniorClaim, r.juniorDeployed, THETA);
+            SeriesMath.nav(tau, tau, K_D, F_NET, 0, r.seniorDeployed, r.seniorClaim, r.juniorDeployed, THETA);
 
-        (uint256 xs, uint256 xj, uint256 fee) = seriesMath.waterfall(F_NET, r.seniorClaim, r.juniorDeployed, THETA);
+        (uint256 xs, uint256 xj, uint256 fee) = SeriesMath.waterfall(F_NET, r.seniorClaim, r.juniorDeployed, THETA);
 
         assertEq(navS, xs, "NAV_S must equal XS at maturity");
         assertEq(navJ, xj, "NAV_J must equal XJ at maturity");
@@ -220,11 +220,11 @@ contract SeriesMathTest is Test {
         uint256 kD = 1_000_000 * USDC;
         uint256 sD = 700_000 * USDC;
 
-        (uint256 xs, uint256 xj) = seriesMath.waterfallPassThrough(900_000 * USDC, sD, kD);
+        (uint256 xs, uint256 xj) = SeriesMath.waterfallPassThrough(900_000 * USDC, sD, kD);
         assertEq(xs, (900_000 * USDC * 7) / 10, "pass-through senior pro rata");
         assertEq(xs + xj, 900_000 * USDC, "conservation");
 
-        (uint256 navS, uint256 navJ) = seriesMath.navPassThrough(900_000 * USDC, sD, kD);
+        (uint256 navS, uint256 navJ) = SeriesMath.navPassThrough(900_000 * USDC, sD, kD);
         assertEq(navS, xs, "passthrough nav must match passthrough waterfall pro rata split");
         assertEq(navS + navJ, 900_000 * USDC);
     }

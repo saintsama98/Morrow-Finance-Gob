@@ -7,8 +7,8 @@ pragma solidity 0.8.34;
 import {Test} from "forge-std/Test.sol";
 import {SeriesRegistryMorphoParking} from "./SeriesRegistryMorphoParking.sol";
 import {MockMorphoVault} from "../../mocks/MockMorphoVault.sol";
-import {seriesCore} from "../../../src/core/seriesCore.sol";
-import {morphoParking} from "../../../src/parking/morphoParking.sol";
+import {SeriesCore} from "../../../src/core/SeriesCore.sol";
+import {MorphoParking} from "../../../src/parking/MorphoParking.sol";
 
 contract ParkingChaosHandler is Test {
     SeriesRegistryMorphoParking public registry;
@@ -31,14 +31,14 @@ contract ParkingChaosHandler is Test {
     function lose(uint256 seed) external {
         if (seed % 8 != 0) return;
         MockMorphoVault vault = registry.morphoVault();
-        seriesCore core = registry.realCore();
+        SeriesCore core = registry.realCore();
         core.syncAll();
         address parking = address(registry.morphoParkingAdapter());
-        uint256 parkedBefore = morphoParking(parking).totalAssets(address(core));
+        uint256 parkedBefore = MorphoParking(parking).totalAssets(address(core));
         uint256 seniorBefore = core.idle(true);
         uint256 juniorBefore = core.idle(false);
         vault.loseBps(bound(seed >> 8, 1, 50));
-        uint256 parkedAfter = morphoParking(parking).totalAssets(address(core));
+        uint256 parkedAfter = MorphoParking(parking).totalAssets(address(core));
         uint256 coreLoss = parkedBefore > parkedAfter ? parkedBefore - parkedAfter : 0;
         if (juniorBefore > coreLoss + 2 && core.idle(true) + 2 < seniorBefore) ghost_seniorHitWhileJuniorCovered++;
         ghost_lossCalls++;
@@ -54,7 +54,7 @@ contract ParkingChaosHandler is Test {
     }
 
     function rebalance() external {
-        morphoParking parking = registry.morphoParkingAdapter();
+        MorphoParking parking = registry.morphoParkingAdapter();
         try parking.rebalance() {} catch {}
     }
 

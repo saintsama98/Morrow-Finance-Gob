@@ -8,8 +8,8 @@ import {CoreVaultInvariantsTest} from "./CoreVaultInvariants.t.sol";
 import {SeriesRegistry} from "./handlers/SeriesRegistry.sol";
 import {SeriesRegistryMorphoParking} from "./handlers/SeriesRegistryMorphoParking.sol";
 import {ParkingChaosHandler} from "./handlers/ParkingChaosHandler.sol";
-import {morphoParking} from "../../src/parking/morphoParking.sol";
-import {seriesCore} from "../../src/core/seriesCore.sol";
+import {MorphoParking} from "../../src/parking/MorphoParking.sol";
+import {SeriesCore} from "../../src/core/SeriesCore.sol";
 
 contract CoreVaultInvariantsMorphoTest is CoreVaultInvariantsTest {
     ParkingChaosHandler parkingChaosHandler;
@@ -23,13 +23,13 @@ contract CoreVaultInvariantsMorphoTest is CoreVaultInvariantsTest {
         targetContract(address(parkingChaosHandler));
     }
 
-    function _parking() internal view returns (morphoParking) {
+    function _parking() internal view returns (MorphoParking) {
         return SeriesRegistryMorphoParking(address(registry)).morphoParkingAdapter();
     }
 
     function invariant_parkingShareLedgerIsExact() public view {
-        morphoParking parking = _parking();
-        seriesCore core = registry.realCore();
+        MorphoParking parking = _parking();
+        SeriesCore core = registry.realCore();
         uint256 sum = parking.sharesOf(address(core));
         uint256 n = registry.everSeriesCount();
         for (uint256 i = 0; i < n; i++) {
@@ -39,8 +39,8 @@ contract CoreVaultInvariantsMorphoTest is CoreVaultInvariantsTest {
     }
 
     function invariant_parkingAccountsNeverExceedPool() public view {
-        morphoParking parking = _parking();
-        seriesCore core = registry.realCore();
+        MorphoParking parking = _parking();
+        SeriesCore core = registry.realCore();
         uint256 claimed = parking.totalAssets(address(core));
         uint256 n = registry.everSeriesCount();
         for (uint256 i = 0; i < n; i++) {

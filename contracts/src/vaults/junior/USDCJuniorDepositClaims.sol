@@ -1,0 +1,75 @@
+// SPDX-License-Identifier: BUSL-1.1
+// Morrow Finance: jrUSDC's entry claims: collecting the shares minted for a filled deposit request.
+// @author adiii.eth
+
+pragma solidity 0.8.34;
+
+import {USDCJuniorDepositQueue} from "./USDCJuniorDepositQueue.sol";
+import {WadMath} from "../../libraries/WadMath.sol";
+
+/// @notice Claims of filled junior deposits.
+abstract contract USDCJuniorDepositClaims is USDCJuniorDepositQueue {
+    using WadMath for uint256;
+
+    /// @notice Claims shares for an amount of filled assets.
+    function deposit(uint256 assets, address receiver, address controller)
+        external
+        onlyControllerOrOperator(controller)
+        returns (uint256 shares)
+    {
+        return _depositClaim(assets, receiver, controller);
+    }
+
+    /// @notice Claims an amount of shares from filled assets.
+    function mint(uint256 shares, address receiver, address controller)
+        external
+        onlyControllerOrOperator(controller)
+        returns (uint256 assets)
+    {
+        uint256 requestId = activeDepositRequestId[controller];
+        require(requestId != 0, NoActiveRequest());
+
+        uint256 claimable = claimableDepositRequest(requestId, controller);
+        uint256 owedSharesTotal = _depositOwedSharesTotal(requestId, controller);
+        require(shares > 0 && shares <= owedSharesTotal, NothingToClaim());
+
+        assets = owedSharesTotal == shares ? claimable : claimable.mulDivUp(shares, owedSharesTotal);
+        require(assets <= claimable, NothingToClaim());
+
+        claimedAssetsOnDeposit[requestId][controller] += assets;
+        claimedShares[requestId][controller] += shares;
+        _clearDepositIfFullyResolved(requestId, controller);
+
+        _transfer(address(this), receiver, shares);
+        emit Deposit(controller, receiver, assets, shares);
+    }
+
+    /// @notice Claims every share filled for the caller.
+    function claimDeposit(uint256 epochId) external returns (uint256 shares) {
+        epochId;
+        uint256 requestId = activeDepositRequestId[msg.sender];
+        require(requestId != 0, NoActiveRequest());
+        uint256 claimable = claimableDepositRequest(requestId, msg.sender);
+        require(claimable > 0, NothingToClaim());
+        return _depositClaim(claimable, msg.sender, msg.sender);
+    }
+
+    function _depositClaim(uint256 assets, address receiver, address controller) internal returns (uint256 shares) {
+        uint256 requestId = activeDepositRequestId[controller];
+        require(requestId != 0, NoActiveRequest());
+
+        uint256 claimable = claimableDepositRequest(requestId, controller);
+        require(assets > 0 && assets <= claimable, NothingToClaim());
+
+        uint256 owedSharesTotal = _depositOwedSharesTotal(requestId, controller);
+        shares = assets == claimable ? owedSharesTotal : owedSharesTotal.mulDivDown(assets, claimable);
+        require(shares > 0 || assets == claimable, NothingToClaim());
+
+        claimedAssetsOnDeposit[requestId][controller] += assets;
+        claimedShares[requestId][controller] += shares;
+        _clearDepositIfFullyResolved(requestId, controller);
+
+        _transfer(address(this), receiver, shares);
+        emit Deposit(controller, receiver, assets, shares);
+    }
+}

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-// Morrow Finance: unit tests for seriesFactory's eligibility checks and timelocked allowlists.
+// Morrow Finance: unit tests for SeriesFactory's eligibility checks and timelocked allowlists.
 // @author adiii.eth
 
 pragma solidity 0.8.34;
@@ -8,18 +8,18 @@ import {Test} from "forge-std/Test.sol";
 import {Market, CollateralParams} from "@morpho-org/midnight/src/interfaces/IMidnight.sol";
 import {IdLib} from "@morpho-org/midnight/src/libraries/IdLib.sol";
 import {MidnightHarness} from "../mocks/MidnightHarness.sol";
-import {seriesFactory} from "../../src/series/seriesFactory.sol";
-import {iMidnightMinimal} from "../../src/interfaces/iMidnightMinimal.sol";
+import {SeriesFactory} from "../../src/series/SeriesFactory.sol";
+import {IMidnightMinimal} from "../../src/interfaces/IMidnightMinimal.sol";
 
 contract SeriesFactoryTest is Test, MidnightHarness {
-    seriesFactory factory;
+    SeriesFactory factory;
     address governance = makeAddr("governance");
     uint256 maturity = block.timestamp + 90 days;
 
     function setUp() public {
         _setUpMidnightHarness();
-        factory = new seriesFactory(
-            iMidnightMinimal(address(midnight)), address(setterRatifier), address(usdc), governance, 0.86e18, 4
+        factory = new SeriesFactory(
+            IMidnightMinimal(address(midnight)), address(setterRatifier), address(usdc), governance, 0.86e18, 4
         );
 
         vm.startPrank(governance);
@@ -39,9 +39,9 @@ contract SeriesFactoryTest is Test, MidnightHarness {
 
     function test_constructor_rejectsNonSixDecimalLoanToken() public {
         address badToken = address(new NoDecimals());
-        vm.expectRevert(seriesFactory.DecimalsNotSix.selector);
-        new seriesFactory(
-            iMidnightMinimal(address(midnight)), address(setterRatifier), badToken, governance, 0.86e18, 4
+        vm.expectRevert(SeriesFactory.DecimalsNotSix.selector);
+        new SeriesFactory(
+            IMidnightMinimal(address(midnight)), address(setterRatifier), badToken, governance, 0.86e18, 4
         );
     }
 
@@ -73,7 +73,7 @@ contract SeriesFactoryTest is Test, MidnightHarness {
 
         bytes32[] memory ids = new bytes32[](1);
         ids[0] = id;
-        vm.expectRevert(abi.encodeWithSelector(seriesFactory.IneligibleMarket.selector, id, uint8(1)));
+        vm.expectRevert(abi.encodeWithSelector(SeriesFactory.IneligibleMarket.selector, id, uint8(1)));
         factory.checkEligibility(ids);
     }
 
@@ -84,7 +84,7 @@ contract SeriesFactoryTest is Test, MidnightHarness {
         bytes32[] memory ids = new bytes32[](2);
         ids[0] = id1;
         ids[1] = id2;
-        vm.expectRevert(abi.encodeWithSelector(seriesFactory.IneligibleMarket.selector, id2, uint8(2)));
+        vm.expectRevert(abi.encodeWithSelector(SeriesFactory.IneligibleMarket.selector, id2, uint8(2)));
         factory.checkEligibility(ids);
     }
 
@@ -95,7 +95,7 @@ contract SeriesFactoryTest is Test, MidnightHarness {
 
         bytes32[] memory ids = new bytes32[](1);
         ids[0] = id;
-        vm.expectRevert(abi.encodeWithSelector(seriesFactory.IneligibleMarket.selector, id, uint8(3)));
+        vm.expectRevert(abi.encodeWithSelector(SeriesFactory.IneligibleMarket.selector, id, uint8(3)));
         factory.checkEligibility(ids);
     }
 
@@ -106,7 +106,7 @@ contract SeriesFactoryTest is Test, MidnightHarness {
 
         bytes32[] memory ids = new bytes32[](1);
         ids[0] = id;
-        vm.expectRevert(abi.encodeWithSelector(seriesFactory.IneligibleMarket.selector, id, uint8(3)));
+        vm.expectRevert(abi.encodeWithSelector(SeriesFactory.IneligibleMarket.selector, id, uint8(3)));
         factory.checkEligibility(ids);
     }
 
@@ -120,7 +120,7 @@ contract SeriesFactoryTest is Test, MidnightHarness {
 
         bytes32[] memory ids = new bytes32[](1);
         ids[0] = id;
-        vm.expectRevert(abi.encodeWithSelector(seriesFactory.IneligibleMarket.selector, id, uint8(4)));
+        vm.expectRevert(abi.encodeWithSelector(SeriesFactory.IneligibleMarket.selector, id, uint8(4)));
         factory.checkEligibility(ids);
     }
 
@@ -133,7 +133,7 @@ contract SeriesFactoryTest is Test, MidnightHarness {
 
         bytes32[] memory ids = new bytes32[](1);
         ids[0] = id;
-        vm.expectRevert(abi.encodeWithSelector(seriesFactory.IneligibleMarket.selector, id, uint8(4)));
+        vm.expectRevert(abi.encodeWithSelector(SeriesFactory.IneligibleMarket.selector, id, uint8(4)));
         factory.checkEligibility(ids);
     }
 
@@ -144,13 +144,13 @@ contract SeriesFactoryTest is Test, MidnightHarness {
 
         bytes32[] memory ids = new bytes32[](1);
         ids[0] = id;
-        vm.expectRevert(abi.encodeWithSelector(seriesFactory.IneligibleMarket.selector, id, uint8(4)));
+        vm.expectRevert(abi.encodeWithSelector(SeriesFactory.IneligibleMarket.selector, id, uint8(4)));
         factory.checkEligibility(ids);
     }
 
-    function _factory915() internal returns (seriesFactory f) {
-        f = new seriesFactory(
-            iMidnightMinimal(address(midnight)), address(setterRatifier), address(usdc), governance, 0.915e18, 4
+    function _factory915() internal returns (SeriesFactory f) {
+        f = new SeriesFactory(
+            IMidnightMinimal(address(midnight)), address(setterRatifier), address(usdc), governance, 0.915e18, 4
         );
         vm.startPrank(governance);
         f.proposeCollateralAllowed(cbBTC, true);
@@ -169,14 +169,14 @@ contract SeriesFactoryTest is Test, MidnightHarness {
     }
 
     function test_cursorRule_highThresholdNeedsCursorAtLeastHalf() public {
-        seriesFactory f = _factory915();
+        SeriesFactory f = _factory915();
         MidnightHarnessMarketBuilder builder = new MidnightHarnessMarketBuilder();
         bytes32 thin = _touch(
             builder.buildMarket(
                 address(midnight), address(usdc), cbBTC, 0.915e18, CURSOR_25, address(cbBtcOracle), maturity
             )
         );
-        vm.expectRevert(abi.encodeWithSelector(seriesFactory.IneligibleMarket.selector, thin, uint8(7)));
+        vm.expectRevert(abi.encodeWithSelector(SeriesFactory.IneligibleMarket.selector, thin, uint8(7)));
         f.checkEligibility(_one(thin));
 
         bytes32 ok = _touch(
@@ -188,7 +188,7 @@ contract SeriesFactoryTest is Test, MidnightHarness {
     }
 
     function test_tenorTier_longTermsCappedAtPoint86() public {
-        seriesFactory f = _factory915();
+        SeriesFactory f = _factory915();
         MidnightHarnessMarketBuilder builder = new MidnightHarnessMarketBuilder();
         uint256 longMaturity = block.timestamp + 120 days;
         bytes32 high = _touch(
@@ -196,7 +196,7 @@ contract SeriesFactoryTest is Test, MidnightHarness {
                 address(midnight), address(usdc), cbBTC, 0.915e18, CURSOR_50, address(cbBtcOracle), longMaturity
             )
         );
-        vm.expectRevert(abi.encodeWithSelector(seriesFactory.IneligibleMarket.selector, high, uint8(8)));
+        vm.expectRevert(abi.encodeWithSelector(SeriesFactory.IneligibleMarket.selector, high, uint8(8)));
         f.checkEligibility(_one(high));
 
         bytes32 ok = _touch(
@@ -213,13 +213,13 @@ contract SeriesFactoryTest is Test, MidnightHarness {
         bytes32[] memory ids = new bytes32[](2);
         ids[0] = id;
         ids[1] = id;
-        vm.expectRevert(abi.encodeWithSelector(seriesFactory.DuplicateMarket.selector, id));
+        vm.expectRevert(abi.encodeWithSelector(SeriesFactory.DuplicateMarket.selector, id));
         factory.checkEligibility(ids);
     }
 
     function test_emptyBasketReverts() public {
         bytes32[] memory ids = new bytes32[](0);
-        vm.expectRevert(seriesFactory.BasketEmpty.selector);
+        vm.expectRevert(SeriesFactory.BasketEmpty.selector);
         factory.checkEligibility(ids);
     }
 
@@ -228,7 +228,7 @@ contract SeriesFactoryTest is Test, MidnightHarness {
         for (uint256 i = 0; i < 5; i++) {
             ids[i] = _touch(_cbBtcMarket(maturity + i, LLTV_77));
         }
-        vm.expectRevert(seriesFactory.BasketTooLarge.selector);
+        vm.expectRevert(SeriesFactory.BasketTooLarge.selector);
         factory.checkEligibility(ids);
     }
 
@@ -246,18 +246,18 @@ contract SeriesFactoryTest is Test, MidnightHarness {
         vm.prank(governance);
         factory.proposeCollateralAllowed(address(0x1234), true);
 
-        vm.expectRevert(seriesFactory.TimelockNotElapsed.selector);
+        vm.expectRevert(SeriesFactory.TimelockNotElapsed.selector);
         factory.executeCollateralAllowed(address(0x1234), true);
     }
 
     function test_timelock_onlyGovernanceCanPropose() public {
-        vm.expectRevert(seriesFactory.NotGovernance.selector);
+        vm.expectRevert(SeriesFactory.NotGovernance.selector);
         factory.proposeCollateralAllowed(address(0x1234), true);
     }
 
     function test_timelock_riskIncreaseMaxLltv_hardCeilingEnforced() public {
         vm.prank(governance);
-        vm.expectRevert(abi.encodeWithSelector(seriesFactory.IneligibleMarket.selector, bytes32(0), uint8(4)));
+        vm.expectRevert(abi.encodeWithSelector(SeriesFactory.IneligibleMarket.selector, bytes32(0), uint8(4)));
         factory.proposeMaxLltv(0.92e18);
     }
 }

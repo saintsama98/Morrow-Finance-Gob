@@ -15,16 +15,16 @@ import {DummyRatifier} from "@morpho-org/midnight/test/helpers/DummyRatifier.sol
 import {MidnightHarness} from "../mocks/MidnightHarness.sol";
 import {MockUSDC} from "../mocks/MockUSDC.sol";
 import {StubCore} from "../mocks/StubCore.sol";
-import {seriesFactory} from "../../src/series/seriesFactory.sol";
-import {creditSeries} from "../../src/series/creditSeries.sol";
-import {SeriesParams} from "../../src/interfaces/iSeries.sol";
-import {iMidnightMinimal} from "../../src/interfaces/iMidnightMinimal.sol";
-import {iParking} from "../../src/parking/iParking.sol";
-import {idleParking} from "../../src/parking/idleParking.sol";
+import {SeriesFactory} from "../../src/series/SeriesFactory.sol";
+import {CreditSeries} from "../../src/series/CreditSeries.sol";
+import {SeriesParams} from "../../src/interfaces/ISeries.sol";
+import {IMidnightMinimal} from "../../src/interfaces/IMidnightMinimal.sol";
+import {IParking} from "../../src/parking/IParking.sol";
+import {IdleParking} from "../../src/parking/IdleParking.sol";
 
 contract HostileSeller {
     Midnight immutable midnight;
-    creditSeries immutable series;
+    CreditSeries immutable series;
     Offer offer;
     bytes ratifierData;
     uint256 nestedUnits;
@@ -34,7 +34,7 @@ contract HostileSeller {
     uint256 public pokeIndex;
     uint256 public okMask;
 
-    constructor(Midnight midnight_, creditSeries series_) {
+    constructor(Midnight midnight_, CreditSeries series_) {
         midnight = midnight_;
         series = series_;
     }
@@ -67,10 +67,10 @@ contract HostileSeller {
             _poke(abi.encodeWithSignature("cancel()"));
             _poke(abi.encodeWithSignature("collect(uint256)", 0));
             _poke(abi.encodeWithSignature("claimFee()"));
-            _poke(abi.encodeWithSelector(creditSeries(series).deployTake.selector, 0, offer, ratifierData, 1));
+            _poke(abi.encodeWithSelector(CreditSeries(series).deployTake.selector, 0, offer, ratifierData, 1));
             _poke(
                 abi.encodeWithSelector(
-                    creditSeries(series).onBuy.selector,
+                    CreditSeries(series).onBuy.selector,
                     bytes32(0),
                     offer.market,
                     1e6,
@@ -96,7 +96,7 @@ contract HostileSeller {
 
 contract HostileAskMaker {
     Midnight immutable midnight;
-    creditSeries immutable series;
+    CreditSeries immutable series;
     Offer bid;
     bytes bidRatifierData;
     uint256 public nestedOk;
@@ -104,7 +104,7 @@ contract HostileAskMaker {
     uint256 pokeIndex;
     bool public entered;
 
-    constructor(Midnight midnight_, creditSeries series_, address ratifier) {
+    constructor(Midnight midnight_, CreditSeries series_, address ratifier) {
         midnight = midnight_;
         series = series_;
         midnight_.setIsAuthorized(ratifier, true, address(this));
@@ -148,9 +148,9 @@ contract SeriesCallbackReentrancyTest is Test, MidnightHarness {
     using UtilsLib for uint256;
 
     uint256 constant WAD = 1e18;
-    seriesFactory factory;
+    SeriesFactory factory;
     StubCore core;
-    idleParking parking;
+    IdleParking parking;
     address allocator = makeAddr("allocator");
     address sentinel = makeAddr("sentinel");
     address feeRecipient = makeAddr("feeRecipient");
@@ -160,8 +160,8 @@ contract SeriesCallbackReentrancyTest is Test, MidnightHarness {
     function setUp() public {
         _setUpMidnightHarness();
         core = new StubCore(address(usdc), sentinel);
-        factory = new seriesFactory(
-            iMidnightMinimal(address(midnight)), address(setterRatifier), address(usdc), address(this), 0.86e18, 4
+        factory = new SeriesFactory(
+            IMidnightMinimal(address(midnight)), address(setterRatifier), address(usdc), address(this), 0.86e18, 4
         );
         factory.setCore(address(core));
         factory.proposeCollateralAllowed(cbBTC, true);
@@ -172,11 +172,11 @@ contract SeriesCallbackReentrancyTest is Test, MidnightHarness {
         vm.warp(block.timestamp - 48 hours);
         market = _cbBtcMarket(block.timestamp + 90 days, LLTV_77);
         marketId = _touch(market);
-        parking = new idleParking(address(usdc));
+        parking = new IdleParking(address(usdc));
         usdc.mint(address(core), 10_000_000e6);
     }
 
-    function _open(uint256 s, uint256 j, uint256 marketCap) internal returns (creditSeries series) {
+    function _open(uint256 s, uint256 j, uint256 marketCap) internal returns (CreditSeries series) {
         bytes32[] memory ids = new bytes32[](1);
         ids[0] = marketId;
         uint256[] memory floors = new uint256[](1);
@@ -197,14 +197,14 @@ contract SeriesCallbackReentrancyTest is Test, MidnightHarness {
             thetaWad: 0.1e18,
             feeRecipient: feeRecipient,
             allocator: allocator,
-            parking: iParking(address(parking)),
+            parking: IParking(address(parking)),
             offchainAttestationHash: bytes32(0)
         });
         vm.prank(address(core));
-        series = creditSeries(core.createAndFund(factory, p, s, j));
+        series = CreditSeries(core.createAndFund(factory, p, s, j));
     }
 
-    function _bid(creditSeries series, uint256 maxAssets) internal returns (Offer memory offer, bytes memory rd) {
+    function _bid(CreditSeries series, uint256 maxAssets) internal returns (Offer memory offer, bytes memory rd) {
         offer.market = market;
         offer.buy = true;
         offer.maker = address(series);
@@ -224,14 +224,14 @@ contract SeriesCallbackReentrancyTest is Test, MidnightHarness {
         rd = abi.encode(root, uint256(0), new bytes32[](0));
     }
 
-    function _hostile(creditSeries series, uint256 units) internal returns (HostileSeller h) {
+    function _hostile(CreditSeries series, uint256 units) internal returns (HostileSeller h) {
         h = new HostileSeller(midnight, series);
         uint256 collateral = units.mulDivUp(WAD, LLTV_77).mulDivUp(ORACLE_PRICE_SCALE, cbBtcOracle.price());
         MockUSDC(cbBTC).mint(address(h), collateral);
         h.post(cbBTC, market, collateral);
     }
 
-    function _assertSeriesConsistent(creditSeries series, uint256 kAlloc, uint256 cap) internal view {
+    function _assertSeriesConsistent(CreditSeries series, uint256 kAlloc, uint256 cap) internal view {
         assertLe(series.filled(0), cap, "filled within market cap");
         assertLe(series.totalFilled(), kAlloc, "totalFilled within allocation");
         assertEq(usdc.balanceOf(address(series)), 0, "no raw cash stranded on the series");
@@ -244,7 +244,7 @@ contract SeriesCallbackReentrancyTest is Test, MidnightHarness {
     }
 
     function test_nestedTakeFromSellerCallback_withinCap_fillsTwiceConsistently() public {
-        creditSeries series = _open(900_000e6, 200_000e6, 1_100_000e6);
+        CreditSeries series = _open(900_000e6, 200_000e6, 1_100_000e6);
         (Offer memory offer, bytes memory rd) = _bid(series, 400_000e6);
         HostileSeller h = _hostile(series, 300_000e6);
         h.arm(offer, rd, 100_000e6);
@@ -257,7 +257,7 @@ contract SeriesCallbackReentrancyTest is Test, MidnightHarness {
     }
 
     function test_nestedTakeFromSellerCallback_pastAllocation_isRejected() public {
-        creditSeries series = _open(150_000e6, 30_000e6, 1_000_000e6);
+        CreditSeries series = _open(150_000e6, 30_000e6, 1_000_000e6);
         (Offer memory offer, bytes memory rd) = _bid(series, 400_000e6);
         HostileSeller h = _hostile(series, 300_000e6);
         h.arm(offer, rd, 100_000e6);
@@ -268,7 +268,7 @@ contract SeriesCallbackReentrancyTest is Test, MidnightHarness {
     }
 
     function test_donationBeforeCollect_cannotBreakTheBalanceDeltaCheck() public {
-        creditSeries series = _open(900_000e6, 200_000e6, 1_100_000e6);
+        CreditSeries series = _open(900_000e6, 200_000e6, 1_100_000e6);
         (Offer memory offer, bytes memory rd) = _bid(series, 400_000e6);
         HostileSeller h = _hostile(series, 100_000e6);
         h.arm(offer, rd, 0);
@@ -293,7 +293,7 @@ contract SeriesCallbackReentrancyTest is Test, MidnightHarness {
     }
 
     function test_hostileAskMaker_reentersDuringDeployTake_cannotReachTheSeries() public {
-        creditSeries series = _open(900_000e6, 200_000e6, 1_100_000e6);
+        CreditSeries series = _open(900_000e6, 200_000e6, 1_100_000e6);
         (Offer memory bid, bytes memory rd) = _bid(series, 400_000e6);
         DummyRatifier dummy = new DummyRatifier();
         HostileAskMaker m = new HostileAskMaker(midnight, series, address(dummy));
@@ -327,7 +327,7 @@ contract SeriesCallbackReentrancyTest is Test, MidnightHarness {
     }
 
     function test_parkedBalanceAboveAllocation_cannotBeFilledPastAllocation() public {
-        creditSeries series = _open(150_000e6, 30_000e6, 1_000_000e6);
+        CreditSeries series = _open(150_000e6, 30_000e6, 1_000_000e6);
         address donor = makeAddr("donor");
         usdc.mint(donor, 300_000e6);
         vm.startPrank(donor);

@@ -5,15 +5,15 @@
 
 pragma solidity 0.8.34;
 
-import {iParking} from "../../src/parking/iParking.sol";
-import {iErc20Like} from "../../src/interfaces/iErc20Like.sol";
+import {IParking} from "../../src/parking/IParking.sol";
+import {IERC20Like} from "../../src/interfaces/IERC20Like.sol";
 
-interface iCoreSyncLike {
+interface ICoreSyncLike {
     function syncAll() external;
     function pruneSeries() external;
 }
 
-contract AdversarialParking is iParking {
+contract AdversarialParking is IParking {
     enum Mode {
         Honest,
         Lying,
@@ -21,7 +21,7 @@ contract AdversarialParking is iParking {
         Reentrant
     }
 
-    iErc20Like public immutable USDC;
+    IERC20Like public immutable USDC;
     mapping(address => uint256) public balanceOf;
     Mode public mode;
     uint256 public lieBps = 1_000;
@@ -30,7 +30,7 @@ contract AdversarialParking is iParking {
     uint256 public reentries;
 
     constructor(address usdc) {
-        USDC = iErc20Like(usdc);
+        USDC = IERC20Like(usdc);
     }
 
     function setMode(Mode m) external {
@@ -51,8 +51,8 @@ contract AdversarialParking is iParking {
         uint256 sent = mode == Mode.ShortPay ? assets * (10_000 - shortBps) / 10_000 : assets;
         if (mode == Mode.Reentrant && reentryTarget != address(0)) {
             reentries++;
-            iCoreSyncLike(reentryTarget).syncAll();
-            iCoreSyncLike(reentryTarget).pruneSeries();
+            ICoreSyncLike(reentryTarget).syncAll();
+            ICoreSyncLike(reentryTarget).pruneSeries();
         }
         require(USDC.transfer(to, sent), "send failed");
     }

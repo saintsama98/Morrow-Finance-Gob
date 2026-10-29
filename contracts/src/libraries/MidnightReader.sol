@@ -1,0 +1,46 @@
+// SPDX-License-Identifier: BUSL-1.1
+// Morrow Finance: thin read wrappers isolating every live call site into the Midnight protocol.
+// @author adiii.eth
+
+pragma solidity 0.8.34;
+
+import {Market} from "@morpho-org/midnight/src/interfaces/IMidnight.sol";
+import {IdLib} from "@morpho-org/midnight/src/libraries/IdLib.sol";
+import {IMidnightMinimal} from "../interfaces/IMidnightMinimal.sol";
+
+/// @notice Reads market state and a series' position from Midnight.
+library MidnightReader {
+    /// @notice Market parameters for an id.
+    function marketConfig(IMidnightMinimal midnight, bytes32 id) internal view returns (Market memory) {
+        return midnight.toMarket(id);
+    }
+
+    /// @notice Id of a market.
+    function marketId(Market memory market) internal pure returns (bytes32) {
+        return IdLib.toId(market);
+    }
+
+    /// @notice Face value a position will redeem for, without writing.
+    function projectedRedeemableView(IMidnightMinimal midnight, Market memory market, bytes32 id, address series)
+        internal
+        view
+        returns (uint256 faceValue, uint128 credit, uint128 pendingFee)
+    {
+        (credit, pendingFee,) = midnight.updatePositionView(market, id, series);
+        faceValue = uint256(credit) - uint256(pendingFee);
+    }
+
+    /// @notice Face value a position will redeem for, after writing accrual.
+    function projectedRedeemableSynced(IMidnightMinimal midnight, Market memory market, address series)
+        internal
+        returns (uint256 faceValue, uint128 credit, uint128 pendingFee)
+    {
+        (credit, pendingFee,) = midnight.updatePosition(market, series);
+        faceValue = uint256(credit) - uint256(pendingFee);
+    }
+
+    /// @notice Cash withdrawable from a market now.
+    function withdrawableLiquidity(IMidnightMinimal midnight, bytes32 id) internal view returns (uint128) {
+        return midnight.withdrawable(id);
+    }
+}

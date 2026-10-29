@@ -7,7 +7,7 @@ pragma solidity 0.8.34;
 
 import {Market} from "@morpho-org/midnight/src/interfaces/IMidnight.sol";
 import {StressBase} from "./StressBase.t.sol";
-import {creditSeries} from "../../src/series/creditSeries.sol";
+import {CreditSeries} from "../../src/series/CreditSeries.sol";
 
 contract ForkCrashRealismTest is StressBase {
     function _basketSetup() internal {
@@ -20,7 +20,7 @@ contract ForkCrashRealismTest is StressBase {
         uint256[] memory caps = new uint256[](2);
         caps[0] = 250_000e6;
         caps[1] = 250_000e6;
-        (creditSeries s, bytes32[] memory ids) = _openSeries(ms, caps, 400_000e6, 100_000e6);
+        (CreditSeries s, bytes32[] memory ids) = _openSeries(ms, caps, 400_000e6, 100_000e6);
         seriesSet.push(s);
         mktIds.push(ids[0]);
         mktIds.push(ids[1]);

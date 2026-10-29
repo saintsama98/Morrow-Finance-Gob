@@ -7,11 +7,11 @@ pragma solidity 0.8.34;
 
 import {console} from "forge-std/console.sol";
 import {Market} from "@morpho-org/midnight/src/interfaces/IMidnight.sol";
-import {ForkBase, iChainlinkFeed} from "./ForkBase.t.sol";
-import {creditSeries} from "../../src/series/creditSeries.sol";
-import {seriesFactory} from "../../src/series/seriesFactory.sol";
-import {SeriesState} from "../../src/interfaces/iSeries.sol";
-import {iErc20Like} from "../../src/interfaces/iErc20Like.sol";
+import {ForkBase, IChainlinkFeed} from "./ForkBase.t.sol";
+import {CreditSeries} from "../../src/series/CreditSeries.sol";
+import {SeriesFactory} from "../../src/series/SeriesFactory.sol";
+import {SeriesState} from "../../src/interfaces/ISeries.sol";
+import {IERC20Like} from "../../src/interfaces/IERC20Like.sol";
 
 abstract contract ReplayBase is ForkBase {
     struct Replay {
@@ -45,7 +45,7 @@ abstract contract ReplayBase is ForkBase {
     function _setFeed(address feed, uint256[5] memory round) internal {
         vm.mockCall(
             feed,
-            abi.encodeWithSelector(iChainlinkFeed.latestRoundData.selector),
+            abi.encodeWithSelector(IChainlinkFeed.latestRoundData.selector),
             abi.encode(uint80(round[0]), int256(round[1]), round[2], round[3], uint80(round[4]))
         );
     }
@@ -54,7 +54,7 @@ abstract contract ReplayBase is ForkBase {
         Replay memory r = _load();
         _fundBooks(1_000_000e6, 400_000e6);
         Market memory m = midnight.toMarket(_marketId());
-        (creditSeries s, bytes32 id) = _openSingle(m, 400_000e6, 100_000e6);
+        (CreditSeries s, bytes32 id) = _openSingle(m, 400_000e6, 100_000e6);
         assertEq(id, _marketId(), "the series lends into the real market");
         _borrow(s, 0, m, 150_000e6, ourSafe, 70);
         _borrow(s, 0, m, 150_000e6, ourEdge, 99);
@@ -140,7 +140,7 @@ abstract contract ReplayBase is ForkBase {
         if (k >= effBorrower.length || effRepaid[k] == 0) return false;
         _fund(USDC, keeper, effRepaid[k]);
         vm.startPrank(keeper);
-        iErc20Like(USDC).approve(MIDNIGHT, effRepaid[k]);
+        IERC20Like(USDC).approve(MIDNIGHT, effRepaid[k]);
         bytes memory ret;
         (ok, ret) = MIDNIGHT.call(
             abi.encodeCall(
@@ -200,7 +200,7 @@ contract ForkReplayJul16CbbtcTest is ReplayBase {
         assertLt(m.collateralParams[0].liquidationCursor, 0.5e18, "its liquidation cursor is below the rule");
         bytes32[] memory one = new bytes32[](1);
         one[0] = _marketId();
-        vm.expectRevert(abi.encodeWithSelector(seriesFactory.IneligibleMarket.selector, _marketId(), uint8(7)));
+        vm.expectRevert(abi.encodeWithSelector(SeriesFactory.IneligibleMarket.selector, _marketId(), uint8(7)));
         factory.checkEligibility(one);
         console.log("Jul 16 cbBTC 0.915 market, cursor (wad):", m.collateralParams[0].liquidationCursor);
     }

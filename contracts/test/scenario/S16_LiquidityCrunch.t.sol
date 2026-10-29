@@ -7,9 +7,9 @@ pragma solidity 0.8.34;
 import {Offer} from "@morpho-org/midnight/src/interfaces/IMidnight.sol";
 import {Midnight} from "@morpho-org/midnight/src/Midnight.sol";
 import {MorphoScenarioBase} from "./MorphoScenarioBase.t.sol";
-import {creditSeries} from "../../src/series/creditSeries.sol";
-import {morphoParking} from "../../src/parking/morphoParking.sol";
-import {SeriesState} from "../../src/interfaces/iSeries.sol";
+import {CreditSeries} from "../../src/series/CreditSeries.sol";
+import {MorphoParking} from "../../src/parking/MorphoParking.sol";
+import {SeriesState} from "../../src/interfaces/ISeries.sol";
 
 contract S16_LiquidityCrunchTest is MorphoScenarioBase {
     address borrower = makeAddr("borrower");
@@ -68,7 +68,7 @@ contract S16_LiquidityCrunchTest is MorphoScenarioBase {
         vault.setLiquidityCap(0);
         uint256 seniorBefore = core.seniorAssets();
         _finalize(seriesAddr);
-        creditSeries series = creditSeries(seriesAddr);
+        CreditSeries series = CreditSeries(seriesAddr);
         vm.warp(maturity + 1);
         series.startSettlement();
         _repay(maturity, borrower, _debtOf(_marketIdOf(series), borrower));
@@ -86,7 +86,7 @@ contract S16_LiquidityCrunchTest is MorphoScenarioBase {
 
         uint256 maturity = block.timestamp + 90 days;
         (address seriesAddr,) = _openSeries(700_000e6, 150_000e6, maturity);
-        creditSeries series = creditSeries(seriesAddr);
+        CreditSeries series = CreditSeries(seriesAddr);
         (Offer memory offer, bytes memory ratifierData) = _registerBid(seriesAddr, maturity, 800_000e6, borrower);
 
         vault.setLiquidityCap(0);
@@ -96,7 +96,7 @@ contract S16_LiquidityCrunchTest is MorphoScenarioBase {
 
         Midnight midnight = registry.midnight();
         vm.prank(borrower);
-        vm.expectPartialRevert(morphoParking.Illiquid.selector);
+        vm.expectPartialRevert(MorphoParking.Illiquid.selector);
         midnight.take(offer, ratifierData, 800_000e6, borrower, borrower, address(0), "");
 
         vault.setLiquidityCap(type(uint256).max);

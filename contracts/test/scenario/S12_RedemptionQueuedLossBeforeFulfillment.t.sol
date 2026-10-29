@@ -5,8 +5,8 @@
 pragma solidity 0.8.34;
 
 import {ScenarioBase} from "./ScenarioBase.t.sol";
-import {creditSeries} from "../../src/series/creditSeries.sol";
-import {epochMath} from "../../src/libraries/epochMath.sol";
+import {CreditSeries} from "../../src/series/CreditSeries.sol";
+import {EpochMath} from "../../src/libraries/EpochMath.sol";
 
 contract S12_RedemptionQueuedLossBeforeFulfillmentTest is ScenarioBase {
     address borrower = makeAddr("borrower");
@@ -21,7 +21,7 @@ contract S12_RedemptionQueuedLossBeforeFulfillmentTest is ScenarioBase {
         (address seriesAddr,) = _openSeries(700_000e6, 150_000e6, maturity);
         _registerAndFill(seriesAddr, maturity, 800_000e6, borrower);
         _finalize(seriesAddr);
-        creditSeries series = creditSeries(seriesAddr);
+        CreditSeries series = CreditSeries(seriesAddr);
 
         uint256 sharesToRedeem = seniorVault.balanceOf(seniorDepositor) / 10;
         vm.prank(seniorDepositor);
@@ -46,8 +46,8 @@ contract S12_RedemptionQueuedLossBeforeFulfillmentTest is ScenarioBase {
         (,, uint256 sharesFulfilled, uint256 assetsFulfilled,,) = seniorVault.epochs(requestId);
         assertEq(sharesFulfilled, sharesToRedeem, "sanity: this fill must be complete, well inside idle");
 
-        uint256 expectedAssetsAtPostLossPrice = epochMath.assetsForShares(sharesToRedeem, ppsNowWad);
-        uint256 assetsAtStalePrice = epochMath.assetsForShares(sharesToRedeem, ppsCloseWad);
+        uint256 expectedAssetsAtPostLossPrice = EpochMath.assetsForShares(sharesToRedeem, ppsNowWad);
+        uint256 assetsAtStalePrice = EpochMath.assetsForShares(sharesToRedeem, ppsCloseWad);
 
         assertEq(
             assetsFulfilled,

@@ -6,9 +6,9 @@ pragma solidity 0.8.34;
 
 import {Test} from "forge-std/Test.sol";
 import {SeriesRegistry} from "./SeriesRegistry.sol";
-import {usdcSeniorVault} from "../../../src/vaults/senior/usdcSeniorVault.sol";
-import {usdcJuniorVault} from "../../../src/vaults/junior/usdcJuniorVault.sol";
-import {seriesCore} from "../../../src/core/seriesCore.sol";
+import {USDCSeniorVault} from "../../../src/vaults/senior/USDCSeniorVault.sol";
+import {USDCJuniorVault} from "../../../src/vaults/junior/USDCJuniorVault.sol";
+import {SeriesCore} from "../../../src/core/SeriesCore.sol";
 
 contract EpochHandler is Test {
     SeriesRegistry public registry;
@@ -25,7 +25,7 @@ contract EpochHandler is Test {
     }
 
     function closeSeniorRedeemEpoch() external {
-        usdcSeniorVault sv = registry.seniorVault();
+        USDCSeniorVault sv = registry.seniorVault();
         vm.prank(registry.CURATOR());
         try sv.closeEpoch() {
             registry.recordCall(this.closeSeniorRedeemEpoch.selector, false);
@@ -35,7 +35,7 @@ contract EpochHandler is Test {
     }
 
     function fulfillSeniorRedeem(uint256 epochSeed, uint256 assetsSeed) external {
-        usdcSeniorVault sv = registry.seniorVault();
+        USDCSeniorVault sv = registry.seniorVault();
         uint256 openId = sv.openEpochId();
         if (openId <= 1) return;
         uint256 epochId = _pickEpoch(epochSeed, sv.nextEpochToFill(), openId);
@@ -50,7 +50,7 @@ contract EpochHandler is Test {
     }
 
     function claimSeniorRedeem(uint256 actorSeed, uint256 epochSeed) external {
-        usdcSeniorVault sv = registry.seniorVault();
+        USDCSeniorVault sv = registry.seniorVault();
         uint256 openId = sv.openEpochId();
         if (openId == 0) return;
         uint256 epochId = bound(epochSeed, 1, openId);
@@ -66,7 +66,7 @@ contract EpochHandler is Test {
     }
 
     function closeJuniorDepositEpoch() external {
-        usdcJuniorVault jv = registry.juniorVault();
+        USDCJuniorVault jv = registry.juniorVault();
         vm.prank(registry.CURATOR());
         try jv.closeDepositEpoch() {
             registry.recordCall(this.closeJuniorDepositEpoch.selector, false);
@@ -76,7 +76,7 @@ contract EpochHandler is Test {
     }
 
     function fulfillJuniorDeposit(uint256 epochSeed, uint256 assetsSeed) external {
-        usdcJuniorVault jv = registry.juniorVault();
+        USDCJuniorVault jv = registry.juniorVault();
         uint256 openId = jv.openDepositEpochId();
         if (openId <= 1) return;
         uint256 epochId = _pickEpoch(epochSeed, jv.nextDepositEpochToFill(), openId);
@@ -91,7 +91,7 @@ contract EpochHandler is Test {
     }
 
     function claimJuniorDeposit(uint256 actorSeed, uint256 epochSeed) external {
-        usdcJuniorVault jv = registry.juniorVault();
+        USDCJuniorVault jv = registry.juniorVault();
         uint256 openId = jv.openDepositEpochId();
         if (openId == 0) return;
         uint256 epochId = bound(epochSeed, 1, openId);
@@ -106,7 +106,7 @@ contract EpochHandler is Test {
     }
 
     function closeJuniorRedeemEpoch() external {
-        usdcJuniorVault jv = registry.juniorVault();
+        USDCJuniorVault jv = registry.juniorVault();
         vm.prank(registry.CURATOR());
         try jv.closeRedeemEpoch() {
             registry.recordCall(this.closeJuniorRedeemEpoch.selector, false);
@@ -116,13 +116,13 @@ contract EpochHandler is Test {
     }
 
     function fulfillJuniorRedeem(uint256 epochSeed, uint256 assetsSeed) external {
-        usdcJuniorVault jv = registry.juniorVault();
+        USDCJuniorVault jv = registry.juniorVault();
         uint256 openId = jv.openRedeemEpochId();
         if (openId <= 1) return;
         uint256 epochId = _pickEpoch(epochSeed, jv.nextRedeemEpochToFill(), openId);
         uint256 assets = _fillSize(assetsSeed);
 
-        seriesCore core = registry.realCore();
+        SeriesCore core = registry.realCore();
         (, uint256 before,,,,) = jv.redeemEpochs(epochId);
         vm.prank(registry.CURATOR());
         try jv.fulfillRedeem(epochId, assets) {
@@ -145,7 +145,7 @@ contract EpochHandler is Test {
     }
 
     function claimJuniorRedeem(uint256 actorSeed, uint256 epochSeed) external {
-        usdcJuniorVault jv = registry.juniorVault();
+        USDCJuniorVault jv = registry.juniorVault();
         uint256 openId = jv.openRedeemEpochId();
         if (openId == 0) return;
         uint256 epochId = bound(epochSeed, 1, openId);
@@ -174,7 +174,7 @@ contract EpochHandler is Test {
     }
 
     function strangerCloseSeniorRedeem(uint256 actorSeed) external {
-        usdcSeniorVault sv = registry.seniorVault();
+        USDCSeniorVault sv = registry.seniorVault();
         uint256 id = sv.openEpochId();
         bool early = block.timestamp < sv.epochOpenedAt(id) + sv.MAX_EPOCH_DURATION();
         vm.prank(_actor(actorSeed));
@@ -187,7 +187,7 @@ contract EpochHandler is Test {
     }
 
     function strangerFillSeniorRedeem(uint256 actorSeed, uint256 assetsSeed) external {
-        usdcSeniorVault sv = registry.seniorVault();
+        USDCSeniorVault sv = registry.seniorVault();
         uint256 id = sv.nextEpochToFill();
         if (id >= sv.openEpochId()) return;
         bool early = block.timestamp < sv.epochClosedAt(id) + sv.FILL_GRACE();
@@ -203,7 +203,7 @@ contract EpochHandler is Test {
     }
 
     function strangerCloseJuniorDeposit(uint256 actorSeed) external {
-        usdcJuniorVault jv = registry.juniorVault();
+        USDCJuniorVault jv = registry.juniorVault();
         uint256 id = jv.openDepositEpochId();
         bool early = block.timestamp < jv.depositEpochOpenedAt(id) + jv.MAX_EPOCH_DURATION();
         vm.prank(_actor(actorSeed));
@@ -216,7 +216,7 @@ contract EpochHandler is Test {
     }
 
     function strangerFillJuniorDeposit(uint256 actorSeed, uint256 assetsSeed) external {
-        usdcJuniorVault jv = registry.juniorVault();
+        USDCJuniorVault jv = registry.juniorVault();
         uint256 id = jv.nextDepositEpochToFill();
         if (id >= jv.openDepositEpochId()) return;
         bool early = block.timestamp < jv.depositEpochClosedAt(id) + jv.FILL_GRACE();
@@ -232,7 +232,7 @@ contract EpochHandler is Test {
     }
 
     function strangerCloseJuniorRedeem(uint256 actorSeed) external {
-        usdcJuniorVault jv = registry.juniorVault();
+        USDCJuniorVault jv = registry.juniorVault();
         uint256 id = jv.openRedeemEpochId();
         bool early = block.timestamp < jv.redeemEpochOpenedAt(id) + jv.MAX_EPOCH_DURATION();
         vm.prank(_actor(actorSeed));
@@ -245,7 +245,7 @@ contract EpochHandler is Test {
     }
 
     function strangerFillJuniorRedeem(uint256 actorSeed, uint256 assetsSeed) external {
-        usdcJuniorVault jv = registry.juniorVault();
+        USDCJuniorVault jv = registry.juniorVault();
         uint256 id = jv.nextRedeemEpochToFill();
         if (id >= jv.openRedeemEpochId()) return;
         bool early = block.timestamp < jv.redeemEpochClosedAt(id) + jv.FILL_GRACE();

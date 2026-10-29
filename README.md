@@ -34,10 +34,10 @@ Governance, gating and some operating parameters are deliberately simple in this
 
 | Layer | Contracts | Role |
 |---|---|---|
-| Vaults | `usdcSeniorVault`, `usdcJuniorVault` (with `usdcVaultBase`) | Share ledgers over the core's books. Senior deposits are synchronous (ERC-4626). Junior deposits and all exits are batched (ERC-7540 requests with ERC-7887 cancels). |
-| Core | `seriesCore` | Single custody. Keeps a senior book and a junior book as claims on one parking position, a series registry, capacity and coverage rules, the stress gate, the cross-series backstop and the policy timelock. |
-| Engine | `seriesFactory`, `creditSeries` (one per maturity) | Eligibility checks, offers and fills on Midnight, finalize and pricing, collection, settlement, write-off and waterfall payouts. |
-| Parking | `blueParking`, `morphoParking`, `idleParking` behind `iParking` | Holds idle USDC. `blueParking` lends it directly in one Morpho Blue market whose collateral, threshold and oracle match the series markets. `morphoParking` wraps an ERC-4626 vault. `idleParking` holds plain USDC. |
+| Vaults | `USDCSeniorVault`, `USDCJuniorVault` (with `USDCVaultBase`) | Share ledgers over the core's books. Senior deposits are synchronous (ERC-4626). Junior deposits and all exits are batched (ERC-7540 requests with ERC-7887 cancels). |
+| Core | `SeriesCore` | Single custody. Keeps a senior book and a junior book as claims on one parking position, a series registry, capacity and coverage rules, the stress gate, the cross-series backstop and the policy timelock. |
+| Engine | `SeriesFactory`, `CreditSeries` (one per maturity) | Eligibility checks, offers and fills on Midnight, finalize and pricing, collection, settlement, write-off and waterfall payouts. |
+| Parking | `BlueParking`, `MorphoParking`, `IdleParking` behind `IParking` | Holds idle USDC. `BlueParking` lends it directly in one Morpho Blue market whose collateral, threshold and oracle match the series markets. `MorphoParking` wraps an ERC-4626 vault. `IdleParking` holds plain USDC. |
 
 Value flows down through `openSeries` and back up through `receiveReturn` (at finalize or cancel) and `receivePayout` (on every waterfall run). The vaults hold no assets.
 
@@ -57,7 +57,7 @@ A series with no fills is cancelled and its cash returns to both books. A series
 
 ### Fills funded just in time
 
-The series is its own Midnight buy callback. When a borrower takes a series bid, Midnight calls the series' `onBuy`, which checks price, caps and window, then withdraws exactly the needed USDC from parking. With `blueParking`, that withdrawal comes out of the Morpho Blue position inside the same transaction. If Blue cannot pay it out, the fill does not go through and nothing moves.
+The series is its own Midnight buy callback. When a borrower takes a series bid, Midnight calls the series' `onBuy`, which checks price, caps and window, then withdraws exactly the needed USDC from parking. With `BlueParking`, that withdrawal comes out of the Morpho Blue position inside the same transaction. If Blue cannot pay it out, the fill does not go through and nothing moves.
 
 ## Pricing and the waterfall
 
