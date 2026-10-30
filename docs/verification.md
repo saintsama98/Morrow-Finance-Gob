@@ -14,7 +14,7 @@ Passing tests and clean static analysis are evidence, not proof of security. Eac
 | Live deployment | Base mainnet, chain id 8453, pinned at block 51,894,109; the 16 July 2026 replay pins block 48,660,990 |
 | Static analysis | Slither 0.11.5, Aderyn 0.6.8 |
 | Stateful fuzzing | Medusa, Echidna |
-| Symbolic execution | Halmos 0.3.3 with Bitwuzla, Yices, CVC5 and Z3 |
+| Symbolic execution | Halmos 0.3.3 with Yices |
 | Date of the record | 2026-10-06 |
 
 ## Reproducing
@@ -38,8 +38,8 @@ The default profile runs fuzz tests at 10,000 runs and invariants at 512 runs of
 | Scenario | 24 suites, 48 tests: loss, liquidity and lifecycle scenarios on three parking venues | all pass |
 | Invariants | 6 suites, 63 invariants, 512 runs of depth 128, on idle, ERC-4626 and Morpho Blue parking | all pass |
 | Stateful fuzzing | Medusa and Echidna, 16 properties over 43 actions | final Medusa campaign: 16 of 16 over 323,236 calls |
-| Mutation | 40 hand-written mutants on value-bearing paths | 39 killed, 1 equivalent, 0 surviving |
-| Symbolic | Halmos on the math libraries | waterfall, allocation, pricing and batch-price properties proven, some within input bounds; see the Halmos section for what timed out or was not run |
+| Mutation | 40 hand-written mutants on value-bearing paths, run of 2026-10-06 | 39 killed, 1 equivalent, 0 surviving; not yet rerun on the current tree |
+| Symbolic | Halmos harnesses for every math library | rounding helpers and batch-price ordering proven; the rest not reproduced and covered by fuzz twins at 10,000 runs |
 | Differential | Solidity libraries against independent Python twins and the official Midnight SDK | bit-for-bit agreement |
 | Reference model | integer reference implementation of the arithmetic | every audited figure reproduced; 80,000 random pools with no rounding against senior |
 | Static analysis | Slither and Aderyn | every result classified; no open result |
@@ -106,30 +106,45 @@ echidna contracts/test/crytic/MorrowCrytic.sol --contract MorrowCrytic --config 
 
 ## Symbolic execution (Halmos)
 
-Halmos ran on the math libraries (`WadMath`, `PremiumCurve`, `SeriesMath`, `EpochMath`), whose logic is unchanged in the current code. The run was made on a separate machine. Its harnesses are not yet in this repository; the targets included here are `contracts/test/formal/EpochDetachMath.t.sol` and `contracts/test/formal/IdleLossMath.t.sol`. Every proven property has a reachability companion that produced a counterexample, which shows the proven paths are not vacuous.
+Harnesses for the math libraries are in `contracts/test/formal`: `WadMathSymbolic`, `PremiumCurveSymbolic`, `SeriesMathSymbolic`, `EpochMathSymbolic`, `EpochDetachMath` and `IdleLossMath`. Each `check_` property has a `testFuzz_` twin, so `forge test` exercises every property at 10,000 runs. Where a property comes with a `reach_` companion, that companion is expected to produce a counterexample, which shows the checked paths are not vacuous.
+
+The table records only what was reproduced on the current code on 2026-10-30, one property per Halmos invocation with Yices, one solver thread, a 2 GiB solver memory cap and a 15 minute cap per property. Bitwuzla was not available on the machine used for this record.
 
 | Target | Property | Result |
 |---|---|---|
-| Waterfall | senior + junior + fee = proceeds; senior paid min(proceeds, claim); junior and fee are zero while senior is short | proven, inputs to `uint128` |
-| Pass-through waterfall | pro-rata split conserves proceeds | proven, inputs to `uint128` |
-| Allocation split | senior + junior = deployed; junior rounds up | proven, inputs to `uint128` |
-| Pricing | negative carry clamped; senior rate ceiling; attachment at most one; cushion identity | proven, inputs to `uint128` |
-| Marks | senior + junior + fee = pool value; marks converge to the waterfall at maturity | proven, inputs to `uint64` |
-| Batch prices | exits at the lower of close and current price, entries at the higher; zero price fills nothing; claimable amounts never underflow | proven, inputs to `uint128` |
-| Premium curve | bounds and anchors at 0, the kink and 1; invalid anchors revert | proven |
-| Rounding helpers | rounding up exceeds rounding down by at most one; WAD helpers match | proven; this restates how the helpers are built, and the exact floor of `mulDivDown` is covered by fuzzing and the differential tests instead |
-| Batch detach, ledger consistency | the canceller's removal keeps the ledger consistent | proven, inputs to `uint64` |
-| Batch detach, no dilution | removing a canceller never lowers anyone else's entitlement | timed out on every solver; covered by a hand proof and 10,000 fuzz runs over `uint128` |
-| Junior-first idle loss | conservation, direction, no move at or above the mark, senior kept within two base units | not yet run symbolically; fuzz twins pass at 10,000 runs |
-| Core parking-claim rounding | rounding of book claims on the parking position | not run |
+| Rounding helpers (`WadMath`) | rounding up exceeds rounding down by at most one; matches plain division when there is no overflow; WAD helpers match | proven; this restates how the helpers are built, and the exact floor of `mulDivDown` is covered by fuzzing and the differential tests instead |
+| Batch prices (`EpochMath`) | exits at the lower of close and current price, entries at the higher | proven |
+| Batch prices (`EpochMath`) | a zero price fills nothing | proven |
+| Batch fills (`EpochMath`) | a fill never exceeds the request and never costs more than the available assets, inputs to `uint64` | not proven: reached the 15 minute cap; fuzz twin passes |
+| Claimable amounts (`EpochMath`) | never underflow and never exceed the pro-rata entitlement, inputs to `uint64` | not reproduced; fuzz twin passes |
+| Waterfall and pass-through (`SeriesMath`) | senior + junior + fee = proceeds; senior paid min(proceeds, claim); junior and fee are zero while senior is short | not reproduced; fuzz twins pass |
+| Allocation split (`SeriesMath`) | senior + junior = deployed; rounding lands on junior | not reproduced; fuzz twin passes |
+| Pricing (`SeriesMath`) | negative carry clamped; senior rate ceiling; attachment at most one; cushion identity | not reproduced; fuzz twin passes |
+| Marks (`SeriesMath`) | senior + junior + fee = pool value; marks converge to the waterfall at maturity | not reproduced; fuzz twin passes |
+| Premium curve | bounds and anchors at 0, the kink and 1; invalid anchors revert | not reproduced; fuzz twins pass |
+| Batch detach | removing a canceller never lowers anyone else's entitlement | not reproduced; covered by a hand proof and 10,000 fuzz runs over `uint128` |
+| Junior-first idle loss | conservation, direction, no move at or above the mark, senior kept within two base units | not reproduced; fuzz twins pass |
+| Core parking-claim rounding | rounding of book claims on the parking position | no harness |
 
-Mutation sanity: a waterfall that pays senior regardless of proceeds and a batch price that takes the higher of two prices for exits are both caught by Halmos within a second. A detach that rounds up is caught by the fuzz twin.
+No harness exists yet for the exact floor of `mulDivDown`, the bound that rounding never overstates the senior claim, that the waterfall never decreases as proceeds rise, or that the premium curve never decreases. Each is covered by fuzzing, differential tests or the reference model.
+
+"Not reproduced" means the property was not run to completion for this record. It is not a counterexample. The multiply-divide properties are expected to need Bitwuzla or a longer cap than the one used here.
+
+One property at a time:
 
 ```
-FOUNDRY_OUT=cache/halmos-out halmos --root . --forge-build-out cache/halmos-out --contract IdleLossMathTest --function check_
+FOUNDRY_OUT=cache/halmos-out halmos --root . --forge-build-out cache/halmos-out \
+  --contract EpochMathSymbolicTest --function 'check_zeroPriceFillsNothing\(' \
+  --solver yices --solver-threads 1 --solver-timeout-assertion 600000
 ```
 
-The following are not yet proven symbolically: the exact floor of `mulDivDown`, the bound that rounding never overstates the senior claim, that the waterfall never decreases as proceeds rise, and that the premium curve never decreases. Each is covered by fuzzing, differential tests or the reference model.
+## Mutation testing (runner)
+
+The mutation results above are from the run of 2026-10-06. The 40 mutants and the runner are now in the repository (`sim/mutation/mutants.json`, `sim/mutation/run.py`), with paths updated to the current file names; the set has not yet been rerun on the current tree.
+
+```
+python3 sim/mutation/run.py --max-temp 80 --pause 60
+```
 
 ## Differential checks and the reference model
 
@@ -251,4 +266,4 @@ The busiest real liquidation day on Midnight, 16 July 2026, is replayed transact
 - **Governance and gating.** Governance transfer is single step, role setters emit no events, and the wiring is one-shot. The curator's 10% junior holding is enforced only on its own exit requests. The idle floor is fixed rather than sized to flows. The borrower buffer rule is evaluated off chain. A written-off series is not tracked once the recovering list is full.
 - **USDC.** The code assumes USDC charges no transfer fee and has no transfer hooks.
 - **Stress inputs.** The stress tests replay recorded paths on a reference book; they do not forecast.
-- **Not run.** Certora formal verification and an independent economic review.
+- **Not run.** Certora formal verification and an independent economic review. Most Halmos properties have not been reproduced to completion; see the Halmos section.

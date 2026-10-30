@@ -1,0 +1,282 @@
+[
+  {
+    "id": "M01",
+    "file": "contracts/src/libraries/EpochMath.sol",
+    "old": "return ppsCloseWad < ppsNowWad ? ppsCloseWad : ppsNowWad;",
+    "new": "return ppsCloseWad > ppsNowWad ? ppsCloseWad : ppsNowWad;",
+    "why": "exit batch priced at the higher of close/now"
+  },
+  {
+    "id": "M02",
+    "file": "contracts/src/libraries/EpochMath.sol",
+    "old": "return ppsCloseWad > ppsNowWad ? ppsCloseWad : ppsNowWad;",
+    "new": "return ppsCloseWad < ppsNowWad ? ppsCloseWad : ppsNowWad;",
+    "why": "entry batch priced at the lower of close/now"
+  },
+  {
+    "id": "M03",
+    "file": "contracts/src/libraries/SeriesMath.sol",
+    "old": "seniorPaid = proceeds < seniorClaim ? proceeds : seniorClaim;",
+    "new": "seniorPaid = proceeds;",
+    "why": "senior paid uncapped by its claim"
+  },
+  {
+    "id": "M04",
+    "file": "contracts/src/libraries/SeriesMath.sol",
+    "old": "r.seniorRateWad = r.poolRateWad.mulDivDown(WAD - piWad, WAD);",
+    "new": "r.seniorRateWad = r.poolRateWad;",
+    "why": "junior premium dropped from senior rate"
+  },
+  {
+    "id": "M05",
+    "file": "contracts/src/libraries/SeriesMath.sol",
+    "old": "fee = residualToJunior > juniorDeployed ? (residualToJunior - juniorDeployed).mulDivDown(thetaWad, WAD) : 0;",
+    "new": "fee = residualToJunior.mulDivDown(thetaWad, WAD);",
+    "why": "fee charged on junior principal, not profit"
+  },
+  {
+    "id": "M06",
+    "file": "contracts/src/libraries/PremiumCurve.sol",
+    "old": "if (u > WAD) u = WAD;",
+    "new": "return piT;",
+    "why": "premium curve flattened to piT"
+  },
+  {
+    "id": "M07",
+    "file": "contracts/src/vaults/junior/USDCJuniorDepositQueue.sol",
+    "old": "e.remainingFillable -= unfilled;",
+    "new": "e.remainingFillable -= 0;",
+    "why": "detach leaves cancelled demand fillable"
+  },
+  {
+    "id": "M08",
+    "file": "contracts/src/vaults/junior/USDCJuniorDepositQueue.sol",
+    "old": "                && pendingCancelAssets[requestId][controller] == 0\n",
+    "new": "\n",
+    "why": "slot cleared while a cancel is still pending"
+  },
+  {
+    "id": "M09",
+    "file": "contracts/src/vaults/junior/USDCJuniorRedeemQueue.sol",
+    "old": "        require(msg.sender == controller || isOperator[controller][msg.sender], NotControllerOrOperator());\n",
+    "new": "",
+    "why": "controller check removed (junior redeem)"
+  },
+  {
+    "id": "M10",
+    "file": "contracts/src/vaults/junior/USDCJuniorRedeemClaims.sol",
+    "old": "require(assets > 0 || shares == claimable, NothingToClaim());",
+    "new": "require(true, NothingToClaim());",
+    "why": "partial zero-asset claims allowed"
+  },
+  {
+    "id": "M11",
+    "file": "contracts/src/core/modules/CoreVaultFlows.sol",
+    "old": "require(received == assets, ParkingShortPaid(assets, received));",
+    "new": "require(received <= assets, ParkingShortPaid(assets, received));",
+    "why": "short-pay accepted"
+  },
+  {
+    "id": "M12",
+    "file": "contracts/src/series/modules/SeriesDeployment.sol",
+    "old": "require(totalFilled + buyerAssets <= kAlloc, CapExceeded(i));",
+    "new": "require(true, CapExceeded(i));",
+    "why": "onBuy allocation cap removed"
+  },
+  {
+    "id": "M13",
+    "file": "contracts/src/series/modules/SeriesSettlement.sol",
+    "old": "require(received == units, TransferMismatch());",
+    "new": "require(true, TransferMismatch());",
+    "why": "collect transfer check removed, defensive; equivalent with honest Midnight and USDC"
+  },
+  {
+    "id": "M14",
+    "file": "contracts/src/series/modules/SeriesSettlement.sol",
+    "old": "        state = SeriesState.SETTLED;\n        tSettled = block.timestamp;\n        _rerunWaterfall();\n        emit Settled",
+    "new": "        _rerunWaterfall();\n        state = SeriesState.SETTLED;\n        tSettled = block.timestamp;\n        emit Settled",
+    "why": "regression: waterfall before SETTLED in settle"
+  },
+  {
+    "id": "M15",
+    "file": "contracts/src/core/modules/CoreValuation.sol",
+    "old": "if (navJ < jD.mulDivDown(policy.stressJuniorFloorWad, WAD)) return false;",
+    "new": "if (false) return false;",
+    "why": "stress gate ignores junior NAV floor"
+  },
+  {
+    "id": "M16",
+    "file": "contracts/src/core/modules/CoreSeriesLifecycle.sol",
+    "old": "uint256 backstop = remaining < maxFromIdle ? remaining : maxFromIdle;",
+    "new": "uint256 backstop = remaining;",
+    "why": "backstop ignores idle-junior cap"
+  },
+  {
+    "id": "M17",
+    "file": "contracts/src/vaults/junior/USDCJuniorDepositQueue.sol",
+    "old": "require(epochId == oldest, NotOldestBatch(oldest));",
+    "new": "require(true, NotOldestBatch(oldest));",
+    "why": "junior entry fills not oldest-first"
+  },
+  {
+    "id": "M18",
+    "file": "contracts/src/parking/MorphoParking.sol",
+    "old": "shares = assets.mulDivUp(totalShares + VIRTUAL_SHARES, pool + 1);",
+    "new": "shares = assets.mulDivDown(totalShares + VIRTUAL_SHARES, pool + 1);",
+    "why": "parking withdraw burns rounded-down shares"
+  },
+  {
+    "id": "M19",
+    "file": "contracts/src/core/modules/CoreVaultFlows.sol",
+    "old": "if (isSenior) senior.reservedAssets -= assets;",
+    "new": "if (isSenior) senior.reservedAssets -= 0;",
+    "why": "senior payout leaves reserved untouched"
+  },
+  {
+    "id": "M20",
+    "file": "contracts/src/vaults/junior/USDCJuniorDepositQueue.sol",
+    "old": "        require(msg.sender == controller || isOperator[controller][msg.sender], NotControllerOrOperator());\n",
+    "new": "",
+    "why": "controller check removed (junior deposit)"
+  },
+  {
+    "id": "M21",
+    "file": "contracts/src/series/modules/SeriesFunding.sol",
+    "old": "extraS = extra.mulDivDown(WadMath.WAD - aWad, WadMath.WAD);",
+    "new": "extraS = extra.mulDivDown(aWad, WadMath.WAD);",
+    "why": "finalize extra split inverted"
+  },
+  {
+    "id": "M22",
+    "file": "contracts/src/core/modules/CoreSeriesLifecycle.sol",
+    "old": "&& p.pi1Wad == policy.pi1Wad && p.thetaWad == policy.thetaWad,",
+    "new": "&& p.pi1Wad == policy.pi1Wad,",
+    "why": "theta no longer bound to policy"
+  },
+  {
+    "id": "M23",
+    "file": "contracts/src/series/SeriesFactory.sol",
+    "old": "require(market.enterGate == address(0) && market.liquidatorGate == address(0), IneligibleMarket(id, 3));",
+    "new": "require(market.liquidatorGate == address(0), IneligibleMarket(id, 3));",
+    "why": "gated markets accepted"
+  },
+  {
+    "id": "M24",
+    "file": "contracts/src/series/SeriesFactory.sol",
+    "old": "require(lltv <= maxLltvWad && lltv < 1e18, IneligibleMarket(id, 4));",
+    "new": "require(lltv < 1e18, IneligibleMarket(id, 4));",
+    "why": "LLTV ceiling removed"
+  },
+  {
+    "id": "P01",
+    "file": "contracts/src/parking/BlueParking.sol",
+    "old": "shares = assets.mulDivUp(totalShares + VIRTUAL_SHARES, pool + 1);",
+    "new": "shares = assets.mulDivDown(totalShares + VIRTUAL_SHARES, pool + 1);",
+    "why": "Blue adapter burns rounded-down shares on withdraw"
+  },
+  {
+    "id": "P02",
+    "file": "contracts/src/parking/BlueParking.sol",
+    "old": "require(held > 0 && assets <= heldValueUp + DUST_ASSETS, InsufficientBalance());",
+    "new": "require(assets <= heldValueUp + DUST_ASSETS, InsufficientBalance());",
+    "why": "regression: account with no shares withdraws dust"
+  },
+  {
+    "id": "P03",
+    "file": "contracts/src/parking/BlueParking.sol",
+    "old": "require(msg.sender == core || to == core, NotAuthorized());",
+    "new": "require(msg.sender == core || to != address(0), NotAuthorized());",
+    "why": "a series may move its position to anyone"
+  },
+  {
+    "id": "P04",
+    "file": "contracts/src/parking/BlueParking.sol",
+    "old": "msg.sender == IParkingCoreLike(core).sentinel() || msg.sender == IParkingCoreLike(core).curator(),",
+    "new": "msg.sender != address(0),",
+    "why": "anyone can trigger exitToCash"
+  },
+  {
+    "id": "P05",
+    "file": "contracts/src/parking/BlueParking.sol",
+    "old": "require(registered, NotAuthorized());",
+    "new": "require(registered || caller != address(0), NotAuthorized());",
+    "why": "unregistered callers pass onlyMorrow"
+  },
+  {
+    "id": "P06",
+    "file": "contracts/src/parking/BlueParking.sol",
+    "old": "require(need <= available, Illiquid(assets, buffer + available));",
+    "new": "available;",
+    "why": "illiquid guard removed"
+  },
+  {
+    "id": "P07",
+    "file": "contracts/src/parking/BlueParking.sol",
+    "old": "return owned < marketLiquid ? owned : marketLiquid;",
+    "new": "return owned;",
+    "why": "liquidity view ignores Blue's free liquidity"
+  },
+  {
+    "id": "P08",
+    "file": "contracts/src/parking/BlueParking.sol",
+    "old": "if (exited || amount == 0) return;",
+    "new": "if (amount == 0) return;",
+    "why": "exitToCash no longer sticks"
+  },
+  {
+    "id": "P09",
+    "file": "contracts/src/libraries/IdleLossMath.sol",
+    "old": "if (price >= mark) return (seniorOut, juniorOut, 0);",
+    "new": "if (price <= mark) return (seniorOut, juniorOut, 0);",
+    "why": "idle loss direction flipped"
+  },
+  {
+    "id": "P10",
+    "file": "contracts/src/libraries/IdleLossMath.sol",
+    "old": "if (moved > juniorClaims) moved = juniorClaims;",
+    "new": "moved;",
+    "why": "junior cap removed"
+  },
+  {
+    "id": "P11",
+    "file": "contracts/src/libraries/IdleLossMath.sol",
+    "old": "uint256 internal constant PRICE_SCALE = 1e36;",
+    "new": "uint256 internal constant PRICE_SCALE = 1e18;",
+    "why": "regression: coarse mark"
+  },
+  {
+    "id": "P12",
+    "file": "contracts/src/core/modules/CoreParkingBooks.sol",
+    "old": "claimPriceMark = _claimPrice(parked);",
+    "new": "claimPriceMark = claimPriceMark == 0 ? _claimPrice(parked) : claimPriceMark;",
+    "why": "mark never advances after the first settle"
+  },
+  {
+    "id": "P13",
+    "file": "contracts/src/core/modules/CoreParkingBooks.sol",
+    "old": "_settleIdleLoss(parkedBefore);",
+    "new": "_settleIdleLoss(parkedAfter);",
+    "why": "credit settles at the post-inflow value"
+  },
+  {
+    "id": "P14",
+    "file": "contracts/src/core/modules/CoreSeriesLifecycle.sol",
+    "old": "    function syncAll() external {\n        _settleIdleLoss(_parked());",
+    "new": "    function syncAll() external {",
+    "why": "syncAll no longer settles idle loss"
+  },
+  {
+    "id": "P15",
+    "file": "contracts/src/vaults/senior/USDCSeniorRedeemQueue.sol",
+    "old": "if (liquid < available) available = liquid;",
+    "new": "liquid;",
+    "why": "senior exit fill ignores parking liquidity"
+  },
+  {
+    "id": "P16",
+    "file": "contracts/src/core/modules/CoreValuation.sol",
+    "old": "return cap < liquid ? cap : liquid;",
+    "new": "return cap;",
+    "why": "junior exit fill ignores parking liquidity"
+  }
+]
