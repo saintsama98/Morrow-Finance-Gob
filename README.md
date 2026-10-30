@@ -23,7 +23,7 @@ Seniority cannot exist inside a Midnight market, where every lender shares losse
 
 Gob is built to establish two things.
 
-1. **The arithmetic of the tranches.** Pricing, the cushion, the waterfall, recoveries and every rounding direction are written down in [`docs/arithmetic.md`](docs/arithmetic.md) and checked against an independent integer reference implementation. The waterfall split, the allocation split and the batch prices are also proven symbolically with Halmos within stated bounds.
+1. **The arithmetic of the tranches.** Pricing, the cushion, the waterfall, recoveries and every rounding direction are written down in [`docs/arithmetic.md`](docs/arithmetic.md) and checked against an independent integer reference implementation. Every math property also has a Halmos harness with a fuzz twin; the properties proven so far are listed in the verification record.
 2. **The rolling mechanism under stress.** Series are opened, deployed, settled and rolled against the live Midnight deployment on a Base mainnet fork, through historical crashes replayed from recorded Chainlink prices (one month of them round by round), de-pegs, default and recovery grids, a fully borrowed parking market and real bad debt in it.
 
 Everything that was run, with its result and the command to reproduce it, is in [`docs/verification.md`](docs/verification.md).

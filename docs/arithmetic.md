@@ -708,7 +708,7 @@ Each of these was measured against the live Blue market on a Base mainnet fork.
 
 ## Limits
 
-The arithmetic covers how a loss is divided, not how likely it is. The audit is an independent implementation that agrees with the protocol on large random samples. It is strong evidence of correct arithmetic and is not a formal proof. The waterfall split, the allocation split and the batch prices are also proven symbolically within stated bounds; the rounding bounds in this document are not.
+The arithmetic covers how a loss is divided, not how likely it is. The audit is an independent implementation that agrees with the protocol on large random samples. It is strong evidence of correct arithmetic and is not a formal proof. Halmos harnesses for the waterfall, the allocation split and the batch prices are in the repository; which properties are proven so far is recorded in `docs/verification.md`. The rounding bounds in this document are not proven symbolically.
 
 Oracle failure is outside every threshold here. The underlying market uses its price feed without a staleness check, and a wrong price is instantaneous and identical for every tenor. The controls for it are the choice of oracle and a validating wrapper, not any quantity in this model.
 
