@@ -4,8 +4,10 @@ Parameters
 
 Licensor:             adiii.eth
 
-Licensed Work:        Morrow Series Protocol, version 1.x (the "Licensed Work").
+Licensed Work:        Morrow Finance, version 1.x (the "Licensed Work").
                       The Licensed Work is (c) 2026 adiii.eth.
+                      The Licensed Work excludes files whose SPDX header
+                      states another license.
 
 Additional Use Grant: You may make use of the Licensed Work, provided that
                       you do not use the Licensed Work for a Production Use,
@@ -43,7 +45,8 @@ Change License:       GNU General Public License, version 3.0 or later
                       (GPL-3.0-or-later)
 
 For information about alternative licensing arrangements for the Licensed
-Work, please contact: adiiiresearch@gmail.com
+Work, please contact: adiiiresearch@gmail.com or
+                      biradaraditya9712@gmail.com
 
 Notice
 

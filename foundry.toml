@@ -5,7 +5,7 @@ out = "contracts/out"
 libs = ["contracts/lib"]
 remappings = [
     "@morpho-org/midnight/=contracts/lib/midnight/",
-    "@morpho-org/morpho-blue/=contracts/lib/midnight/lib/morpho-blue/",
+    "@morpho-org/morpho-blue/=contracts/lib/morpho-blue/",
     "forge-std/=contracts/lib/forge-std/src/",
     "@openzeppelin/contracts/=contracts/lib/openzeppelin-contracts/contracts/",
 ]
