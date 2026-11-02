@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-// Morrow Finance: S16: the Morpho vault stops paying out; what still works and what waits.
+// Morrow Finance: S15: the Morpho vault stops paying out; what still works and what waits.
 // @author adiii.eth
 
 pragma solidity 0.8.34;
@@ -11,13 +11,13 @@ import {CreditSeries} from "../../src/series/CreditSeries.sol";
 import {MorphoParking} from "../../src/parking/MorphoParking.sol";
 import {SeriesState} from "../../src/interfaces/ISeries.sol";
 
-contract S16_LiquidityCrunchTest is MorphoScenarioBase {
+contract S15_LiquidityCrunchTest is MorphoScenarioBase {
     address borrower = makeAddr("borrower");
     address seniorA = makeAddr("seniorA");
     address seniorB = makeAddr("seniorB");
     address juniorDepositor = makeAddr("juniorDepositor");
 
-    function test_S16_exitFillsOnlyWhatIsLiquid_thenCompletes() public {
+    function test_S15_exitFillsOnlyWhatIsLiquid_thenCompletes() public {
         _juniorDeposit(juniorDepositor, 1_000_000e6);
         uint256 sharesA = _seniorDeposit(seniorA, 500_000e6);
         _seniorDeposit(seniorB, 500_000e6);
@@ -50,7 +50,7 @@ contract S16_LiquidityCrunchTest is MorphoScenarioBase {
         _assertBooksReconcile();
     }
 
-    function test_S16_seriesOpenCancelFinalizeAndSettle_withoutAnyLiquidity() public {
+    function test_S15_seriesOpenCancelFinalizeAndSettle_withoutAnyLiquidity() public {
         _juniorDeposit(juniorDepositor, 1_000_000e6);
         _seniorDeposit(seniorA, 1_000_000e6);
         vault.setLiquidityCap(0);
@@ -80,7 +80,7 @@ contract S16_LiquidityCrunchTest is MorphoScenarioBase {
         _assertBooksReconcile();
     }
 
-    function test_S16_bidFillIsBoundedByLiquidity_andResumesAfter() public {
+    function test_S15_bidFillIsBoundedByLiquidity_andResumesAfter() public {
         _juniorDeposit(juniorDepositor, 1_000_000e6);
         _seniorDeposit(seniorA, 1_000_000e6);
 

@@ -8,7 +8,7 @@ import {ScenarioBase} from "./ScenarioBase.t.sol";
 import {CreditSeries} from "../../src/series/CreditSeries.sol";
 import {SeriesState} from "../../src/interfaces/ISeries.sol";
 
-contract S18_KeeperOnlyLifecycleTest is ScenarioBase {
+contract S17_KeeperOnlyLifecycleTest is ScenarioBase {
     address keeper = makeAddr("keeper");
     address alice = makeAddr("alice");
     address juniorLender = makeAddr("juniorLender");

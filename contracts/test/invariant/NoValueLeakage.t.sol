@@ -10,7 +10,7 @@ import {SeriesRegistry} from "./handlers/SeriesRegistry.sol";
 import {VaultHandler} from "./handlers/VaultHandler.sol";
 import {EpochHandler} from "./handlers/EpochHandler.sol";
 
-contract F10_NoValueLeakageTest is Test {
+contract NoValueLeakageTest is Test {
     SeriesRegistry registry;
     VaultHandler vaultHandler;
     EpochHandler epochHandler;

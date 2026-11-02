@@ -16,7 +16,7 @@ library PremiumCurve {
 
     /// @notice Piecewise linear premium through three anchors, with a kink at uT.
     function pi(uint256 u, uint256 uT, uint256 pi0, uint256 piT, uint256 pi1) internal pure returns (uint256) {
-        if (!(pi0 <= piT && piT <= pi1 && pi1 < WAD)) revert InvalidAnchors();
+        require(pi0 <= piT && piT <= pi1 && pi1 < WAD, InvalidAnchors());
 
         if (u > WAD) u = WAD;
 
