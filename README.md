@@ -44,7 +44,7 @@ SETTLING    collect repayments and liquidation proceeds
 SETTLED     the waterfall reruns on every later recovery
 ```
 
-A series with no fills is cancelled and its cash returns to both books. A series that deploys less than its minimum size settles pro rata instead of through the waterfall.
+A series with no fills is canceled and its cash returns to both books. A series that deploys less than its minimum size settles pro rata instead of through the waterfall.
 
 ### Fills funded just in time
 
@@ -58,7 +58,7 @@ For a series with senior `S` and junior `J`:
 a   = J / (S + J)                     junior share, between 0.15 and 0.30
 u   = 0.15 / a                        coverage utilization
 pi  = premium(u)                      piecewise linear: 0.10, 0.20 at u = 0.9, 0.35
-r_s = r_pool * (1 - pi)               senior rate, from the realised pool rate
+r_s = r_pool * (1 - pi)               senior rate, from the realized pool rate
 C_S = S_d * (1 + r_s)                 senior claim, fixed at finalize
 ```
 

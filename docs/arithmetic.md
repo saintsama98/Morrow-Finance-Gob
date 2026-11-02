@@ -228,10 +228,10 @@ The cushion is junior's principal, plus the return junior earns on it, plus the 
 | J_d (1 + r_pool) | 183,636.363637 |
 | S_d · r_pool · π | 1,568.181818 |
 | Sum | 185,204.545455 |
-| Realised B_0 | 185,204.545456 |
-| Realised minus exact | 0.629750 units |
+| Realized B_0 | 185,204.545456 |
+| Realized minus exact | 0.629750 units |
 
-The realised cushion exceeds the exact decomposition by 0.63 of a unit, where one unit is 10^-6 USDC. The rounding section explains why the excess is always non negative and always below about one unit.
+The realized cushion exceeds the exact decomposition by 0.63 of a unit, where one unit is 10^-6 USDC. The rounding section explains why the excess is always non negative and always below about one unit.
 
 ---
 
@@ -346,7 +346,7 @@ A proposal that recurs in dated credit is to treat short maturity exposure as se
 
 First loss fails because the short market can lose while the long market is whole. Monotone protection fails because removing the long market changes the short market's loss by nothing. By the test above, there is no subordination.
 
-The underlying reason is general. Maturity is a parameter of the distribution of loss. Seniority is a map applied to a realised loss. Changing a distribution cannot produce a pathwise reallocation between two parties, so maturity can shape risk but cannot rank claims.
+The underlying reason is general. Maturity is a parameter of the distribution of loss. Seniority is a map applied to a realized loss. Changing a distribution cannot produce a pathwise reallocation between two parties, so maturity can shape risk but cannot rank claims.
 
 Structured finance separates these as time tranching, which orders when claimants are repaid, and credit tranching, which orders who absorbs loss. In sequential pay structures the senior class often has the shorter life, but it is short because it is senior. Priority is the cause and short duration the consequence.
 
@@ -515,7 +515,7 @@ Randomised property checks, each counting the states in which the stated propert
 | Recovery deltas are non-negative and sum to the entitlement | 30,000 | 0 |
 | The waterfall equals the canonical tranche payoff | 200,000 | 0 |
 | A larger cushion never increases the senior shortfall | 300,000 | 0 |
-| The realised cushion is below its exact value | 150,000 | 0 |
+| The realized cushion is below its exact value | 150,000 | 0 |
 | The stored senior claim exceeds its exact value | 150,000 | 0 |
 | The stored attachment exceeds its exact value | 150,000 | 0 |
 | The attachment falls below the junior share at non-negative carry | 300,000 | 0 |
@@ -602,7 +602,7 @@ E[loss] = P(liquidation) × P(bad debt | liquidation) × E[loss | bad debt]
 
 The first factor is frequency and is governed by z. The second is conditional failure and is governed by g*, execution cost and clearing capacity. The third is severity. The decomposition makes clear which levers act where.
 
-Tenor enters the first factor through σ√τ. It does not enter the second, because what happens once a position reaches its threshold depends on the local dynamics at that moment and not on how long the term is. LLTV and γ enter the second through g*. Seniority appears in none of the three, because it acts on the division of the realised loss.
+Tenor enters the first factor through σ√τ. It does not enter the second, because what happens once a position reaches its threshold depends on the local dynamics at that moment and not on how long the term is. LLTV and γ enter the second through g*. Seniority appears in none of the three, because it acts on the division of the realized loss.
 
 ---
 
