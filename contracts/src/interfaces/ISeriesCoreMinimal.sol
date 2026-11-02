@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MIT
 // Morrow Finance: the minimal slice of SeriesCore that a CreditSeries contract needs to call.
 // @author adiii.eth
 

@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MIT
 // Morrow Finance: shared series types: creation params and the lifecycle state machine.
 // @author adiii.eth
 

@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MIT
 // Morrow Finance: what the core reads from each vault's exit queue: USDC already promised to closed exit batches.
 // @author adiii.eth
 

@@ -50,7 +50,7 @@ The default profile runs fuzz tests at 10,000 runs and invariants at 512 runs of
 
 Unit suites cover every library (pricing, waterfall, epoch math, idle-loss math, full-precision mulDiv), the core's books, policy timelock and gates, both vaults' synchronous and batched flows, the series lifecycle against a local Midnight, the factory's eligibility rules and all three parking adapters.
 
-Scenario suites S0 to S17 drive complete lifecycles: baseline, small bad debt, junior wipe, maturity wall, stuck market, under-fill, micro fill with pass-through, nothing filled, oracle manipulation, fees at caps, parking stress, exit demand above idle, loss queued before fulfilment, junior mass exit, idle yield, liquidity crunch, parking venue loss and a keeper-only lifecycle. The parking scenarios run on the ERC-4626 venue and again on Morpho Blue.
+Scenario suites S0 to S17 drive complete lifecycles: baseline, small bad debt, junior wipe, maturity wall, stuck market, under-fill, micro fill with pass-through, nothing filled, oracle manipulation, fees at caps, parking stress, exit demand above idle, loss queued before fulfillment, junior mass exit, idle yield, liquidity crunch, parking venue loss and a keeper-only lifecycle. The parking scenarios run on the ERC-4626 venue and again on Morpho Blue.
 
 A correlated crash grid (`contracts/test/scenario/CorrelatedCrashBlue.t.sol`) hits one collateral that both a series market and a local Morpho Blue parking market depend on. Senior deposits 1,000,000 USDC and junior 1,000,000; a series of 850,000 opens and fills 800,000 units of credit, and the rest is parked. Returns are on each book at settlement.
 

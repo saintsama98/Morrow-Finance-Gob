@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MIT
 // Morrow Finance: Midnight's buyer callback interface, exactly as Midnight itself declares it.
 // @author adiii.eth
 

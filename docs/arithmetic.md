@@ -48,7 +48,7 @@ The quantities computed for a series, in the order they are fixed:
 | J | Junior capital committed | USDC | No |
 | K_alloc | Total committed, S + J | USDC | No |
 | a | Junior share of the pool | WAD | No |
-| u | Coverage utilisation, how hard junior's share is being worked | WAD | No |
+| u | Coverage utilization, how hard junior's share is being worked | WAD | No |
 | π | Premium, the fraction of the pool return senior pays junior | WAD | No |
 | K_d | Capital actually deployed into markets | USDC | No |
 | S_d | Senior share of deployed capital | USDC | No |
@@ -113,7 +113,7 @@ mulDivUp(x, y, d)   = ceil(x · y / d)
 
 Where a quantity must sum exactly with another, it is computed as a residual by subtraction and never by its own division. Three quantities are residuals: J_d, XJ and the junior share of any split. This is what makes conservation exact rather than approximate.
 
-The general rule for direction is that a division rounds so as to leave value inside the pool, and never in favour of the party whose action triggers it. Each direction below is stated with its reason.
+The general rule for direction is that a division rounds so as to leave value inside the pool, and never in favor of the party whose action triggers it. Each direction below is stated with its reason.
 
 ---
 
@@ -125,9 +125,9 @@ a       = mulDivDown(J, WAD, K_alloc)
 u       = mulDivUp(c, WAD, a)
 ```
 
-A series may open only if c ≤ a ≤ a_max. The junior share a rounds down so that a pool which clears the minimum only by rounding up is rejected. Utilisation u rounds up because a higher u raises the premium, which favours the party providing protection.
+A series may open only if c ≤ a ≤ a_max. The junior share a rounds down so that a pool which clears the minimum only by rounding up is rejected. Utilization u rounds up because a higher u raises the premium, which favors the party providing protection.
 
-The two directions are opposite by design. Because a is at least c, utilisation never exceeds one. Because a is at most a_max, utilisation is at least c divided by a_max, which is 0.5 at the defaults.
+The two directions are opposite by design. Because a is at least c, utilization never exceeds one. Because a is at most a_max, utilization is at least c divided by a_max, which is 0.5 at the defaults.
 
 ---
 
@@ -144,7 +144,7 @@ The lower branch subtracts a quantity rounded down and the upper branch adds a q
 
 When junior is thin relative to the minimum, u approaches one and junior's capital is working hard. The premium rises steeply there because junior is closest to exhaustion. At the defaults the slope is about 0.11 below the kink and 1.5 above it.
 
-| Junior share a | Utilisation u | Premium π |
+| Junior share a | Utilization u | Premium π |
 | --- | --- | --- |
 | 0.15 | 1.000000000000000000 | 0.350000000000000000 |
 | 0.20 | 0.750000000000000000 | 0.183333333333333334 |
@@ -460,7 +460,7 @@ The worked example uses S = 900,000 and J = 200,000 USDC, a fill of 1,000,000 US
 | J | Junior capital committed | 200,000.000000 | 200000000000 |
 | K_alloc | Total committed | 1,100,000.000000 | 1100000000000 |
 | a | Junior share | 0.181818181818181818 | 181818181818181818 |
-| u | Coverage utilisation | 0.825000000000000001 | 825000000000000001 |
+| u | Coverage utilization | 0.825000000000000001 | 825000000000000001 |
 | π | Premium | 0.191666666666666667 | 191666666666666667 |
 | K_d | Capital deployed | 1,000,000.000000 | 1000000000000 |
 | F_net | Face due at maturity | 1,010,000.000000 | 1010000000000 |

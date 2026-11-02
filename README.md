@@ -2,18 +2,9 @@
 
 Dated senior and junior credit tranches on Morpho Midnight, behind two vault tokens.
 
-> This project was developed privately and published once it had been tested against its original design. Its full development history is published on `main` branch so reviewers can follow it in one place.
+> This project was developed privately and published once it had been tested against its original design. Its full development history is published on a single `main` branch so reviewers can follow it in one place.
 
-Gob is the early beta and testing cascade of the protocol, named after the early form of glass: the base material before it is shaped.
-
-Morrow runs a series engine and two vault tokens. The allocator opens series against staggered maturities on Midnight, each series lends into a basket of ungated USDC markets maturing at the same date, and splits every outcome through a strict waterfall. Senior holders (`srUSDC`) are paid first at maturity up to a fixed senior claim. Junior holders (`jrUSDC`) take the first loss of every series and receive the residual.
-
-## What Morrow does
-
-Morrow pools USDC from two kinds of depositor and lends it into fixed-maturity credit markets on Morpho Midnight.
-
-- **Senior** (`srUSDC`) holds a fixed claim on each series: paid first at maturity, up to an amount set when the series is priced.
-- **Junior** (`jrUSDC`) takes the first loss of every series and receives the residual, including a premium paid by senior.
+Morrow pools USDC from two kinds of depositor and lends it into fixed-maturity credit markets on Morpho Midnight. Senior holders (`srUSDC`) are paid first at maturity, up to a fixed claim set when the series is priced. Junior holders (`jrUSDC`) take the first loss of every series and receive the residual, including a premium paid by senior.
 
 Capital is deployed in **series**. A series lends into a basket of Midnight markets that share one maturity date, holds the credit to maturity, collects what the markets return, and divides it between senior and junior through a fixed waterfall. Series are opened on staggered maturities, and settled cash rolls into the next series. Depositors never hold series directly; the two vault tokens are the only user-facing surface.
 
@@ -21,9 +12,9 @@ Seniority cannot exist inside a Midnight market, where every lender shares losse
 
 ## What this build establishes
 
-Gob is built to establish two things.
+Gob, named after the early form of glass, the base material before it is shaped, is the research build of the protocol. It is built to establish two things.
 
-1. **The arithmetic of the tranches.** Pricing, the cushion, the waterfall, recoveries and every rounding direction are written down in [`docs/arithmetic.md`](docs/arithmetic.md) and checked against an independent integer reference implementation. Every math property also has a Halmos harness with a fuzz twin; the properties proven so far are listed in the verification record.
+1. **The arithmetic of the tranches.** Pricing, the cushion, the waterfall, recoveries and every rounding direction are written down in [`docs/arithmetic.md`](docs/arithmetic.md) and checked against an independent integer reference implementation. The math libraries also have Halmos harnesses with fuzz twins; the verification record lists which properties are proven here and which are covered by fuzzing only.
 2. **The rolling mechanism under stress.** Series are opened, deployed, settled and rolled against the live Midnight deployment on a Base mainnet fork, through historical crashes replayed from recorded Chainlink prices (one month of them round by round), de-pegs, default and recovery grids, a fully borrowed parking market and real bad debt in it.
 
 Everything that was run, with its result and the command to reproduce it, is in [`docs/verification.md`](docs/verification.md).
@@ -65,7 +56,7 @@ For a series with senior `S` and junior `J`:
 
 ```
 a   = J / (S + J)                     junior share, between 0.15 and 0.30
-u   = 0.15 / a                        coverage utilisation
+u   = 0.15 / a                        coverage utilization
 pi  = premium(u)                      piecewise linear: 0.10, 0.20 at u = 0.9, 0.35
 r_s = r_pool * (1 - pi)               senior rate, from the realised pool rate
 C_S = S_d * (1 + r_s)                 senior claim, fixed at finalize
@@ -82,17 +73,6 @@ The full model, with every rounding direction and its audit, is in [`docs/arithm
 3. **On idle cash:** junior first. A fall in the parking position's value moves claims from the junior book to the senior book until senior is back to its value at the last settlement point, limited by junior's idle. Gains are shared pro rata. The settlement point advances on every book-changing call and on the permissionless `syncAll`.
 
 While any live series' junior value is below half its deployed junior, the stress gate closes senior deposits.
-
-## Roles
-
-| Role | Can do |
-|---|---|
-| Senior and junior depositors | Deposit, request exits, cancel, claim |
-| Allocator | Open series within policy, register offers, take asks, finalize early, cancel an unfilled series, close and fill batches |
-| Curator | Set risk policy through a timelock (risk-reducing moves are instant), close and fill batches, pause, move Blue parking to cash. Its own junior exits may not take it below 10% of `jrUSDC` supply. |
-| Sentinel | Risk-reducing only: pause, lower caps, raise floors, disable the backstop, cancel an unfilled series, move Blue parking to cash |
-| Governance | Factory allowlists (collateral, oracles, maximum threshold, markets per basket) behind a 48-hour timelock, role wiring, unpause |
-| Keeper (anyone) | Every deadline has a permissionless path: finalize after the deployment window, start settlement, collect, settle, write off, close and fill batches after their windows, sync |
 
 ## Market eligibility
 
@@ -133,6 +113,17 @@ These parts work and are tested, but they are simpler than a production release 
 - **Operator fill timing.** A batch filled by the curator or allocator before an unrealized loss is realized pays the pre-loss price. Operators should not fill batches while the stress gate is closed or a live position is unhealthy; this is operating policy, not enforced on chain.
 - **Oracle.** The cbBTC oracle prices cbBTC as BTC and cannot see a de-peg. Midnight reads its price feed without a staleness check.
 
+## Roles
+
+| Role | Can do |
+|---|---|
+| Senior and junior depositors | Deposit, request exits, cancel, claim |
+| Allocator | Open series within policy, register offers, take asks, finalize early, cancel an unfilled series, close and fill batches |
+| Curator | Set risk policy through a timelock (risk-reducing moves are instant), close and fill batches, pause, move Blue parking to cash. Its own junior exits may not take it below 10% of `jrUSDC` supply. |
+| Sentinel | Risk-reducing only: pause, lower caps, raise floors, disable the backstop, cancel an unfilled series, move Blue parking to cash |
+| Governance | Factory allowlists (collateral, oracles, maximum threshold, markets per basket) behind a 48-hour timelock, role wiring, unpause |
+| Keeper (anyone) | Every deadline has a permissionless path: finalize after the deployment window, start settlement, collect, settle, write off, close and fill batches after their windows, sync |
+
 ## Build and test
 
 Foundry 1.7.1, solc 0.8.34, `via_ir`, EVM `osaka` (Midnight requires it). Dependencies are git submodules; Morpho Blue is used from the copy vendored inside Midnight.
@@ -145,12 +136,21 @@ BASE_RPC_URL=<base rpc> forge test --match-path "contracts/test/fork/*" --thread
 
 Fork tests are skipped when `BASE_RPC_URL` is unset. Stateful fuzzing, static analysis, mutation and symbolic checks have their own entry points, listed with every result in [`docs/verification.md`](docs/verification.md).
 
+## Third-party code and licenses
+
+| Component | Use | License |
+|---|---|---|
+| [Morpho Midnight](https://github.com/morpho-org/midnight) | Git submodule. Imported interfaces and libraries, and the protocol the series lend on. | BUSL-1.1 (Morpho Association), with files marked GPL-2.0-or-later |
+| [Morpho Blue](https://github.com/morpho-org/morpho-blue) | The copy vendored inside Midnight. Imported interfaces and libraries for Blue parking. | GPL-2.0-or-later |
+| [OpenZeppelin Contracts](https://github.com/OpenZeppelin/openzeppelin-contracts) | Git submodule. ERC-20 and ERC-165. | MIT |
+| [forge-std](https://github.com/foundry-rs/forge-std) | Git submodule, tests only. | MIT or Apache-2.0 |
+
+Third-party code is not copied into this repository's own sources; it stays in its submodules under its own license.
+
 ## Status
 
-Pre-audit. Not deployed. The contracts have not been reviewed by an external auditor. Passing tests and clean static analysis are evidence, not a guarantee of security.
-
-This is software, not an offer. `srUSDC` and `jrUSDC` are unregistered, and their legal characterisation depends on jurisdiction.
+Research build. Not audited. Not deployed. This is software, not an offer: `srUSDC` and `jrUSDC` are unregistered, and their legal characterization depends on jurisdiction.
 
 ## License
 
-BUSL-1.1. See [`LICENSE`](LICENSE).
+The core contracts are BUSL-1.1, see [`LICENSE`](LICENSE). The interfaces, meaning `contracts/src/interfaces/` and `contracts/src/parking/IParking.sol`, are MIT, see [`LICENSE-MIT`](LICENSE-MIT). Each file's SPDX header states which applies. Copyright 2026 adiii.eth.
