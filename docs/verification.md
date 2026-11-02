@@ -10,7 +10,7 @@ Passing tests and clean static analysis are evidence, not proof of security. Eac
 |---|---|
 | Contracts | `contracts/src`: vaults, core, series engine, parking adapters, libraries |
 | Toolchain | Foundry 1.7.1, solc 0.8.34, `via_ir`, EVM `osaka`, optimizer 200 runs |
-| Dependencies | Morpho Midnight (git submodule), Morpho Blue as vendored inside Midnight, OpenZeppelin, forge-std |
+| Dependencies | Morpho Midnight, Morpho Blue, OpenZeppelin and forge-std, all git submodules |
 | Live deployment | Base mainnet, chain id 8453, pinned at block 51,894,109; the 16 July 2026 replay pins block 48,660,990 |
 | Static analysis | Slither 0.11.5, Aderyn 0.6.8 |
 | Stateful fuzzing | Medusa, Echidna |
