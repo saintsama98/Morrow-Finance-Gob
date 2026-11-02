@@ -6,7 +6,10 @@
     }
   },
   "contracts/lib/midnight": {
-    "rev": "70607569ac348e9880b512ffd3b574be55405932"
+    "rev": "58a224b2c0f0bdd9c0931717f2baacc9ba353825"
+  },
+  "contracts/lib/morpho-blue": {
+    "rev": "e07f84529d55ede99ba0d69d340440cfe5e4282f"
   },
   "contracts/lib/openzeppelin-contracts": {
     "tag": {

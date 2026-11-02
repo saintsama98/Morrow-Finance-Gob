@@ -126,7 +126,7 @@ These parts work and are tested, but they are simpler than a production release 
 
 ## Build and test
 
-Foundry 1.7.1, solc 0.8.34, `via_ir`, EVM `osaka` (Midnight requires it). Dependencies are git submodules; Morpho Blue is used from the copy vendored inside Midnight.
+Foundry 1.7.1, solc 0.8.34, `via_ir`, EVM `osaka` (Midnight requires it). Dependencies are git submodules.
 
 ```
 forge build
@@ -140,12 +140,12 @@ Fork tests are skipped when `BASE_RPC_URL` is unset. Stateful fuzzing, static an
 
 | Component | Use | License |
 |---|---|---|
-| [Morpho Midnight](https://github.com/morpho-org/midnight) | Git submodule. Imported interfaces and libraries, and the protocol the series lend on. | BUSL-1.1 (Morpho Association), with files marked GPL-2.0-or-later |
-| [Morpho Blue](https://github.com/morpho-org/morpho-blue) | The copy vendored inside Midnight. Imported interfaces and libraries for Blue parking. | GPL-2.0-or-later |
+| [Morpho Midnight](https://github.com/morpho-org/midnight) | Git submodule. The contracts import its interfaces and libraries, which are MIT. `src/Midnight.sol` is BUSL-1.1 and is compiled only by the tests, for a local deployment under its non-production terms. | MIT, and BUSL-1.1 for `src/Midnight.sol` |
+| [Morpho Blue](https://github.com/morpho-org/morpho-blue) | Git submodule. The contracts import its interfaces and libraries, which are MIT. `src/Morpho.sol` is GPL-2.0-or-later and is not imported. | MIT, and GPL-2.0-or-later for `src/Morpho.sol` |
 | [OpenZeppelin Contracts](https://github.com/OpenZeppelin/openzeppelin-contracts) | Git submodule. ERC-20 and ERC-165. | MIT |
 | [forge-std](https://github.com/foundry-rs/forge-std) | Git submodule, tests only. | MIT or Apache-2.0 |
 
-Third-party code is not copied into this repository's own sources; it stays in its submodules under its own license.
+Third-party code stays in its submodules under its own license. `mulDivDown` in `WadMath` follows the full-precision algorithm by Remco Bloemen, also used in Uniswap's `FullMath` and OpenZeppelin's `Math`, both MIT. Morrow calls Morpho's deployed contracts and does not redeploy them; any use of `Midnight.sol` itself is governed by Morpho's license.
 
 ## Status
 
