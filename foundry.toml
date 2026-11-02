@@ -28,9 +28,11 @@ fs_permissions = [
     { access = "read", path = "sim/vectors" },
 ]
 
-# cairo, hardhat, truffle
 [fmt]
 line_length = 120
+tab_width = 4
+bracket_spacing = false
+int_types = "long"
 
 [doc]
 out = "docs/generated"

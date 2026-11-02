@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-// Morrow Finance: S17: the Morpho vault takes a loss; who bears it, and nothing freezes.
+// Morrow Finance: S16: the Morpho vault takes a loss; who bears it, and nothing freezes.
 // @author adiii.eth
 
 pragma solidity 0.8.34;
@@ -10,14 +10,14 @@ import {SeriesState} from "../../src/interfaces/ISeries.sol";
 import {SeriesMath} from "../../src/libraries/SeriesMath.sol";
 import {WadMath} from "../../src/libraries/WadMath.sol";
 
-contract S17_ParkingVenueLossTest is MorphoScenarioBase {
+contract S16_ParkingVenueLossTest is MorphoScenarioBase {
     using WadMath for uint256;
 
     address borrower = makeAddr("borrower");
     address seniorDepositor = makeAddr("seniorDepositor");
     address juniorDepositor = makeAddr("juniorDepositor");
 
-    function test_S17_lossOnIdle_fallsOnJuniorFirst() public {
+    function test_S16_lossOnIdle_fallsOnJuniorFirst() public {
         _juniorDeposit(juniorDepositor, 1_000_000e6);
         _seniorDeposit(seniorDepositor, 2_000_000e6);
 
@@ -31,7 +31,7 @@ contract S17_ParkingVenueLossTest is MorphoScenarioBase {
         _assertBooksReconcile();
     }
 
-    function test_S17_lossOnCollectedCash_stillPaysSeniorFirst() public {
+    function test_S16_lossOnCollectedCash_stillPaysSeniorFirst() public {
         _juniorDeposit(juniorDepositor, 1_000_000e6);
         _seniorDeposit(seniorDepositor, 1_000_000e6);
 
@@ -59,7 +59,7 @@ contract S17_ParkingVenueLossTest is MorphoScenarioBase {
         _assertBooksReconcile();
     }
 
-    function test_S17_lossBelowAlreadyPaid_neverFreezesLaterCollects() public {
+    function test_S16_lossBelowAlreadyPaid_neverFreezesLaterCollects() public {
         _juniorDeposit(juniorDepositor, 1_000_000e6);
         _seniorDeposit(seniorDepositor, 1_000_000e6);
 

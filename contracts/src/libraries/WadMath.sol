@@ -13,7 +13,7 @@ library WadMath {
 
     /// @notice x times y divided by d, rounded down, without intermediate overflow.
     function mulDivDown(uint256 x, uint256 y, uint256 d) internal pure returns (uint256 result) {
-        if (d == 0) revert DivisionByZero();
+        require(d != 0, DivisionByZero());
 
         uint256 prod0;
         uint256 prod1;
@@ -29,7 +29,7 @@ library WadMath {
             }
         }
 
-        if (d <= prod1) revert MulDivOverflow();
+        require(d > prod1, MulDivOverflow());
 
         unchecked {
             uint256 remainder;
@@ -64,7 +64,7 @@ library WadMath {
         result = mulDivDown(x, y, d);
         unchecked {
             if (mulmod(x, y, d) > 0) {
-                if (result == type(uint256).max) revert MulDivOverflow();
+                require(result != type(uint256).max, MulDivOverflow());
                 result += 1;
             }
         }

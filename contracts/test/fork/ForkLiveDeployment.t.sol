@@ -31,7 +31,7 @@ interface ISetterRatifierLike {
     function MIDNIGHT() external view returns (address);
 }
 
-contract BaseForkTest is Test {
+contract ForkLiveDeploymentTest is Test {
     using WadMath for uint256;
 
     uint256 internal constant PINNED_BLOCK = 51_894_109;

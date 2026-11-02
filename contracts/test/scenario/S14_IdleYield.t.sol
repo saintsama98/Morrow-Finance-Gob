@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-// Morrow Finance: S15: idle cash earns in Morpho, and the yield reaches the right people.
+// Morrow Finance: S14: idle cash earns in Morpho, and the yield reaches the right people.
 // @author adiii.eth
 
 pragma solidity 0.8.34;
@@ -9,14 +9,14 @@ import {CreditSeries} from "../../src/series/CreditSeries.sol";
 import {SeriesMath} from "../../src/libraries/SeriesMath.sol";
 import {WadMath} from "../../src/libraries/WadMath.sol";
 
-contract S15_IdleYieldTest is MorphoScenarioBase {
+contract S14_IdleYieldTest is MorphoScenarioBase {
     using WadMath for uint256;
 
     address borrower = makeAddr("borrower");
     address seniorDepositor = makeAddr("seniorDepositor");
     address juniorDepositor = makeAddr("juniorDepositor");
 
-    function test_S15_idleYield_raisesBothBookPricesByTheSamePercentage() public {
+    function test_S14_idleYield_raisesBothBookPricesByTheSamePercentage() public {
         _juniorDeposit(juniorDepositor, 1_000_000e6);
         _seniorDeposit(seniorDepositor, 2_000_000e6);
 
@@ -40,7 +40,7 @@ contract S15_IdleYieldTest is MorphoScenarioBase {
         _assertBooksReconcile();
     }
 
-    function test_S15_yieldOnDeployingCash_isSplitByJuniorShareAtFinalize() public {
+    function test_S14_yieldOnDeployingCash_isSplitByJuniorShareAtFinalize() public {
         _juniorDeposit(juniorDepositor, 1_000_000e6);
         _seniorDeposit(seniorDepositor, 1_000_000e6);
 
@@ -68,7 +68,7 @@ contract S15_IdleYieldTest is MorphoScenarioBase {
         _assertBooksReconcile();
     }
 
-    function test_S15_yieldOnCollectedCash_goesThroughTheWaterfall() public {
+    function test_S14_yieldOnCollectedCash_goesThroughTheWaterfall() public {
         _juniorDeposit(juniorDepositor, 1_000_000e6);
         _seniorDeposit(seniorDepositor, 1_000_000e6);
 

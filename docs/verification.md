@@ -50,7 +50,7 @@ The default profile runs fuzz tests at 10,000 runs and invariants at 512 runs of
 
 Unit suites cover every library (pricing, waterfall, epoch math, idle-loss math, full-precision mulDiv), the core's books, policy timelock and gates, both vaults' synchronous and batched flows, the series lifecycle against a local Midnight, the factory's eligibility rules and all three parking adapters.
 
-Scenario suites S0 to S18 (there is no S14) drive complete lifecycles: baseline, small bad debt, junior wipe, maturity wall, stuck market, under-fill, micro fill with pass-through, nothing filled, oracle manipulation, fees at caps, parking stress, exit demand above idle, loss queued before fulfilment, junior mass exit, idle yield, liquidity crunch, parking venue loss and a keeper-only lifecycle. The parking scenarios run on the ERC-4626 venue and again on Morpho Blue.
+Scenario suites S0 to S17 drive complete lifecycles: baseline, small bad debt, junior wipe, maturity wall, stuck market, under-fill, micro fill with pass-through, nothing filled, oracle manipulation, fees at caps, parking stress, exit demand above idle, loss queued before fulfilment, junior mass exit, idle yield, liquidity crunch, parking venue loss and a keeper-only lifecycle. The parking scenarios run on the ERC-4626 venue and again on Morpho Blue.
 
 A correlated crash grid (`contracts/test/scenario/CorrelatedCrashBlue.t.sol`) hits one collateral that both a series market and a local Morpho Blue parking market depend on. Senior deposits 1,000,000 USDC and junior 1,000,000; a series of 850,000 opens and fills 800,000 units of credit, and the rest is parked. Returns are on each book at settlement.
 
@@ -73,7 +73,7 @@ Handlers drive the real core, vaults, factory and series against a local Midnigh
 | `CoreVaultInvariantsNoBackstop` | idle USDC, backstop off | 12 | pass |
 | `CoreVaultInvariants` | idle USDC | 11 | pass |
 | `SeriesInvariants` | series level | 10 | pass |
-| `F10_NoValueLeakage` | series level | 1 | pass |
+| `NoValueLeakage` | series level | 1 | pass |
 
 Each invariant ran 512 sequences of 128 calls. The properties include: core cash equals reserved plus pending; vault assets equal the core's books; reserved cash covers every unclaimed entitlement; batch pro-rata soundness and pricing direction; batch ledgers balance; fills are oldest first; series counts stay within caps; every parking share belongs to the core or a funded series; parking accounts never exceed the pool; the Blue share count is backed by the market's record; a parking loss never reaches senior idle while junior idle covers it. A metrics run on the Blue suite confirms that every Blue chaos action is exercised.
 
@@ -108,7 +108,7 @@ echidna contracts/test/crytic/MorrowCrytic.sol --contract MorrowCrytic --config 
 
 Harnesses for the math libraries are in `contracts/test/formal`: `WadMathSymbolic`, `PremiumCurveSymbolic`, `SeriesMathSymbolic`, `EpochMathSymbolic`, `EpochDetachMath` and `IdleLossMath`. Each `check_` property has a `testFuzz_` twin, so `forge test` exercises every property at 10,000 runs. Where a property comes with a `reach_` companion, that companion is expected to produce a counterexample, which shows the checked paths are not vacuous.
 
-The table records only what was reproduced on the current code on 2026-10-30, one property per Halmos invocation with Yices, one solver thread, a 2 GiB solver memory cap and a 15 minute cap per property. Bitwuzla was not available on the machine used for this record.
+The table records only what was reproduced on the current code, on 2026-10-30 with the `WadMath` and batch price rows rerun on 2026-11-02 after the `WadMath` reverts changed form, one property per Halmos invocation with Yices, one solver thread, a 2 GiB solver memory cap and a 15 minute cap per property. Bitwuzla was not available on the machine used for this record.
 
 | Target | Property | Result |
 |---|---|---|
