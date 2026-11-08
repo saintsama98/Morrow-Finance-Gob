@@ -28,8 +28,10 @@ abstract contract CoreGovernance is CoreValuation {
     }
 
     /// @notice Sets the curator that sets risk policy.
+    /// @dev Changes queued by the previous curator can no longer execute.
     function setCurator(address newCurator) external onlyGovernance {
         curator = newCurator;
+        curatorEpoch++;
     }
 
     /// @notice Sets the sentinel that may only reduce risk.
@@ -47,17 +49,27 @@ abstract contract CoreGovernance is CoreValuation {
     /// @notice Queues a policy change behind the 3-day curator timelock.
     function proposePolicyChange(bytes32 key, uint256 value) external returns (uint256 executableAt) {
         require(msg.sender == curator, NotCuratorOrSentinel());
+        _requirePolicyInRange(key, value);
         executableAt = block.timestamp + CURATOR_TIMELOCK;
-        pendingPolicyChanges[key] = PendingPolicyChange(true, value, executableAt);
+        pendingPolicyChanges[key] = PendingPolicyChange(true, value, executableAt, curatorEpoch);
         emit PolicySubmitted(key, value, executableAt);
+    }
+
+    /// @notice Drops a queued policy change; the curator, the sentinel or governance.
+    function cancelPolicyChange(bytes32 key) external {
+        require(msg.sender == curator || msg.sender == sentinel || msg.sender == governance, NotPolicyVetoer());
+        _dropPending(key);
     }
 
     /// @notice Applies a queued policy change once its timelock has passed.
     function executePolicyChange(bytes32 key) external {
         PendingPolicyChange memory change = pendingPolicyChanges[key];
         require(change.active && block.timestamp >= change.executableAt, TimelockNotElapsed());
+        require(change.epoch == curatorEpoch, StalePolicyChange(key));
         delete pendingPolicyChanges[key];
+        _requirePolicyInRange(key, change.value);
         _writePolicy(key, change.value);
+        _requirePolicyConsistent();
         emit PolicyExecuted(key, change.value);
     }
 
@@ -77,6 +89,7 @@ abstract contract CoreGovernance is CoreValuation {
     function lowerMaxSeries(uint256 newMax) external onlyCuratorOrSentinel {
         require(newMax <= policy.maxSeries, TimelockIsRiskDecreasing());
         policy.maxSeries = newMax;
+        _dropPending(keccak256("maxSeries"));
         emit PolicyExecuted(keccak256("maxSeries"), newMax);
     }
 
@@ -84,6 +97,7 @@ abstract contract CoreGovernance is CoreValuation {
     function lowerMaxPerSeriesAssets(uint256 newMax) external onlyCuratorOrSentinel {
         require(newMax <= policy.maxPerSeriesAssets, TimelockIsRiskDecreasing());
         policy.maxPerSeriesAssets = newMax;
+        _dropPending(keccak256("maxPerSeriesAssets"));
         emit PolicyExecuted(keccak256("maxPerSeriesAssets"), newMax);
     }
 
@@ -91,6 +105,7 @@ abstract contract CoreGovernance is CoreValuation {
     function lowerAMaxWad(uint256 newAMax) external onlyCuratorOrSentinel {
         require(newAMax <= policy.aMaxWad && newAMax >= policy.covWad, TimelockIsRiskDecreasing());
         policy.aMaxWad = newAMax;
+        _dropPending(keccak256("aMaxWad"));
         emit PolicyExecuted(keccak256("aMaxWad"), newAMax);
     }
 
@@ -98,6 +113,7 @@ abstract contract CoreGovernance is CoreValuation {
     function raiseMinIdleSeniorWad(uint256 newFloor) external onlyCuratorOrSentinel {
         require(newFloor >= policy.minIdleSeniorWad && newFloor <= WAD, TimelockIsRiskDecreasing());
         policy.minIdleSeniorWad = newFloor;
+        _dropPending(keccak256("minIdleSeniorWad"));
         emit PolicyExecuted(keccak256("minIdleSeniorWad"), newFloor);
     }
 
@@ -105,6 +121,7 @@ abstract contract CoreGovernance is CoreValuation {
     function raiseMinIdleJuniorWad(uint256 newFloor) external onlyCuratorOrSentinel {
         require(newFloor >= policy.minIdleJuniorWad && newFloor <= WAD, TimelockIsRiskDecreasing());
         policy.minIdleJuniorWad = newFloor;
+        _dropPending(keccak256("minIdleJuniorWad"));
         emit PolicyExecuted(keccak256("minIdleJuniorWad"), newFloor);
     }
 
@@ -112,6 +129,7 @@ abstract contract CoreGovernance is CoreValuation {
     function raiseStressJuniorFloorWad(uint256 newFloor) external onlyCuratorOrSentinel {
         require(newFloor >= policy.stressJuniorFloorWad && newFloor <= WAD, TimelockIsRiskDecreasing());
         policy.stressJuniorFloorWad = newFloor;
+        _dropPending(keccak256("stressJuniorFloorWad"));
         emit PolicyExecuted(keccak256("stressJuniorFloorWad"), newFloor);
     }
 
@@ -119,12 +137,14 @@ abstract contract CoreGovernance is CoreValuation {
     function raiseCovVaultMinWad(uint256 newFloor) external onlyCuratorOrSentinel {
         require(newFloor >= policy.covVaultMinWad && newFloor < WAD, TimelockIsRiskDecreasing());
         policy.covVaultMinWad = newFloor;
+        _dropPending(keccak256("covVaultMinWad"));
         emit PolicyExecuted(keccak256("covVaultMinWad"), newFloor);
     }
 
     /// @notice Turns off the cross-series backstop from junior idle.
     function disableBackstop() external onlyCuratorOrSentinel {
         policy.backstopEnabled = false;
+        _dropPending(keccak256("backstopEnabled"));
         emit PolicyExecuted(keccak256("backstopEnabled"), 0);
     }
 
@@ -149,5 +169,55 @@ abstract contract CoreGovernance is CoreValuation {
         else if (key == keccak256("backstopWad")) policy.backstopWad = value;
         else if (key == keccak256("curatorMinShareWad")) policy.curatorMinShareWad = value;
         else if (key == keccak256("maxKMinAssets")) maxKMinAssets = value;
+        else revert UnknownPolicyKey(key);
+    }
+
+    function _dropPending(bytes32 key) internal {
+        if (!pendingPolicyChanges[key].active) return;
+        delete pendingPolicyChanges[key];
+        emit PolicyCanceled(key);
+    }
+
+    /// @dev Bounds per key, matching what the factory and the valuation math accept.
+    function _requirePolicyInRange(bytes32 key, uint256 v) internal pure {
+        bool ok = false;
+        if (key == keccak256("covWad")) {
+            ok = v >= 0.05e18 && v <= 0.5e18;
+        } else if (key == keccak256("aMaxWad")) {
+            ok = v > 0 && v < WAD;
+        } else if (key == keccak256("covVaultWad")) {
+            ok = v > 0 && v < WAD;
+        } else if (key == keccak256("covVaultMinWad")) {
+            ok = v < WAD;
+        } else if (key == keccak256("pi0Wad") || key == keccak256("piTWad") || key == keccak256("pi1Wad")) {
+            ok = v < WAD;
+        } else if (key == keccak256("thetaWad")) {
+            ok = v <= 0.2e18;
+        } else if (key == keccak256("minRateFloorWad")) {
+            ok = v > 0 && v <= WAD;
+        } else if (
+            key == keccak256("maxPerMaturityWindowWad") || key == keccak256("minIdleSeniorWad")
+                || key == keccak256("minIdleJuniorWad") || key == keccak256("stressJuniorFloorWad")
+                || key == keccak256("backstopWad") || key == keccak256("curatorMinShareWad")
+        ) {
+            ok = v <= WAD;
+        } else if (key == keccak256("backstopEnabled")) {
+            ok = v <= 1;
+        } else if (
+            key == keccak256("maxSeries") || key == keccak256("maxRecovering") || key == keccak256("maxPerSeriesAssets")
+                || key == keccak256("maxKMinAssets")
+        ) {
+            ok = true;
+        } else {
+            revert UnknownPolicyKey(key);
+        }
+        require(ok, PolicyOutOfRange(key, v));
+    }
+
+    /// @dev Cross-key rules, checked against the policy as it stands after a change.
+    function _requirePolicyConsistent() internal view {
+        Policy storage p = policy;
+        require(p.covWad <= p.aMaxWad, PolicyOutOfRange(keccak256("aMaxWad"), p.aMaxWad));
+        require(p.pi0Wad <= p.piTWad && p.piTWad <= p.pi1Wad, PolicyOutOfRange(keccak256("piTWad"), p.piTWad));
     }
 }

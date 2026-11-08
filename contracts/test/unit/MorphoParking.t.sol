@@ -8,6 +8,7 @@ import {Test} from "forge-std/Test.sol";
 import {MorphoParking} from "../../src/parking/MorphoParking.sol";
 import {MockMorphoVault} from "../mocks/MockMorphoVault.sol";
 import {MockUSDC} from "../mocks/MockUSDC.sol";
+import {MorrowRegistryStub} from "../mocks/MorrowRegistryStub.sol";
 
 contract ParkingUser {
     MockUSDC immutable usdc;
@@ -36,6 +37,7 @@ contract MorphoParkingTest is Test {
     MockUSDC usdc;
     MockMorphoVault vault;
     MorphoParking parking;
+    MorrowRegistryStub registry;
     ParkingUser alice;
     ParkingUser bob;
 
@@ -44,9 +46,12 @@ contract MorphoParkingTest is Test {
     function setUp() public {
         usdc = new MockUSDC();
         vault = new MockMorphoVault(usdc);
-        parking = new MorphoParking(address(usdc), address(vault), BUFFER_WAD);
+        registry = new MorrowRegistryStub();
+        parking = new MorphoParking(address(usdc), address(vault), BUFFER_WAD, address(registry));
         alice = new ParkingUser(usdc, parking);
         bob = new ParkingUser(usdc, parking);
+        registry.register(address(alice));
+        registry.register(address(bob));
         usdc.mint(address(alice), 100_000_000e6);
         usdc.mint(address(bob), 100_000_000e6);
     }
@@ -62,17 +67,17 @@ contract MorphoParkingTest is Test {
     function test_constructor_rejectsWrongAsset() public {
         MockUSDC other = new MockUSDC();
         vm.expectRevert(MorphoParking.AssetMismatch.selector);
-        new MorphoParking(address(other), address(vault), BUFFER_WAD);
+        new MorphoParking(address(other), address(vault), BUFFER_WAD, address(registry));
     }
 
     function test_constructor_rejectsBufferAboveOne() public {
         vm.expectRevert(MorphoParking.InvalidBuffer.selector);
-        new MorphoParking(address(usdc), address(vault), 1e18 + 1);
+        new MorphoParking(address(usdc), address(vault), 1e18 + 1, address(registry));
     }
 
     function test_constructor_rejectsZeroAddresses() public {
         vm.expectRevert(MorphoParking.ZeroAddress.selector);
-        new MorphoParking(address(0), address(vault), BUFFER_WAD);
+        new MorphoParking(address(0), address(vault), BUFFER_WAD, address(registry));
     }
 
     function test_deposit_isExactAtUnitPrice_andSplitsIntoBufferAndVault() public {
@@ -228,6 +233,7 @@ contract MorphoParkingTest is Test {
     function test_donationBeforeFirstDeposit_cannotStealFromTheNextDepositor() public {
         address attacker = makeAddr("attacker");
         ParkingUser attackerUser = new ParkingUser(usdc, parking);
+        registry.register(address(attackerUser));
         usdc.mint(address(attackerUser), 1);
         attackerUser.deposit(1);
         usdc.mint(attacker, 1_000_000e6);
@@ -242,6 +248,7 @@ contract MorphoParkingTest is Test {
     function test_accountWithNoShares_cannotWithdrawDust() public {
         alice.deposit(1_000_000e6);
         ParkingUser stranger = new ParkingUser(usdc, parking);
+        registry.register(address(stranger));
         assertEq(parking.sharesOf(address(stranger)), 0);
         uint256 before = usdc.balanceOf(address(stranger));
         uint256 dust = parking.DUST_ASSETS();

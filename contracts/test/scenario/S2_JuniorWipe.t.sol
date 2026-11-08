@@ -5,6 +5,7 @@
 pragma solidity 0.8.34;
 
 import {ScenarioBase} from "./ScenarioBase.t.sol";
+import {USDCSeniorDeposits} from "../../src/vaults/senior/USDCSeniorDeposits.sol";
 import {CreditSeries} from "../../src/series/CreditSeries.sol";
 
 contract S2_JuniorWipeTest is ScenarioBase {
@@ -40,7 +41,7 @@ contract S2_JuniorWipeTest is ScenarioBase {
         assertFalse(core.stressGateOpen(), "stress gate must close once this series' junior NAV is wiped");
 
         vm.prank(seniorDepositor);
-        vm.expectRevert();
+        vm.expectRevert(USDCSeniorDeposits.StressGateClosed.selector);
         seniorVault.deposit(1, seniorDepositor);
 
         _restoreOracle();

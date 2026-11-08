@@ -45,13 +45,18 @@ abstract contract CoreStorage {
     error ParkingShortPaid(uint256 asked, uint256 received);
     error TransferFailed();
     error ApproveFailed();
+    error UnknownPolicyKey(bytes32 key);
+    error PolicyOutOfRange(bytes32 key, uint256 value);
+    error StalePolicyChange(bytes32 key);
+    error NotPolicyVetoer();
 
     event SeriesFunded(address indexed series, uint256 seniorAllocated, uint256 juniorAllocated);
     event ReturnReceived(address indexed series, uint256 toSenior, uint256 toJunior);
     event PayoutReceived(address indexed series, uint256 toSenior, uint256 toJunior);
     event Backstop(address indexed series, uint256 assets);
+    event BackstopRefunded(address indexed series, uint256 assets);
+    event PolicyCanceled(bytes32 indexed key);
     event Synced(uint256 seniorAssets, uint256 juniorAssets);
-    event StressGate(bool open);
     event VaultsSet(address seniorVault, address juniorVault);
     event PolicySubmitted(bytes32 indexed key, uint256 value, uint256 executableAt);
     event PolicyExecuted(bytes32 indexed key, uint256 value);
@@ -98,6 +103,7 @@ abstract contract CoreStorage {
         bool active;
         uint256 value;
         uint256 executableAt;
+        uint256 epoch;
     }
 
     address public immutable USDC;
@@ -123,10 +129,13 @@ abstract contract CoreStorage {
     address[] public recoveringSeries;
     mapping(address => SeriesInfo) public info;
     mapping(address => uint256) public backstopPaid;
+    mapping(address => uint256) public backstopRefunded;
+    mapping(address => bool) public isRecovering;
 
     Policy public policy;
     uint256 public maxKMinAssets;
     mapping(bytes32 => PendingPolicyChange) public pendingPolicyChanges;
+    uint256 public curatorEpoch;
 
     modifier onlyAllocator() {
         require(msg.sender == allocator, NotAllocator());

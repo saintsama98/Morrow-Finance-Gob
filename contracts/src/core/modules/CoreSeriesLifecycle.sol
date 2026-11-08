@@ -65,21 +65,17 @@ abstract contract CoreSeriesLifecycle is CoreVaultFlows {
         emit ReturnReceived(msg.sender, toSenior, toJunior);
     }
 
-    /// @notice Credits a waterfall payout from a series and applies the backstop if senior is short.
+    /// @notice Credits a waterfall payout from a series, then applies or refunds the backstop.
     function receivePayout(uint256 toSenior, uint256 toJunior) external onlyRegisteredSeries {
         _creditBooks(toSenior, toJunior);
 
-        if (policy.backstopEnabled) {
-            _applyBackstop(msg.sender);
-        }
+        _settleBackstop(msg.sender);
 
         CreditSeries s = CreditSeries(msg.sender);
         if (uint8(s.state()) == uint8(SeriesState.SETTLED)) {
             bool stillRecovering = _hasWrittenOffCredit(s);
             _removeLive(msg.sender);
-            if (stillRecovering && recoveringSeries.length < policy.maxRecovering) {
-                recoveringSeries.push(msg.sender);
-            }
+            if (stillRecovering) _trackRecovering(msg.sender);
         }
 
         emit PayoutReceived(msg.sender, toSenior, toJunior);
@@ -106,9 +102,7 @@ abstract contract CoreSeriesLifecycle is CoreVaultFlows {
                 address addr = liveSeries[i];
                 liveSeries[i] = liveSeries[liveSeries.length - 1];
                 liveSeries.pop();
-                if (stillRecovering && recoveringSeries.length < policy.maxRecovering) {
-                    recoveringSeries.push(addr);
-                }
+                if (stillRecovering) _trackRecovering(addr);
             } else {
                 i++;
             }
@@ -117,6 +111,7 @@ abstract contract CoreSeriesLifecycle is CoreVaultFlows {
         uint256 j;
         while (j < recoveringSeries.length) {
             if (!_hasWrittenOffCredit(CreditSeries(recoveringSeries[j]))) {
+                isRecovering[recoveringSeries[j]] = false;
                 recoveringSeries[j] = recoveringSeries[recoveringSeries.length - 1];
                 recoveringSeries.pop();
             } else {
@@ -156,18 +151,25 @@ abstract contract CoreSeriesLifecycle is CoreVaultFlows {
         }
     }
 
-    function _applyBackstop(address seriesAddr) internal {
+    /// @dev Senior is owed its claim once. While the series has paid less, junior idle covers part of the gap; once
+    /// later recoveries pay senior past its claim net of what the backstop moved, the excess goes back to junior.
+    function _settleBackstop(address seriesAddr) internal {
         CreditSeries s = CreditSeries(seriesAddr);
         if (s.passThrough()) return;
 
         uint256 claim = s.seniorClaim();
         uint256 paid = s.paidS();
-        if (paid >= claim) return;
+        uint256 outstanding = backstopPaid[seriesAddr] - backstopRefunded[seriesAddr];
 
-        uint256 shortfall = claim - paid;
-        uint256 already = backstopPaid[seriesAddr];
-        if (already >= shortfall) return;
-        uint256 remaining = shortfall - already;
+        if (paid + outstanding > claim) {
+            uint256 excess = paid + outstanding - claim;
+            _refundBackstop(seriesAddr, excess < outstanding ? excess : outstanding);
+            return;
+        }
+        if (!policy.backstopEnabled) return;
+
+        uint256 remaining = claim - paid - outstanding;
+        if (remaining == 0) return;
 
         _settleIdleLoss(_parked());
         uint256 maxFromIdle = idle(false).mulDivDown(policy.backstopWad, WAD);
@@ -181,6 +183,28 @@ abstract contract CoreSeriesLifecycle is CoreVaultFlows {
         backstopPaid[seriesAddr] += backstop;
 
         emit Backstop(seriesAddr, backstop);
+    }
+
+    function _refundBackstop(address seriesAddr, uint256 assets) internal {
+        if (assets == 0) return;
+        uint256 parked = _parked();
+        _settleIdleLoss(parked);
+        uint256 claims = assets.mulDivDown(totalParkingClaims + VIRTUAL_CLAIMS, parked + 1);
+        if (claims > senior.parkingClaims) {
+            claims = senior.parkingClaims;
+            assets = _claimValue(claims, parked);
+        }
+        senior.parkingClaims -= claims;
+        junior.parkingClaims += claims;
+        backstopRefunded[seriesAddr] += assets;
+
+        emit BackstopRefunded(seriesAddr, assets);
+    }
+
+    function _trackRecovering(address seriesAddr) internal {
+        if (isRecovering[seriesAddr] || recoveringSeries.length >= policy.maxRecovering) return;
+        isRecovering[seriesAddr] = true;
+        recoveringSeries.push(seriesAddr);
     }
 
     function _removeLive(address seriesAddr) internal {

@@ -1702,5 +1702,341 @@
   "confidence": "Medium",
   "description": "Reentrancy in CoreSeriesLifecycle.openSeries(SeriesParams,uint256,uint256) (contracts/src/core/modules/CoreSeriesLifecycle.sol#19-55):\n\tExternal calls:\n\t- seriesAddr = FACTORY.createSeries(p) (contracts/src/core/modules/CoreSeriesLifecycle.sol#45)\n\tState variables written after the call(s):\n\t- _removeFromBooks(S,J) (contracts/src/core/modules/CoreSeriesLifecycle.sol#47)\n\t\t- claimPriceMark = _claimPrice(parked) (contracts/src/core/modules/CoreParkingBooks.sol#54)\n\tCoreStorage.claimPriceMark (contracts/src/core/modules/CoreStorage.sol#120) can be used in cross function reentrancies:\n\t- CoreParkingBooks._effectiveClaims(uint256) (contracts/src/core/modules/CoreParkingBooks.sol#36-44)\n\t- CoreParkingBooks._settleIdleLoss(uint256) (contracts/src/core/modules/CoreParkingBooks.sol#46-55)\n\t- CoreStorage.claimPriceMark (contracts/src/core/modules/CoreStorage.sol#120)\n\t- _removeFromBooks(S,J) (contracts/src/core/modules/CoreSeriesLifecycle.sol#47)\n\t\t- junior.parkingClaims = juniorClaims (contracts/src/core/modules/CoreParkingBooks.sol#51)\n\t\t- junior.parkingClaims -= claimsJunior (contracts/src/core/modules/CoreParkingBooks.sol#86)\n\tCoreStorage.junior (contracts/src/core/modules/CoreStorage.sol#118) can be used in cross function reentrancies:\n\t- CoreParkingBooks._addToBook(bool,uint256,uint256) (contracts/src/core/modules/CoreParkingBooks.sol#65-70)\n\t- CoreSeriesLifecycle._applyBackstop(address) (contracts/src/core/modules/CoreSeriesLifecycle.sol#159-184)\n\t- CoreParkingBooks._creditBooks(uint256,uint256) (contracts/src/core/modules/CoreParkingBooks.sol#99-110)\n\t- CoreParkingBooks._effectiveClaims(uint256) (contracts/src/core/modules/CoreParkingBooks.sol#36-44)\n\t- CoreParkingBooks._removeFromBooks(uint256,uint256) (contracts/src/core/modules/CoreParkingBooks.sol#72-88)\n\t- CoreParkingBooks._settleIdleLoss(uint256) (contracts/src/core/modules/CoreParkingBooks.sol#46-55)\n\t- CoreVaultFlows.addPendingJunior(uint256) (contracts/src/core/modules/CoreVaultFlows.sol#19-21)\n\t- CoreVaultFlows.investPendingJunior(uint256) (contracts/src/core/modules/CoreVaultFlows.sol#30-33)\n\t- CoreStorage.junior (contracts/src/core/modules/CoreStorage.sol#118)\n\t- CoreVaultFlows.payFrom(bool,address,uint256) (contracts/src/core/modules/CoreVaultFlows.sol#54-59)\n\t- CoreVaultFlows.removePendingJunior(uint256,address) (contracts/src/core/modules/CoreVaultFlows.sol#24-27)\n\t- CoreVaultFlows.reserveFor(bool,uint256) (contracts/src/core/modules/CoreVaultFlows.sol#36-51)\n\t- _removeFromBooks(S,J) (contracts/src/core/modules/CoreSeriesLifecycle.sol#47)\n\t\t- senior.parkingClaims -= claimsSenior (contracts/src/core/modules/CoreParkingBooks.sol#85)\n\t\t- senior.parkingClaims = seniorClaims (contracts/src/core/modules/CoreParkingBooks.sol#50)\n\tCoreStorage.senior (contracts/src/core/modules/CoreStorage.sol#117) can be used in cross function reentrancies:\n\t- CoreParkingBooks._addToBook(bool,uint256,uint256) (contracts/src/core/modules/CoreParkingBooks.sol#65-70)\n\t- CoreSeriesLifecycle._applyBackstop(address) (contracts/src/core/modules/CoreSeriesLifecycle.sol#159-184)\n\t- CoreParkingBooks._creditBooks(uint256,uint256) (contracts/src/core/modules/CoreParkingBooks.sol#99-110)\n\t- CoreParkingBooks._effectiveClaims(uint256) (contracts/src/core/modules/CoreParkingBooks.sol#36-44)\n\t- CoreParkingBooks._removeFromBooks(uint256,uint256) (contracts/src/core/modules/CoreParkingBooks.sol#72-88)\n\t- CoreParkingBooks._settleIdleLoss(uint256) (contracts/src/core/modules/CoreParkingBooks.sol#46-55)\n\t- CoreVaultFlows.payFrom(bool,address,uint256) (contracts/src/core/modules/CoreVaultFlows.sol#54-59)\n\t- CoreVaultFlows.reserveFor(bool,uint256) (contracts/src/core/modules/CoreVaultFlows.sol#36-51)\n\t- CoreStorage.senior (contracts/src/core/modules/CoreStorage.sol#117)\n\t- _removeFromBooks(S,J) (contracts/src/core/modules/CoreSeriesLifecycle.sol#47)\n\t\t- totalParkingClaims -= claimsSenior + claimsJunior (contracts/src/core/modules/CoreParkingBooks.sol#87)\n\tCoreStorage.totalParkingClaims (contracts/src/core/modules/CoreStorage.sol#119) can be used in cross function reentrancies:\n\t- CoreParkingBooks._addToBook(bool,uint256,uint256) (contracts/src/core/modules/CoreParkingBooks.sol#65-70)\n\t- CoreSeriesLifecycle._applyBackstop(address) (contracts/src/core/modules/CoreSeriesLifecycle.sol#159-184)\n\t- CoreParkingBooks._claimPrice(uint256) (contracts/src/core/modules/CoreParkingBooks.sol#32-34)\n\t- CoreParkingBooks._claimValue(uint256,uint256) (contracts/src/core/modules/CoreParkingBooks.sol#61-63)\n\t- CoreParkingBooks._claimsFor(uint256,uint256) (contracts/src/core/modules/CoreParkingBooks.sol#57-59)\n\t- CoreParkingBooks._creditBooks(uint256,uint256) (contracts/src/core/modules/CoreParkingBooks.sol#99-110)\n\t- CoreParkingBooks._effectiveClaims(uint256) (contracts/src/core/modules/CoreParkingBooks.sol#36-44)\n\t- CoreParkingBooks._removeFromBooks(uint256,uint256) (contracts/src/core/modules/CoreParkingBooks.sol#72-88)\n\t- CoreStorage.totalParkingClaims (contracts/src/core/modules/CoreStorage.sol#119)\n",
   "triage": "tooling limitation: callees are the immutable factory, immutable parking adapter and the new series; onlyAllocator / internal book path"
+ },
+ {
+  "id": "4cd32d776f615b1e640fc4bafd96f5812885e9c80b9e62ebfa5569d3265a9138",
+  "check": "incorrect-equality",
+  "impact": "Medium",
+  "confidence": "High",
+  "description": "SeriesFactory._consumeTimelock(bytes32) (contracts/src/series/SeriesFactory.sol#184-189) uses a dangerous strict equality:\n\t- require(bool,error)(change.epoch == governanceEpoch,revert StaleChange(bytes32)(id)) (contracts/src/series/SeriesFactory.sol#187)\n",
+  "triage": "tooling limitation: exact match of an epoch counter, not a balance"
+ },
+ {
+  "id": "5feaca18e14f15e263876894e35076674bc9e34d296ec4112be9545a18858fc1",
+  "check": "incorrect-equality",
+  "impact": "Medium",
+  "confidence": "High",
+  "description": "MorphoParking._supply(uint256) (contracts/src/parking/MorphoParking.sol#167-173) uses a dangerous strict equality:\n\t- amount == 0 (contracts/src/parking/MorphoParking.sol#170)\n",
+  "triage": "tooling limitation or deliberate strict check, see triage doc"
+ },
+ {
+  "id": "759349a8ff079bb5e6cf96651fe3a7d885ef399acd93f3fff7b63d218a439d56",
+  "check": "incorrect-equality",
+  "impact": "Medium",
+  "confidence": "High",
+  "description": "CoreGovernance.executePolicyChange(bytes32) (contracts/src/core/modules/CoreGovernance.sol#65-74) uses a dangerous strict equality:\n\t- require(bool,error)(change.epoch == curatorEpoch,revert StalePolicyChange(bytes32)(key)) (contracts/src/core/modules/CoreGovernance.sol#68)\n",
+  "triage": "tooling limitation: exact match of an epoch counter, not a balance"
+ },
+ {
+  "id": "da2561509ebcd2826d1d464de41baaa5ad0811a692f38af63353eebaae2a5e1f",
+  "check": "incorrect-equality",
+  "impact": "Medium",
+  "confidence": "High",
+  "description": "MorphoParking._pull(uint256) (contracts/src/parking/MorphoParking.sol#175-180) uses a dangerous strict equality:\n\t- amount == 0 (contracts/src/parking/MorphoParking.sol#178)\n",
+  "triage": "tooling limitation or deliberate strict check, see triage doc"
+ },
+ {
+  "id": "dcc3c09db4fba88126c2175c54477fbc7712ce55ce0a03fe32f663df2134eb2b",
+  "check": "incorrect-equality",
+  "impact": "Medium",
+  "confidence": "High",
+  "description": "CoreSeriesLifecycle._requireParamsBound(SeriesParams) (contracts/src/core/modules/CoreSeriesLifecycle.sol#123-138) uses a dangerous strict equality:\n\t- require(bool,error)(p.covWad == policy.covWad && p.pi0Wad == policy.pi0Wad && p.piTWad == policy.piTWad && p.pi1Wad == policy.pi1Wad && p.thetaWad == policy.thetaWad,revert PolicyMismatch()()) (contracts/src/core/modules/CoreSeriesLifecycle.sol#127-131)\n",
+  "triage": "tooling limitation or deliberate strict check, see triage doc"
+ },
+ {
+  "id": "69a87a1e24f083cfb2040aa8583ecbc032be51d1fd9dcbd42768dce67e38594c",
+  "check": "reentrancy-no-eth",
+  "impact": "Medium",
+  "confidence": "Medium",
+  "description": "Reentrancy in CoreSeriesLifecycle.openSeries(SeriesParams,uint256,uint256) (contracts/src/core/modules/CoreSeriesLifecycle.sol#19-55):\n\tExternal calls:\n\t- seriesAddr = FACTORY.createSeries(p) (contracts/src/core/modules/CoreSeriesLifecycle.sol#45)\n\tState variables written after the call(s):\n\t- _removeFromBooks(S,J) (contracts/src/core/modules/CoreSeriesLifecycle.sol#47)\n\t\t- claimPriceMark = _claimPrice(parked) (contracts/src/core/modules/CoreParkingBooks.sol#54)\n\tCoreStorage.claimPriceMark (contracts/src/core/modules/CoreStorage.sol#126) can be used in cross function reentrancies:\n\t- CoreParkingBooks._effectiveClaims(uint256) (contracts/src/core/modules/CoreParkingBooks.sol#36-44)\n\t- CoreParkingBooks._settleIdleLoss(uint256) (contracts/src/core/modules/CoreParkingBooks.sol#46-55)\n\t- CoreStorage.claimPriceMark (contracts/src/core/modules/CoreStorage.sol#126)\n\t- _removeFromBooks(S,J) (contracts/src/core/modules/CoreSeriesLifecycle.sol#47)\n\t\t- junior.parkingClaims = juniorClaims (contracts/src/core/modules/CoreParkingBooks.sol#51)\n\t\t- junior.parkingClaims -= claimsJunior (contracts/src/core/modules/CoreParkingBooks.sol#86)\n\tCoreStorage.junior (contracts/src/core/modules/CoreStorage.sol#124) can be used in cross function reentrancies:\n\t- CoreParkingBooks._addToBook(bool,uint256,uint256) (contracts/src/core/modules/CoreParkingBooks.sol#65-70)\n\t- CoreParkingBooks._creditBooks(uint256,uint256) (contracts/src/core/modules/CoreParkingBooks.sol#99-110)\n\t- CoreParkingBooks._effectiveClaims(uint256) (contracts/src/core/modules/CoreParkingBooks.sol#36-44)\n\t- CoreSeriesLifecycle._refundBackstop(address,uint256) (contracts/src/core/modules/CoreSeriesLifecycle.sol#188-202)\n\t- CoreParkingBooks._removeFromBooks(uint256,uint256) (contracts/src/core/modules/CoreParkingBooks.sol#72-88)\n\t- CoreSeriesLifecycle._settleBackstop(address) (contracts/src/core/modules/CoreSeriesLifecycle.sol#156-186)\n\t- CoreParkingBooks._settleIdleLoss(uint256) (contracts/src/core/modules/CoreParkingBooks.sol#46-55)\n\t- CoreVaultFlows.addPendingJunior(uint256) (contracts/src/core/modules/CoreVaultFlows.sol#19-21)\n\t- CoreVaultFlows.investPendingJunior(uint256) (contracts/src/core/modules/CoreVaultFlows.sol#30-33)\n\t- CoreStorage.junior (contracts/src/core/modules/CoreStorage.sol#124)\n\t- CoreVaultFlows.payFrom(bool,address,uint256) (contracts/src/core/modules/CoreVaultFlows.sol#54-59)\n\t- CoreVaultFlows.removePendingJunior(uint256,address) (contracts/src/core/modules/CoreVaultFlows.sol#24-27)\n\t- CoreVaultFlows.reserveFor(bool,uint256) (contracts/src/core/modules/CoreVaultFlows.sol#36-51)\n\t- _removeFromBooks(S,J) (contracts/src/core/modules/CoreSeriesLifecycle.sol#47)\n\t\t- senior.parkingClaims -= claimsSenior (contracts/src/core/modules/CoreParkingBooks.sol#85)\n\t\t- senior.parkingClaims = seniorClaims (contracts/src/core/modules/CoreParkingBooks.sol#50)\n\tCoreStorage.senior (contracts/src/core/modules/CoreStorage.sol#123) can be used in cross function reentrancies:\n\t- CoreParkingBooks._addToBook(bool,uint256,uint256) (contracts/src/core/modules/CoreParkingBooks.sol#65-70)\n\t- CoreParkingBooks._creditBooks(uint256,uint256) (contracts/src/core/modules/CoreParkingBooks.sol#99-110)\n\t- CoreParkingBooks._effectiveClaims(uint256) (contracts/src/core/modules/CoreParkingBooks.sol#36-44)\n\t- CoreSeriesLifecycle._refundBackstop(address,uint256) (contracts/src/core/modules/CoreSeriesLifecycle.sol#188-202)\n\t- CoreParkingBooks._removeFromBooks(uint256,uint256) (contracts/src/core/modules/CoreParkingBooks.sol#72-88)\n\t- CoreSeriesLifecycle._settleBackstop(address) (contracts/src/core/modules/CoreSeriesLifecycle.sol#156-186)\n\t- CoreParkingBooks._settleIdleLoss(uint256) (contracts/src/core/modules/CoreParkingBooks.sol#46-55)\n\t- CoreVaultFlows.payFrom(bool,address,uint256) (contracts/src/core/modules/CoreVaultFlows.sol#54-59)\n\t- CoreVaultFlows.reserveFor(bool,uint256) (contracts/src/core/modules/CoreVaultFlows.sol#36-51)\n\t- CoreStorage.senior (contracts/src/core/modules/CoreStorage.sol#123)\n\t- _removeFromBooks(S,J) (contracts/src/core/modules/CoreSeriesLifecycle.sol#47)\n\t\t- totalParkingClaims -= claimsSenior + claimsJunior (contracts/src/core/modules/CoreParkingBooks.sol#87)\n\tCoreStorage.totalParkingClaims (contracts/src/core/modules/CoreStorage.sol#125) can be used in cross function reentrancies:\n\t- CoreParkingBooks._addToBook(bool,uint256,uint256) (contracts/src/core/modules/CoreParkingBooks.sol#65-70)\n\t- CoreParkingBooks._claimPrice(uint256) (contracts/src/core/modules/CoreParkingBooks.sol#32-34)\n\t- CoreParkingBooks._claimValue(uint256,uint256) (contracts/src/core/modules/CoreParkingBooks.sol#61-63)\n\t- CoreParkingBooks._claimsFor(uint256,uint256) (contracts/src/core/modules/CoreParkingBooks.sol#57-59)\n\t- CoreParkingBooks._creditBooks(uint256,uint256) (contracts/src/core/modules/CoreParkingBooks.sol#99-110)\n\t- CoreParkingBooks._effectiveClaims(uint256) (contracts/src/core/modules/CoreParkingBooks.sol#36-44)\n\t- CoreSeriesLifecycle._refundBackstop(address,uint256) (contracts/src/core/modules/CoreSeriesLifecycle.sol#188-202)\n\t- CoreParkingBooks._removeFromBooks(uint256,uint256) (contracts/src/core/modules/CoreParkingBooks.sol#72-88)\n\t- CoreSeriesLifecycle._settleBackstop(address) (contracts/src/core/modules/CoreSeriesLifecycle.sol#156-186)\n\t- CoreStorage.totalParkingClaims (contracts/src/core/modules/CoreStorage.sol#125)\n",
+  "triage": "tooling limitation: callees are the immutable factory, immutable parking adapter and the new series; onlyAllocator / internal book path"
+ },
+ {
+  "id": "32b11898362c49693a2dbbdb85e722c13db27f14ee12734dee74ad57afb48c5c",
+  "check": "unused-return",
+  "impact": "Medium",
+  "confidence": "Medium",
+  "description": "CoreSeriesLifecycle.syncAll() (contracts/src/core/modules/CoreSeriesLifecycle.sol#85-92) ignores return value by CreditSeries(liveSeries[i]).navsSynced() (contracts/src/core/modules/CoreSeriesLifecycle.sol#89)\n",
+  "triage": "tooling limitation: deliberately dropped tuple fields and side-effect calls"
+ },
+ {
+  "id": "a0af249a4e44412b9edb6e49583760ad5cd31d787255d0fb98cb10e9ef375489",
+  "check": "unused-return",
+  "impact": "Medium",
+  "confidence": "Medium",
+  "description": "MorphoParking._pull(uint256) (contracts/src/parking/MorphoParking.sol#175-180) ignores return value by VAULT.withdraw(amount,address(this),address(this)) (contracts/src/parking/MorphoParking.sol#179)\n",
+  "triage": "tooling limitation: deliberately dropped tuple fields and side-effect calls"
+ },
+ {
+  "id": "b3d890687bce708c704b0d84354ba789b2335379473dc93bdbfb49d8b802f4a5",
+  "check": "unused-return",
+  "impact": "Medium",
+  "confidence": "Medium",
+  "description": "MorphoParking._ensureBuffer(uint256) (contracts/src/parking/MorphoParking.sol#182-189) ignores return value by VAULT.withdraw(need,address(this),address(this)) (contracts/src/parking/MorphoParking.sol#188)\n",
+  "triage": "tooling limitation: deliberately dropped tuple fields and side-effect calls"
+ },
+ {
+  "id": "e194f66ed6ff3090e18f944f06f262544c1041423432bb1f5ecc544ceedf7505",
+  "check": "unused-return",
+  "impact": "Medium",
+  "confidence": "Medium",
+  "description": "MorphoParking.onlyMorrow() (contracts/src/parking/MorphoParking.sol#67-74) ignores return value by (None,None,None,registered) = IMorphoParkingCoreLike(core).info(msg.sender) (contracts/src/parking/MorphoParking.sol#70)\n",
+  "triage": "tooling limitation: tuple destructuring keeps only the registered flag"
+ },
+ {
+  "id": "fa398cfaadd86910a94f444da8f297f597274802c38059f9a772dae734cf2b47",
+  "check": "unused-return",
+  "impact": "Medium",
+  "confidence": "Medium",
+  "description": "MorphoParking._supply(uint256) (contracts/src/parking/MorphoParking.sol#167-173) ignores return value by VAULT.deposit(amount,address(this)) (contracts/src/parking/MorphoParking.sol#172)\n",
+  "triage": "tooling limitation: deliberately dropped tuple fields and side-effect calls"
+ },
+ {
+  "id": "8c5fda64008aa97a97463e4a38412581a6838eb1350cb1b5a3ce51487ebc10e6",
+  "check": "events-access",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "CoreGovernance.setCurator(address) (contracts/src/core/modules/CoreGovernance.sol#32-35) should emit an event for: \n\t- curator = newCurator (contracts/src/core/modules/CoreGovernance.sol#33) \n",
+  "triage": "accepted by owner instruction: governance setters kept as is (G3)"
+ },
+ {
+  "id": "f3043650f0b8e117d929779c9e984435aa947f61167057a7f606771a3db451a7",
+  "check": "events-access",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "CoreGovernance.setSentinel(address) (contracts/src/core/modules/CoreGovernance.sol#38-40) should emit an event for: \n\t- sentinel = newSentinel (contracts/src/core/modules/CoreGovernance.sol#39) \n",
+  "triage": "accepted by owner instruction: governance setters kept as is (G3)"
+ },
+ {
+  "id": "36fcd839bef7a01fc3d23f8c29885a6555b00573c0e5062ab95dbed7572e4fa9",
+  "check": "missing-zero-check",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "CoreGovernance.setSentinel(address).newSentinel (contracts/src/core/modules/CoreGovernance.sol#38) lacks a zero-check on :\n\t\t- sentinel = newSentinel (contracts/src/core/modules/CoreGovernance.sol#39)\n",
+  "triage": "accepted by owner instruction: governance setters kept as is; deploy checklist"
+ },
+ {
+  "id": "3ab419f0e7715ff0609fa35f82cdd55251f89e66a8b80422cd2188359e795fb6",
+  "check": "missing-zero-check",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "SeriesFactory.setCore(address).core_ (contracts/src/series/SeriesFactory.sol#94) lacks a zero-check on :\n\t\t- core = core_ (contracts/src/series/SeriesFactory.sol#96)\n",
+  "triage": "accepted by owner instruction: governance setters kept as is; deploy checklist"
+ },
+ {
+  "id": "562cdd707c1292b958d4405d02660775ae666591ea4f71fec1452d8ca4d439d2",
+  "check": "missing-zero-check",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "SeriesFactory.constructor(IMidnightMinimal,address,address,address,uint256,uint256).governance_ (contracts/src/series/SeriesFactory.sol#78) lacks a zero-check on :\n\t\t- governance = governance_ (contracts/src/series/SeriesFactory.sol#86)\n",
+  "triage": "accepted by owner instruction: governance setters kept as is; deploy checklist"
+ },
+ {
+  "id": "6d3cf51574f9c6a15991fb572c16b49dc60da68312c9c122297ae889e981fac5",
+  "check": "missing-zero-check",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "SeriesFactory.constructor(IMidnightMinimal,address,address,address,uint256,uint256).setterRatifier (contracts/src/series/SeriesFactory.sol#76) lacks a zero-check on :\n\t\t- SETTER_RATIFIER = setterRatifier (contracts/src/series/SeriesFactory.sol#84)\n",
+  "triage": "accepted by owner instruction: governance setters kept as is; deploy checklist"
+ },
+ {
+  "id": "a34e7e607d00ace7ccf13ca76dfd8ac69ec70044f3274f14199b4e9cbb4db2b2",
+  "check": "missing-zero-check",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "CoreGovernance.setCurator(address).newCurator (contracts/src/core/modules/CoreGovernance.sol#32) lacks a zero-check on :\n\t\t- curator = newCurator (contracts/src/core/modules/CoreGovernance.sol#33)\n",
+  "triage": "accepted by owner instruction: governance setters kept as is; deploy checklist"
+ },
+ {
+  "id": "d83967378dc6a0c819f634168b7fdbefce30126ba3371d6a0a690c46f44abd56",
+  "check": "missing-zero-check",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "SeriesFactory.transferGovernance(address).newGovernance (contracts/src/series/SeriesFactory.sol#171) lacks a zero-check on :\n\t\t- governance = newGovernance (contracts/src/series/SeriesFactory.sol#172)\n",
+  "triage": "accepted by owner instruction: governance setters kept as is; deploy checklist"
+ },
+ {
+  "id": "6d9f8993c9f48ff36cae25dc374fda78ed70a6dabf966dc01e3f5d3bcfe4b1cf",
+  "check": "calls-loop",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "CoreSeriesLifecycle.pruneSeries() (contracts/src/core/modules/CoreSeriesLifecycle.sol#95-121) has external calls inside a loop: st = uint8(s.state()) (contracts/src/core/modules/CoreSeriesLifecycle.sol#99)\n",
+  "triage": "tooling limitation: bounded loops over factory-created series and Midnight views"
+ },
+ {
+  "id": "ce7e9bb07c2f0402c1aa2beb3b6c635a11c5ef9bdc0647618152accb89c56fb7",
+  "check": "calls-loop",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "CoreSeriesLifecycle.syncAll() (contracts/src/core/modules/CoreSeriesLifecycle.sol#85-92) has external calls inside a loop: CreditSeries(liveSeries[i]).navsSynced() (contracts/src/core/modules/CoreSeriesLifecycle.sol#89)\n",
+  "triage": "tooling limitation: bounded loops over factory-created series and Midnight views"
+ },
+ {
+  "id": "50de9cac82ca552023e136bc439ffdbf68e398c223b5b8357b94b1098e27224c",
+  "check": "reentrancy-events",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "Reentrancy in CoreSeriesLifecycle.syncAll() (contracts/src/core/modules/CoreSeriesLifecycle.sol#85-92):\n\tExternal calls:\n\t- CreditSeries(liveSeries[i]).navsSynced() (contracts/src/core/modules/CoreSeriesLifecycle.sol#89)\n\tEvent emitted after the call(s):\n\t- Synced(seniorAssets(),juniorAssets()) (contracts/src/core/modules/CoreSeriesLifecycle.sol#91)\n",
+  "triage": "tooling limitation: events after trusted calls"
+ },
+ {
+  "id": "219a9fe4544395202ec69e0fd524eeb4c5865742e157835d34ab1179d0583c72",
+  "check": "timestamp",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "CoreGovernance.raiseMinIdleJuniorWad(uint256) (contracts/src/core/modules/CoreGovernance.sol#121-126) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- require(bool,error)(newFloor >= policy.minIdleJuniorWad && newFloor <= WAD,revert TimelockIsRiskDecreasing()()) (contracts/src/core/modules/CoreGovernance.sol#122)\n",
+  "triage": "tooling limitation: day-scale windows"
+ },
+ {
+  "id": "28c30a634c96070fc2d2d83b31ae6d5b50df532a3d0dfdf0ba1f282eebd98003",
+  "check": "timestamp",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "CoreGovernance.raiseMinIdleSeniorWad(uint256) (contracts/src/core/modules/CoreGovernance.sol#113-118) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- require(bool,error)(newFloor >= policy.minIdleSeniorWad && newFloor <= WAD,revert TimelockIsRiskDecreasing()()) (contracts/src/core/modules/CoreGovernance.sol#114)\n",
+  "triage": "tooling limitation: day-scale windows"
+ },
+ {
+  "id": "432520cbe659d319d30e53c1b9ca052d75c8cb91ea615bf2eb6c7e9215a44a9d",
+  "check": "timestamp",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "CoreGovernance.lowerAMaxWad(uint256) (contracts/src/core/modules/CoreGovernance.sol#105-110) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- require(bool,error)(newAMax <= policy.aMaxWad && newAMax >= policy.covWad,revert TimelockIsRiskDecreasing()()) (contracts/src/core/modules/CoreGovernance.sol#106)\n",
+  "triage": "tooling limitation: day-scale windows"
+ },
+ {
+  "id": "43e9a884ba64cefc28c9ce874b889fb744886fb2cc202c33582eca1e4f717325",
+  "check": "timestamp",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "SeriesFactory._consumeTimelock(bytes32) (contracts/src/series/SeriesFactory.sol#184-189) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- require(bool,error)(change.active && block.timestamp >= change.executableAt,revert TimelockNotElapsed()()) (contracts/src/series/SeriesFactory.sol#186)\n\t- require(bool,error)(change.epoch == governanceEpoch,revert StaleChange(bytes32)(id)) (contracts/src/series/SeriesFactory.sol#187)\n",
+  "triage": "tooling limitation: day-scale windows"
+ },
+ {
+  "id": "4a1dda7608d7766c904decf650f27ee9ebc8e31981804b68c806163cfd48bf82",
+  "check": "timestamp",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "SeriesFactory.checkEligibility(bytes32[]) (contracts/src/series/SeriesFactory.sol#222-269) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- require(bool,error)(market.maturity <= block.timestamp + TENOR_TIER_DURATION || lltv <= TENOR_TIER_MAX_LLTV_WAD,revert IneligibleMarket(bytes32,uint8)(id,8)) (contracts/src/series/SeriesFactory.sol#257-260)\n",
+  "triage": "tooling limitation: day-scale maturities, timelocks and the 91-day tenor tier"
+ },
+ {
+  "id": "4c078ea8e657c3f32c73d4e176725084a153d8ef59fabb1fd26d24ffd52d9b3d",
+  "check": "timestamp",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "CoreSeriesLifecycle._trackRecovering(address) (contracts/src/core/modules/CoreSeriesLifecycle.sol#204-208) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- isRecovering[seriesAddr] || recoveringSeries.length >= policy.maxRecovering (contracts/src/core/modules/CoreSeriesLifecycle.sol#205)\n",
+  "triage": "tooling limitation: no block timestamp read; struct field executableAt misattributed"
+ },
+ {
+  "id": "5fdb5ba53fd4e2364a657e2a24b69f59d6f30acd904cc54c679d00398e2fb1c5",
+  "check": "timestamp",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "CoreGovernance.raiseCovVaultMinWad(uint256) (contracts/src/core/modules/CoreGovernance.sol#137-142) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- require(bool,error)(newFloor >= policy.covVaultMinWad && newFloor < WAD,revert TimelockIsRiskDecreasing()()) (contracts/src/core/modules/CoreGovernance.sol#138)\n",
+  "triage": "tooling limitation: day-scale windows"
+ },
+ {
+  "id": "6c3ad9ed53ec21bd603565601c64905a3c23864c0da11f2ca4e2ae237683a142",
+  "check": "timestamp",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "CoreGovernance.executePolicyChange(bytes32) (contracts/src/core/modules/CoreGovernance.sol#65-74) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- require(bool,error)(change.active && block.timestamp >= change.executableAt,revert TimelockNotElapsed()()) (contracts/src/core/modules/CoreGovernance.sol#67)\n\t- require(bool,error)(change.epoch == curatorEpoch,revert StalePolicyChange(bytes32)(key)) (contracts/src/core/modules/CoreGovernance.sol#68)\n",
+  "triage": "tooling limitation: day-scale windows"
+ },
+ {
+  "id": "7244edd74bcec02b7151dd44aab512fdcea993f7551d818738f24c8e409df456",
+  "check": "timestamp",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "CoreGovernance._requirePolicyInRange(bytes32,uint256) (contracts/src/core/modules/CoreGovernance.sol#182-215) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- ok = v >= 0.05e18 && v <= 0.5e18 (contracts/src/core/modules/CoreGovernance.sol#185)\n\t- ok = v > 0 && v < WAD (contracts/src/core/modules/CoreGovernance.sol#187)\n\t- ok = v > 0 && v < WAD (contracts/src/core/modules/CoreGovernance.sol#189)\n\t- ok = v < WAD (contracts/src/core/modules/CoreGovernance.sol#191)\n\t- ok = v < WAD (contracts/src/core/modules/CoreGovernance.sol#193)\n\t- ok = v <= 0.2e18 (contracts/src/core/modules/CoreGovernance.sol#195)\n\t- ok = v > 0 && v <= WAD (contracts/src/core/modules/CoreGovernance.sol#197)\n\t- ok = v <= WAD (contracts/src/core/modules/CoreGovernance.sol#203)\n\t- ok = v <= 1 (contracts/src/core/modules/CoreGovernance.sol#205)\n\t- require(bool,error)(ok,revert PolicyOutOfRange(bytes32,uint256)(key,v)) (contracts/src/core/modules/CoreGovernance.sol#214)\n",
+  "triage": "tooling limitation: no block timestamp read; struct field executableAt misattributed"
+ },
+ {
+  "id": "7a9cda5a5399005a8db5ae235841a7dfbe68e7856e14680cd825df6acf6d6924",
+  "check": "timestamp",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "SeriesFactory.cancelChange(bytes32) (contracts/src/series/SeriesFactory.sol#178-182) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- require(bool,error)(pendingChanges[id].active,revert TimelockNotElapsed()()) (contracts/src/series/SeriesFactory.sol#179)\n",
+  "triage": "tooling limitation: no block timestamp read; struct field executableAt misattributed"
+ },
+ {
+  "id": "846963f37a2e3c171e6e2a3ccc1c4f1da4f8195adca91d04ef182d9fb288663f",
+  "check": "timestamp",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "CoreGovernance.lowerMaxSeries(uint256) (contracts/src/core/modules/CoreGovernance.sol#89-94) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- require(bool,error)(newMax <= policy.maxSeries,revert TimelockIsRiskDecreasing()()) (contracts/src/core/modules/CoreGovernance.sol#90)\n",
+  "triage": "tooling limitation: day-scale windows"
+ },
+ {
+  "id": "8e1c0bbf7a1ea9668ac1676e548d65a4c37b4f95514dbb4829dfb1ea8c461c37",
+  "check": "timestamp",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "CoreGovernance.lowerMaxPerSeriesAssets(uint256) (contracts/src/core/modules/CoreGovernance.sol#97-102) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- require(bool,error)(newMax <= policy.maxPerSeriesAssets,revert TimelockIsRiskDecreasing()()) (contracts/src/core/modules/CoreGovernance.sol#98)\n",
+  "triage": "tooling limitation: day-scale windows"
+ },
+ {
+  "id": "9ad8d7b2a2eaed2a2ec955cd95105eaca5cfa0a93b06c8402eadbc88fba79bb1",
+  "check": "timestamp",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "CoreGovernance.raiseStressJuniorFloorWad(uint256) (contracts/src/core/modules/CoreGovernance.sol#129-134) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- require(bool,error)(newFloor >= policy.stressJuniorFloorWad && newFloor <= WAD,revert TimelockIsRiskDecreasing()()) (contracts/src/core/modules/CoreGovernance.sol#130)\n",
+  "triage": "tooling limitation: day-scale windows"
+ },
+ {
+  "id": "dee585ee11a7bd7e2b2b6be31c67e4a879d7e585f74ca05b2a213f69d5a7febd",
+  "check": "timestamp",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "CoreGovernance._writePolicy(bytes32,uint256) (contracts/src/core/modules/CoreGovernance.sol#151-173) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- policy.backstopEnabled = value != 0 (contracts/src/core/modules/CoreGovernance.sol#168)\n",
+  "triage": "tooling limitation: day-scale windows"
+ },
+ {
+  "id": "e8d88b8e49940d7d5b39511098ff7d46998a74a5f31d7ac4caebc36c0ff1028a",
+  "check": "timestamp",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "CoreSeriesLifecycle._requireParamsBound(SeriesParams) (contracts/src/core/modules/CoreSeriesLifecycle.sol#123-138) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- require(bool,error)(p.covWad == policy.covWad && p.pi0Wad == policy.pi0Wad && p.piTWad == policy.piTWad && p.pi1Wad == policy.pi1Wad && p.thetaWad == policy.thetaWad,revert PolicyMismatch()()) (contracts/src/core/modules/CoreSeriesLifecycle.sol#127-131)\n\t- require(bool,error)(p.rateFloorWad[i] >= policy.minRateFloorWad,revert RateFloorBelowMin(uint256)(i)) (contracts/src/core/modules/CoreSeriesLifecycle.sol#134)\n\t- require(bool,error)(p.kMinAssets <= maxKMinAssets,revert KMinAboveCap()()) (contracts/src/core/modules/CoreSeriesLifecycle.sol#136)\n",
+  "triage": "tooling limitation: day-scale windows"
+ },
+ {
+  "id": "f28c5f97c2324fc441134a83b52b01bdb19851b9d6953a7a0d1bdd93bca5e150",
+  "check": "timestamp",
+  "impact": "Low",
+  "confidence": "Medium",
+  "description": "CoreGovernance._requirePolicyConsistent() (contracts/src/core/modules/CoreGovernance.sol#218-222) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- require(bool,error)(p.covWad <= p.aMaxWad,revert PolicyOutOfRange(bytes32,uint256)(keccak256(bytes)(aMaxWad),p.aMaxWad)) (contracts/src/core/modules/CoreGovernance.sol#220)\n\t- require(bool,error)(p.pi0Wad <= p.piTWad && p.piTWad <= p.pi1Wad,revert PolicyOutOfRange(bytes32,uint256)(keccak256(bytes)(piTWad),p.piTWad)) (contracts/src/core/modules/CoreGovernance.sol#221)\n",
+  "triage": "tooling limitation: no block timestamp read; struct field executableAt misattributed"
+ },
+ {
+  "id": "0b3f9294ccf3a08642e38c5fb92dd85c3b960c483a13a457d05a9eab39b68e81",
+  "check": "costly-loop",
+  "impact": "Informational",
+  "confidence": "Medium",
+  "description": "CoreSeriesLifecycle.pruneSeries() (contracts/src/core/modules/CoreSeriesLifecycle.sol#95-121) has costly operations inside a loop:\n\t- liveSeries.pop() (contracts/src/core/modules/CoreSeriesLifecycle.sol#104)\n",
+  "triage": "tooling limitation: informational, see triage doc"
+ },
+ {
+  "id": "e0180bb4f9d51238820aa2fa070eb118f17a0e43c2326f0961ec5de9c67c07ae",
+  "check": "costly-loop",
+  "impact": "Informational",
+  "confidence": "Medium",
+  "description": "CoreSeriesLifecycle.pruneSeries() (contracts/src/core/modules/CoreSeriesLifecycle.sol#95-121) has costly operations inside a loop:\n\t- recoveringSeries.pop() (contracts/src/core/modules/CoreSeriesLifecycle.sol#116)\n",
+  "triage": "tooling limitation: informational, see triage doc"
+ },
+ {
+  "id": "69dba54e02f0193f3747fadeef62547f8fc805a9b6b1609282a2ccdf337ac945",
+  "check": "low-level-calls",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Low level call in SeriesFactory._decimalsOf(address) (contracts/src/series/SeriesFactory.sol#271-275):\n\t- (ok,data) = token.staticcall(abi.encodeWithSignature(decimals())) (contracts/src/series/SeriesFactory.sol#272)\n",
+  "triage": "tooling limitation: informational, see triage doc"
+ },
+ {
+  "id": "1034672b897acf51659b0b4374b28e33cf39e26b023032dbd9222eece5f48f42",
+  "check": "naming-convention",
+  "impact": "Informational",
+  "confidence": "High",
+  "description": "Variable MorphoParking.FACTORY (contracts/src/parking/MorphoParking.sol#50) is not in mixedCase\n",
+  "triage": "confirmed property: immutable named in caps like USDC and VAULT"
  }
 ]

@@ -5,6 +5,7 @@
 pragma solidity 0.8.34;
 
 import {ScenarioBase} from "./ScenarioBase.t.sol";
+import {USDCSeniorDeposits} from "../../src/vaults/senior/USDCSeniorDeposits.sol";
 import {CreditSeries} from "../../src/series/CreditSeries.sol";
 import {SeriesState} from "../../src/interfaces/ISeries.sol";
 import {SeriesMath} from "../../src/libraries/SeriesMath.sol";
@@ -42,7 +43,7 @@ contract S4_StuckMarketTest is ScenarioBase {
         vm.prank(seniorDepositor);
         usdc.approve(address(seniorVault), 1);
         vm.prank(seniorDepositor);
-        vm.expectRevert();
+        vm.expectRevert(USDCSeniorDeposits.StressGateClosed.selector);
         seniorVault.deposit(1, seniorDepositor);
 
         vm.warp(block.timestamp + 10 days);

@@ -28,7 +28,7 @@ Governance, gating and some operating parameters are deliberately simple in this
 | Vaults | `USDCSeniorVault`, `USDCJuniorVault` (with `USDCVaultBase`) | Share ledgers over the core's books. Senior deposits are synchronous (ERC-4626). Junior deposits and all exits are batched (ERC-7540 requests with ERC-7887 cancels). |
 | Core | `SeriesCore` | Single custody. Keeps a senior book and a junior book as claims on one parking position, a series registry, capacity and coverage rules, the stress gate, the cross-series backstop and the policy timelock. |
 | Engine | `SeriesFactory`, `CreditSeries` (one per maturity) | Eligibility checks, offers and fills on Midnight, finalize and pricing, collection, settlement, write-off and waterfall payouts. |
-| Parking | `BlueParking`, `MorphoParking`, `IdleParking` behind `IParking` | Holds idle USDC. `BlueParking` lends it directly in one Morpho Blue market whose collateral, threshold and oracle match the series markets. `MorphoParking` wraps an ERC-4626 vault. `IdleParking` holds plain USDC. |
+| Parking | `BlueParking`, `MorphoParking`, `IdleParking` behind `IParking` | Holds idle USDC. `BlueParking` lends it directly in one Morpho Blue market whose collateral, threshold and oracle match the series markets. `MorphoParking` wraps an ERC-4626 vault. Both lending adapters accept only the core and its registered series. `IdleParking` holds plain USDC. |
 
 Value flows down through `openSeries` and back up through `receiveReturn` (at finalize or cancel) and `receivePayout` (on every waterfall run). The vaults hold no assets.
 
@@ -69,7 +69,7 @@ The full model, with every rounding direction and its audit, is in [`docs/arithm
 ## Loss order
 
 1. **Inside a series:** the waterfall. Junior absorbs every loss up to the cushion; senior only beyond it.
-2. **Across series:** a cross-series backstop, on by default. A senior shortfall in a settled series is reduced using up to 50% of junior's idle cash; a shortfall larger than that remains senior's loss.
+2. **Across series:** a cross-series backstop, on by default. A senior shortfall in a settled series is reduced using up to 50% of junior's idle cash; a shortfall larger than that remains senior's loss. If later recoveries pay senior past its claim, the excess goes back to junior until the backstop is repaid.
 3. **On idle cash:** junior first. A fall in the parking position's value moves claims from the junior book to the senior book until senior is back to its value at the last settlement point, limited by junior's idle. Gains are shared pro rata. The settlement point advances on every book-changing call and on the permissionless `syncAll`.
 
 While any live series' junior value is below half its deployed junior, the stress gate closes senior deposits.
@@ -98,7 +98,7 @@ A market is accepted into a series only if:
 | Live series, per-series size | 12, 1,000,000 USDC |
 | Markets per basket | deployment parameter, hard cap 8 |
 | Exit batches | permissionless close after 7 days, permissionless fill after 3 more, cancel 14 days after close |
-| Policy timelocks | curator policy 3 days; factory allowlists 48 hours |
+| Policy timelocks | curator policy 3 days, each value range-checked; factory allowlists 48 hours. A queued change can be vetoed, and it lapses when the role that queued it is replaced. |
 | Blue parking raw buffer | deployment parameter; 5% in the fork tests |
 
 ## Secondary in this build
@@ -109,7 +109,7 @@ These parts work and are tested, but they are simpler than a production release 
 - **Curator alignment.** The 10% junior holding is enforced only on the curator's own exit requests. `jrUSDC` remains transferable.
 - **Idle floor.** The floor is a fixed share of each book, not sized to measured flows.
 - **Borrower buffer.** The rule on mean borrower loan to value is evaluated off chain by the allocator and recorded with the series; it is not checked on chain.
-- **Recovering list.** If the list of settled series awaiting recoveries is full, a further written-off series is not tracked and the stress gate does not see it. The curator keeps `maxRecovering` above the number of live series.
+- **Recovering list.** Each written-off series takes one slot in the list of settled series awaiting recoveries. If the list is full, a further written-off series is not tracked and the stress gate does not see it. The curator keeps `maxRecovering` above the number of live series.
 - **Operator fill timing.** A batch filled by the curator or allocator before an unrealized loss is realized pays the pre-loss price. Operators should not fill batches while the stress gate is closed or a live position is unhealthy; this is operating policy, not enforced on chain.
 - **Oracle.** The cbBTC oracle prices cbBTC as BTC and cannot see a de-peg. Midnight reads its price feed without a staleness check.
 
@@ -119,9 +119,9 @@ These parts work and are tested, but they are simpler than a production release 
 |---|---|
 | Senior and junior depositors | Deposit, request exits, cancel, claim |
 | Allocator | Open series within policy, register offers, take asks, finalize early, cancel an unfilled series, close and fill batches |
-| Curator | Set risk policy through a timelock (risk-reducing moves are instant), close and fill batches, pause, move Blue parking to cash. Its own junior exits may not take it below 10% of `jrUSDC` supply. |
-| Sentinel | Risk-reducing only: pause, lower caps, raise floors, disable the backstop, cancel an unfilled series, move Blue parking to cash |
-| Governance | Factory allowlists (collateral, oracles, maximum threshold, markets per basket) behind a 48-hour timelock, role wiring, unpause |
+| Curator | Set risk policy through a timelock (risk-reducing moves are instant and drop any queued change to the same value), veto a queued change, close and fill batches, pause, move Blue parking to cash. Its own junior exits may not take it below 10% of `jrUSDC` supply. |
+| Sentinel | Risk-reducing only: veto a queued policy change, pause, lower caps, raise floors, disable the backstop, cancel an unfilled series, move Blue parking to cash |
+| Governance | Factory allowlists (collateral, oracles, maximum threshold, markets per basket) behind a 48-hour timelock and cancelable, veto a queued policy change, role wiring, unpause |
 | Keeper (anyone) | Every deadline has a permissionless path: finalize after the deployment window, start settlement, collect, settle, write off, close and fill batches after their windows, sync |
 
 ## Build and test

@@ -26,67 +26,67 @@
   [
    "Address State Variable Set Without Checks",
    "contracts/src/core/modules/CoreGovernance.sol",
-   32
+   33
   ],
   [
    "Address State Variable Set Without Checks",
    "contracts/src/core/modules/CoreGovernance.sol",
-   37
+   39
   ],
   [
    "Address State Variable Set Without Checks",
    "contracts/src/core/modules/CoreStorage.sol",
-   168
+   177
   ],
   [
    "Address State Variable Set Without Checks",
    "contracts/src/core/modules/CoreStorage.sol",
-   169
+   178
   ],
   [
    "Address State Variable Set Without Checks",
    "contracts/src/core/modules/CoreStorage.sol",
-   170
+   179
   ],
   [
    "Address State Variable Set Without Checks",
    "contracts/src/core/modules/CoreStorage.sol",
-   171
+   180
   ],
   [
    "Address State Variable Set Without Checks",
    "contracts/src/core/modules/CoreStorage.sol",
+   181
+  ],
+  [
+   "Address State Variable Set Without Checks",
+   "contracts/src/series/SeriesFactory.sol",
+   86
+  ],
+  [
+   "Address State Variable Set Without Checks",
+   "contracts/src/series/SeriesFactory.sol",
+   96
+  ],
+  [
+   "Address State Variable Set Without Checks",
+   "contracts/src/series/SeriesFactory.sol",
    172
   ],
   [
-   "Address State Variable Set Without Checks",
-   "contracts/src/series/SeriesFactory.sol",
-   83
-  ],
-  [
-   "Address State Variable Set Without Checks",
-   "contracts/src/series/SeriesFactory.sol",
-   93
-  ],
-  [
-   "Address State Variable Set Without Checks",
-   "contracts/src/series/SeriesFactory.sol",
-   169
+   "Costly operations inside loop",
+   "contracts/src/core/modules/CoreSeriesLifecycle.sol",
+   97
   ],
   [
    "Costly operations inside loop",
    "contracts/src/core/modules/CoreSeriesLifecycle.sol",
-   101
+   112
   ],
   [
    "Costly operations inside loop",
    "contracts/src/core/modules/CoreSeriesLifecycle.sol",
-   118
-  ],
-  [
-   "Costly operations inside loop",
-   "contracts/src/core/modules/CoreSeriesLifecycle.sol",
-   188
+   212
   ],
   [
    "Costly operations inside loop",
@@ -111,32 +111,12 @@
   [
    "Literal Instead of Constant",
    "contracts/src/core/modules/CoreStorage.sol",
-   176
+   185
   ],
   [
    "Literal Instead of Constant",
    "contracts/src/core/modules/CoreStorage.sol",
-   178
-  ],
-  [
-   "Literal Instead of Constant",
-   "contracts/src/core/modules/CoreStorage.sol",
-   179
-  ],
-  [
-   "Literal Instead of Constant",
-   "contracts/src/core/modules/CoreStorage.sol",
-   180
-  ],
-  [
-   "Literal Instead of Constant",
-   "contracts/src/core/modules/CoreStorage.sol",
-   181
-  ],
-  [
-   "Literal Instead of Constant",
-   "contracts/src/core/modules/CoreStorage.sol",
-   183
+   187
   ],
   [
    "Literal Instead of Constant",
@@ -156,47 +136,72 @@
   [
    "Literal Instead of Constant",
    "contracts/src/core/modules/CoreStorage.sol",
-   191
+   192
   ],
   [
    "Literal Instead of Constant",
    "contracts/src/core/modules/CoreStorage.sol",
-   193
-  ],
-  [
-   "Literal Instead of Constant",
-   "contracts/src/core/modules/CoreStorage.sol",
-   194
-  ],
-  [
-   "Literal Instead of Constant",
-   "contracts/src/series/SeriesFactory.sol",
-   135
-  ],
-  [
-   "Literal Instead of Constant",
-   "contracts/src/series/SeriesFactory.sol",
    197
   ],
   [
    "Literal Instead of Constant",
-   "contracts/src/series/SeriesFactory.sol",
-   232
+   "contracts/src/core/modules/CoreStorage.sol",
+   198
+  ],
+  [
+   "Literal Instead of Constant",
+   "contracts/src/core/modules/CoreStorage.sol",
+   199
+  ],
+  [
+   "Literal Instead of Constant",
+   "contracts/src/core/modules/CoreStorage.sol",
+   200
+  ],
+  [
+   "Literal Instead of Constant",
+   "contracts/src/core/modules/CoreStorage.sol",
+   202
+  ],
+  [
+   "Literal Instead of Constant",
+   "contracts/src/core/modules/CoreStorage.sol",
+   203
   ],
   [
    "Literal Instead of Constant",
    "contracts/src/series/SeriesFactory.sol",
-   237
+   138
   ],
   [
    "Literal Instead of Constant",
    "contracts/src/series/SeriesFactory.sol",
-   238
+   210
   ],
   [
    "Literal Instead of Constant",
    "contracts/src/series/SeriesFactory.sol",
-   239
+   245
+  ],
+  [
+   "Literal Instead of Constant",
+   "contracts/src/series/SeriesFactory.sol",
+   250
+  ],
+  [
+   "Literal Instead of Constant",
+   "contracts/src/series/SeriesFactory.sol",
+   251
+  ],
+  [
+   "Literal Instead of Constant",
+   "contracts/src/series/SeriesFactory.sol",
+   252
+  ],
+  [
+   "Literal Instead of Constant",
+   "contracts/src/series/SeriesFactory.sol",
+   252
   ],
   [
    "Literal Instead of Constant",
@@ -216,7 +221,7 @@
   [
    "Loop Contains `require`/`revert`",
    "contracts/src/core/modules/CoreSeriesLifecycle.sol",
-   138
+   133
   ],
   [
    "Loop Contains `require`/`revert`",
@@ -226,22 +231,22 @@
   [
    "Loop Contains `require`/`revert`",
    "contracts/src/series/SeriesFactory.sol",
-   199
+   212
   ],
   [
    "Loop Contains `require`/`revert`",
    "contracts/src/series/SeriesFactory.sol",
-   221
+   234
   ],
   [
    "Loop Contains `require`/`revert`",
    "contracts/src/series/SeriesFactory.sol",
-   233
+   246
   ],
   [
    "Loop Contains `require`/`revert`",
    "contracts/src/series/SeriesFactory.sol",
-   250
+   263
   ],
   [
    "Loop Contains `require`/`revert`",
@@ -261,12 +266,12 @@
   [
    "Modifier Invoked Only Once",
    "contracts/src/core/modules/CoreStorage.sol",
-   131
+   140
   ],
   [
    "Modifier Invoked Only Once",
    "contracts/src/series/SeriesFactory.sol",
-   185
+   198
   ],
   [
    "Redundant Statement",
@@ -301,12 +306,7 @@
   [
    "Reentrancy: State change after external call",
    "contracts/src/core/modules/CoreSeriesLifecycle.sol",
-   77
-  ],
-  [
-   "Reentrancy: State change after external call",
-   "contracts/src/core/modules/CoreSeriesLifecycle.sol",
-   103
+   99
   ],
   [
    "Reentrancy: State change after external call",
@@ -351,7 +351,7 @@
   [
    "Reentrancy: State change after external call",
    "contracts/src/parking/MorphoParking.sol",
-   53
+   78
   ],
   [
    "Reentrancy: State change after external call",
@@ -511,17 +511,17 @@
   [
    "State Change Without Event",
    "contracts/src/core/modules/CoreGovernance.sol",
-   31
+   32
   ],
   [
    "State Change Without Event",
    "contracts/src/core/modules/CoreGovernance.sol",
-   36
+   38
   ],
   [
    "State Change Without Event",
    "contracts/src/core/modules/CoreSeriesLifecycle.sol",
-   99
+   95
   ],
   [
    "State Change Without Event",
@@ -556,22 +556,22 @@
   [
    "Unchecked Return",
    "contracts/src/core/modules/CoreSeriesLifecycle.sol",
-   93
+   89
   ],
   [
    "Unchecked Return",
    "contracts/src/parking/MorphoParking.sol",
-   146
+   172
   ],
   [
    "Unchecked Return",
    "contracts/src/parking/MorphoParking.sol",
-   153
+   179
   ],
   [
    "Unchecked Return",
    "contracts/src/parking/MorphoParking.sol",
-   162
+   188
   ],
   [
    "Unchecked Return",
@@ -646,17 +646,17 @@
   [
    "Unsafe ERC20 Operation",
    "contracts/src/parking/MorphoParking.sol",
-   69
+   95
   ],
   [
    "Unsafe ERC20 Operation",
    "contracts/src/parking/MorphoParking.sol",
-   82
+   108
   ],
   [
    "Unsafe ERC20 Operation",
    "contracts/src/parking/MorphoParking.sol",
-   145
+   171
   ],
   [
    "Unsafe ERC20 Operation",
