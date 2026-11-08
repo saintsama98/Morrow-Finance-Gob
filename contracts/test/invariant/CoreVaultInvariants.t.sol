@@ -291,6 +291,19 @@ contract CoreVaultInvariantsTest is Test {
         assertLe(core.recoveringSeriesCount(), maxRecovering, "recoveringSeries must never exceed maxRecovering");
     }
 
+    /// A series sits in the recovering list at most once, and the membership flag agrees with the list.
+    function invariant_recoveringListHasNoDuplicates() public view {
+        SeriesCore core = registry.realCore();
+        uint256 n = core.recoveringSeriesCount();
+        for (uint256 i = 0; i < n; i++) {
+            address a = core.recoveringSeries(i);
+            assertTrue(core.isRecovering(a), "listed series not flagged");
+            for (uint256 j = i + 1; j < n; j++) {
+                assertTrue(core.recoveringSeries(j) != a, "a series appears twice in the recovering list");
+            }
+        }
+    }
+
     function invariant_seriesCustodyBoundToCoreParking() public view {
         SeriesCore core = registry.realCore();
         address coreParking = address(core.PARKING());

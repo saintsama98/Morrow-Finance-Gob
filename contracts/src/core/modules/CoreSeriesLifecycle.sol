@@ -77,9 +77,7 @@ abstract contract CoreSeriesLifecycle is CoreVaultFlows {
         if (uint8(s.state()) == uint8(SeriesState.SETTLED)) {
             bool stillRecovering = _hasWrittenOffCredit(s);
             _removeLive(msg.sender);
-            if (stillRecovering && recoveringSeries.length < policy.maxRecovering) {
-                recoveringSeries.push(msg.sender);
-            }
+            if (stillRecovering) _trackRecovering(msg.sender);
         }
 
         emit PayoutReceived(msg.sender, toSenior, toJunior);
@@ -106,9 +104,7 @@ abstract contract CoreSeriesLifecycle is CoreVaultFlows {
                 address addr = liveSeries[i];
                 liveSeries[i] = liveSeries[liveSeries.length - 1];
                 liveSeries.pop();
-                if (stillRecovering && recoveringSeries.length < policy.maxRecovering) {
-                    recoveringSeries.push(addr);
-                }
+                if (stillRecovering) _trackRecovering(addr);
             } else {
                 i++;
             }
@@ -117,6 +113,7 @@ abstract contract CoreSeriesLifecycle is CoreVaultFlows {
         uint256 j;
         while (j < recoveringSeries.length) {
             if (!_hasWrittenOffCredit(CreditSeries(recoveringSeries[j]))) {
+                isRecovering[recoveringSeries[j]] = false;
                 recoveringSeries[j] = recoveringSeries[recoveringSeries.length - 1];
                 recoveringSeries.pop();
             } else {
@@ -181,6 +178,12 @@ abstract contract CoreSeriesLifecycle is CoreVaultFlows {
         backstopPaid[seriesAddr] += backstop;
 
         emit Backstop(seriesAddr, backstop);
+    }
+
+    function _trackRecovering(address seriesAddr) internal {
+        if (isRecovering[seriesAddr] || recoveringSeries.length >= policy.maxRecovering) return;
+        isRecovering[seriesAddr] = true;
+        recoveringSeries.push(seriesAddr);
     }
 
     function _removeLive(address seriesAddr) internal {

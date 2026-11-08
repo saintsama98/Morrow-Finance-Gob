@@ -123,6 +123,7 @@ abstract contract CoreStorage {
     address[] public recoveringSeries;
     mapping(address => SeriesInfo) public info;
     mapping(address => uint256) public backstopPaid;
+    mapping(address => bool) public isRecovering;
 
     Policy public policy;
     uint256 public maxKMinAssets;

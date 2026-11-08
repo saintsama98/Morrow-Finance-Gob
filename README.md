@@ -109,7 +109,7 @@ These parts work and are tested, but they are simpler than a production release 
 - **Curator alignment.** The 10% junior holding is enforced only on the curator's own exit requests. `jrUSDC` remains transferable.
 - **Idle floor.** The floor is a fixed share of each book, not sized to measured flows.
 - **Borrower buffer.** The rule on mean borrower loan to value is evaluated off chain by the allocator and recorded with the series; it is not checked on chain.
-- **Recovering list.** If the list of settled series awaiting recoveries is full, a further written-off series is not tracked and the stress gate does not see it. The curator keeps `maxRecovering` above the number of live series.
+- **Recovering list.** Each written-off series takes one slot in the list of settled series awaiting recoveries. If the list is full, a further written-off series is not tracked and the stress gate does not see it. The curator keeps `maxRecovering` above the number of live series.
 - **Operator fill timing.** A batch filled by the curator or allocator before an unrealized loss is realized pays the pre-loss price. Operators should not fill batches while the stress gate is closed or a live position is unhealthy; this is operating policy, not enforced on chain.
 - **Oracle.** The cbBTC oracle prices cbBTC as BTC and cannot see a de-peg. Midnight reads its price feed without a staleness check.
 
