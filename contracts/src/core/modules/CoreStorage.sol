@@ -57,7 +57,6 @@ abstract contract CoreStorage {
     event BackstopRefunded(address indexed series, uint256 assets);
     event PolicyCanceled(bytes32 indexed key);
     event Synced(uint256 seniorAssets, uint256 juniorAssets);
-    event StressGate(bool open);
     event VaultsSet(address seniorVault, address juniorVault);
     event PolicySubmitted(bytes32 indexed key, uint256 value, uint256 executableAt);
     event PolicyExecuted(bytes32 indexed key, uint256 value);

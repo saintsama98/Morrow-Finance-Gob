@@ -167,7 +167,7 @@ python3 -c "import json;k=lambda d:{(i['title'],x['contract_path'],x['line_no'])
 
 | Tool | Results | Open |
 |---|---|---|
-| Slither | 211 in the current run, each classified | 0 |
+| Slither | 219 in the current run, each classified | 0 |
 | Aderyn | 135 instances | 0 new |
 
 The High results and why they stand:

@@ -5,6 +5,7 @@
 pragma solidity 0.8.34;
 
 import {ScenarioBase} from "./ScenarioBase.t.sol";
+import {USDCSeniorDeposits} from "../../src/vaults/senior/USDCSeniorDeposits.sol";
 
 contract S13_JuniorMassRedemptionTest is ScenarioBase {
     address juniorDepositor = makeAddr("juniorDepositor");
@@ -56,7 +57,7 @@ contract S13_JuniorMassRedemptionTest is ScenarioBase {
         vm.prank(seniorDepositor);
         usdc.approve(address(seniorVault), 1);
         vm.prank(seniorDepositor);
-        vm.expectRevert();
+        vm.expectRevert(USDCSeniorDeposits.CapacityExceeded.selector);
         seniorVault.deposit(1, seniorDepositor);
     }
 }
