@@ -58,9 +58,9 @@ contract MorrowCrytic {
     constructor() {
         usdc = new MockUSDC();
         venue = new MockMorphoVault(usdc);
-        parking = new MorphoParking(address(usdc), address(venue), 0.1e18);
         factory =
             new SeriesFactory(IMidnightMinimal(address(0x1)), address(0x2), address(usdc), address(this), 0.86e18, 4);
+        parking = new MorphoParking(address(usdc), address(venue), 0.1e18, address(factory));
         curator = new CryticActor();
         core = new SeriesCore(
             address(usdc),

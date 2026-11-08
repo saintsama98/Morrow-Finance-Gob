@@ -9,6 +9,18 @@ import {IERC20Like} from "../interfaces/IERC20Like.sol";
 import {IERC4626Like} from "../interfaces/IERC4626Like.sol";
 import {WadMath} from "../libraries/WadMath.sol";
 
+/// @notice The part of the series factory the adapter reads.
+interface IMorphoParkingFactoryLike {
+    /// @notice Core address.
+    function core() external view returns (address);
+}
+
+/// @notice The part of the core the adapter reads.
+interface IMorphoParkingCoreLike {
+    /// @notice Series registry entry; the last field is whether the address is a registered series.
+    function info(address series) external view returns (uint256, uint256, uint256, bool);
+}
+
 /// @notice Parking that lends idle cash through an ERC-4626 vault, with a raw USDC buffer.
 contract MorphoParking is IParking {
     using WadMath for uint256;
@@ -21,6 +33,7 @@ contract MorphoParking is IParking {
     error Reentrancy();
     error ZeroShares();
     error TransferFailed();
+    error NotAuthorized();
 
     event Deposited(address indexed account, uint256 assets, uint256 shares);
     event Withdrawn(address indexed account, address indexed to, uint256 assets, uint256 shares);
@@ -34,6 +47,7 @@ contract MorphoParking is IParking {
 
     IERC20Like public immutable USDC;
     IERC4626Like public immutable VAULT;
+    IMorphoParkingFactoryLike public immutable FACTORY;
     uint256 public immutable BUFFER_WAD;
 
     mapping(address account => uint256) public sharesOf;
@@ -48,17 +62,29 @@ contract MorphoParking is IParking {
         _lock = 1;
     }
 
-    constructor(address usdc, address vault, uint256 bufferWad) {
-        require(usdc != address(0) && vault != address(0), ZeroAddress());
+    /// @dev Only the core and its registered series may hold a position, because withdrawals tolerate a rounding
+    /// gap of DUST_ASSETS that is paid by the other accounts.
+    modifier onlyMorrow() {
+        address core = FACTORY.core();
+        if (msg.sender != core) {
+            (,,, bool registered) = IMorphoParkingCoreLike(core).info(msg.sender);
+            require(registered, NotAuthorized());
+        }
+        _;
+    }
+
+    constructor(address usdc, address vault, uint256 bufferWad, address factory) {
+        require(usdc != address(0) && vault != address(0) && factory != address(0), ZeroAddress());
         require(IERC4626Like(vault).asset() == usdc, AssetMismatch());
         require(bufferWad <= WAD, InvalidBuffer());
         USDC = IERC20Like(usdc);
         VAULT = IERC4626Like(vault);
+        FACTORY = IMorphoParkingFactoryLike(factory);
         BUFFER_WAD = bufferWad;
     }
 
     /// @notice Parks assets for the caller and invests the excess over the buffer.
-    function deposit(uint256 assets) external nonReentrant {
+    function deposit(uint256 assets) external nonReentrant onlyMorrow {
         if (assets == 0) return;
         uint256 pool = poolAssets();
         uint256 shares = assets.mulDivDown(totalShares + VIRTUAL_SHARES, pool + 1);
@@ -73,7 +99,7 @@ contract MorphoParking is IParking {
     }
 
     /// @notice Withdraws the caller's assets, pulling from the vault if the buffer is short.
-    function withdraw(uint256 assets, address to) external nonReentrant {
+    function withdraw(uint256 assets, address to) external nonReentrant onlyMorrow {
         if (assets == 0) return;
         require(to != address(0), ZeroAddress());
         uint256 shares = _burnFor(msg.sender, assets);
@@ -86,7 +112,7 @@ contract MorphoParking is IParking {
     }
 
     /// @notice Moves part of the caller's position to another account.
-    function transferPosition(address to, uint256 assets) external nonReentrant {
+    function transferPosition(address to, uint256 assets) external nonReentrant onlyMorrow {
         if (assets == 0) return;
         require(to != address(0), ZeroAddress());
         uint256 shares = _burnFor(msg.sender, assets);

@@ -16,7 +16,7 @@ contract SeriesRegistryMorphoParking is SeriesRegistry {
 
     function _deployParking() internal override returns (IParking) {
         morphoVault = new MockMorphoVault(usdc);
-        return new MorphoParking(address(usdc), address(morphoVault), BUFFER_WAD);
+        return new MorphoParking(address(usdc), address(morphoVault), BUFFER_WAD, address(realFactory));
     }
 
     function morphoParkingAdapter() external view returns (MorphoParking) {
