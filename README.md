@@ -98,7 +98,7 @@ A market is accepted into a series only if:
 | Live series, per-series size | 12, 1,000,000 USDC |
 | Markets per basket | deployment parameter, hard cap 8 |
 | Exit batches | permissionless close after 7 days, permissionless fill after 3 more, cancel 14 days after close |
-| Policy timelocks | curator policy 3 days; factory allowlists 48 hours |
+| Policy timelocks | curator policy 3 days, each value range-checked; factory allowlists 48 hours. A queued change can be vetoed, and it lapses when the role that queued it is replaced. |
 | Blue parking raw buffer | deployment parameter; 5% in the fork tests |
 
 ## Secondary in this build
@@ -119,9 +119,9 @@ These parts work and are tested, but they are simpler than a production release 
 |---|---|
 | Senior and junior depositors | Deposit, request exits, cancel, claim |
 | Allocator | Open series within policy, register offers, take asks, finalize early, cancel an unfilled series, close and fill batches |
-| Curator | Set risk policy through a timelock (risk-reducing moves are instant), close and fill batches, pause, move Blue parking to cash. Its own junior exits may not take it below 10% of `jrUSDC` supply. |
-| Sentinel | Risk-reducing only: pause, lower caps, raise floors, disable the backstop, cancel an unfilled series, move Blue parking to cash |
-| Governance | Factory allowlists (collateral, oracles, maximum threshold, markets per basket) behind a 48-hour timelock, role wiring, unpause |
+| Curator | Set risk policy through a timelock (risk-reducing moves are instant and drop any queued change to the same value), veto a queued change, close and fill batches, pause, move Blue parking to cash. Its own junior exits may not take it below 10% of `jrUSDC` supply. |
+| Sentinel | Risk-reducing only: veto a queued policy change, pause, lower caps, raise floors, disable the backstop, cancel an unfilled series, move Blue parking to cash |
+| Governance | Factory allowlists (collateral, oracles, maximum threshold, markets per basket) behind a 48-hour timelock and cancelable, veto a queued policy change, role wiring, unpause |
 | Keeper (anyone) | Every deadline has a permissionless path: finalize after the deployment window, start settlement, collect, settle, write off, close and fill batches after their windows, sync |
 
 ## Build and test

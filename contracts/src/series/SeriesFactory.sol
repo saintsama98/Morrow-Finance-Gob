@@ -48,11 +48,14 @@ contract SeriesFactory {
     struct PendingChange {
         bool active;
         uint256 executableAt;
+        uint256 epoch;
     }
 
     mapping(bytes32 changeId => PendingChange) public pendingChanges;
+    uint256 public governanceEpoch;
 
     event GovernanceUpdated(address indexed newGovernance);
+    event ChangeCanceled(bytes32 indexed changeId);
     event CoreSet(address indexed core);
     event CollateralAllowlistProposed(address indexed token, bool allowed, uint256 executableAt);
     event CollateralAllowlistExecuted(address indexed token, bool allowed);
@@ -98,7 +101,7 @@ contract SeriesFactory {
     function proposeCollateralAllowed(address token, bool allowed) external onlyGovernance returns (bytes32 id) {
         id = keccak256(abi.encode("collateral", token, allowed));
         uint256 executableAt = block.timestamp + TIMELOCK;
-        pendingChanges[id] = PendingChange(true, executableAt);
+        pendingChanges[id] = PendingChange(true, executableAt, governanceEpoch);
         emit CollateralAllowlistProposed(token, allowed, executableAt);
     }
 
@@ -118,7 +121,7 @@ contract SeriesFactory {
     {
         id = keccak256(abi.encode("oracle", token, oracle, allowed));
         uint256 executableAt = block.timestamp + TIMELOCK;
-        pendingChanges[id] = PendingChange(true, executableAt);
+        pendingChanges[id] = PendingChange(true, executableAt, governanceEpoch);
         emit OracleAllowlistProposed(token, oracle, allowed, executableAt);
     }
 
@@ -135,7 +138,7 @@ contract SeriesFactory {
         require(newMaxLltvWad <= HARD_MAX_LLTV_WAD, IneligibleMarket(bytes32(0), 4));
         id = keccak256(abi.encode("maxLltv", newMaxLltvWad));
         uint256 executableAt = block.timestamp + TIMELOCK;
-        pendingChanges[id] = PendingChange(true, executableAt);
+        pendingChanges[id] = PendingChange(true, executableAt, governanceEpoch);
         emit MaxLltvProposed(newMaxLltvWad, executableAt);
     }
 
@@ -152,7 +155,7 @@ contract SeriesFactory {
         require(newMax <= HARD_MAX_MARKETS_PER_SERIES, IneligibleMarket(bytes32(0), 6));
         id = keccak256(abi.encode("maxMarkets", newMax));
         uint256 executableAt = block.timestamp + TIMELOCK;
-        pendingChanges[id] = PendingChange(true, executableAt);
+        pendingChanges[id] = PendingChange(true, executableAt, governanceEpoch);
         emit MaxMarketsPerSeriesProposed(newMax, executableAt);
     }
 
@@ -164,19 +167,29 @@ contract SeriesFactory {
         emit MaxMarketsPerSeriesExecuted(newMax);
     }
 
-    /// @notice Hands factory governance to a new address.
+    /// @notice Hands factory governance to a new address; changes queued before the handover can no longer execute.
     function transferGovernance(address newGovernance) external onlyGovernance {
         governance = newGovernance;
+        governanceEpoch++;
         emit GovernanceUpdated(newGovernance);
+    }
+
+    /// @notice Drops a queued change.
+    function cancelChange(bytes32 id) external onlyGovernance {
+        require(pendingChanges[id].active, TimelockNotElapsed());
+        delete pendingChanges[id];
+        emit ChangeCanceled(id);
     }
 
     function _consumeTimelock(bytes32 id) internal {
         PendingChange memory change = pendingChanges[id];
         require(change.active && block.timestamp >= change.executableAt, TimelockNotElapsed());
+        require(change.epoch == governanceEpoch, StaleChange(id));
         delete pendingChanges[id];
     }
 
     error InvalidCovBand();
+    error StaleChange(bytes32 changeId);
     error InvalidPremiumAnchors();
     error ThetaAboveCeiling();
     error ZeroRateFloor();
