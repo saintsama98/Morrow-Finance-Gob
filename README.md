@@ -69,7 +69,7 @@ The full model, with every rounding direction and its audit, is in [`docs/arithm
 ## Loss order
 
 1. **Inside a series:** the waterfall. Junior absorbs every loss up to the cushion; senior only beyond it.
-2. **Across series:** a cross-series backstop, on by default. A senior shortfall in a settled series is reduced using up to 50% of junior's idle cash; a shortfall larger than that remains senior's loss.
+2. **Across series:** a cross-series backstop, on by default. A senior shortfall in a settled series is reduced using up to 50% of junior's idle cash; a shortfall larger than that remains senior's loss. If later recoveries pay senior past its claim, the excess goes back to junior until the backstop is repaid.
 3. **On idle cash:** junior first. A fall in the parking position's value moves claims from the junior book to the senior book until senior is back to its value at the last settlement point, limited by junior's idle. Gains are shared pro rata. The settlement point advances on every book-changing call and on the permissionless `syncAll`.
 
 While any live series' junior value is below half its deployed junior, the stress gate closes senior deposits.

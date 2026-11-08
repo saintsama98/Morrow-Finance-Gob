@@ -304,6 +304,22 @@ contract CoreVaultInvariantsTest is Test {
         }
     }
 
+    /// The backstop only lends senior the gap to its claim. Whatever the series has paid senior, plus the part of
+    /// the backstop not yet given back, never exceeds the claim, unless senior's idle was too small to refund from.
+    function invariant_backstopNeverOverpaysSenior() public view {
+        SeriesCore core = registry.realCore();
+        (uint256 seniorClaims,,) = core.senior();
+        uint256 n = registry.everSeriesCount();
+        for (uint256 i = 0; i < n; i++) {
+            CreditSeries s = CreditSeries(registry.everSeries(i));
+            uint256 paid = core.backstopPaid(address(s));
+            uint256 refunded = core.backstopRefunded(address(s));
+            assertLe(refunded, paid, "refunded more backstop than was paid");
+            if (paid == 0 || seniorClaims == 0) continue;
+            assertLe(s.paidS() + paid - refunded, s.seniorClaim() + 2, "senior holds more than its claim");
+        }
+    }
+
     function invariant_seriesCustodyBoundToCoreParking() public view {
         SeriesCore core = registry.realCore();
         address coreParking = address(core.PARKING());

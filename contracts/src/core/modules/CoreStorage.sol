@@ -50,6 +50,7 @@ abstract contract CoreStorage {
     event ReturnReceived(address indexed series, uint256 toSenior, uint256 toJunior);
     event PayoutReceived(address indexed series, uint256 toSenior, uint256 toJunior);
     event Backstop(address indexed series, uint256 assets);
+    event BackstopRefunded(address indexed series, uint256 assets);
     event Synced(uint256 seniorAssets, uint256 juniorAssets);
     event StressGate(bool open);
     event VaultsSet(address seniorVault, address juniorVault);
@@ -123,6 +124,7 @@ abstract contract CoreStorage {
     address[] public recoveringSeries;
     mapping(address => SeriesInfo) public info;
     mapping(address => uint256) public backstopPaid;
+    mapping(address => uint256) public backstopRefunded;
     mapping(address => bool) public isRecovering;
 
     Policy public policy;
